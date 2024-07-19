@@ -6,6 +6,8 @@ Welcome to **chatEasy**, the instant messaging application designed to break dow
 
 The purpose of chatEasy is to allow users from different nations to communicate effortlessly. By abstracting the translation process, users can send messages and interact with the application in their native language while receiving responses in a language they understand. This fosters genuine connections and friendships across diverse linguistic backgrounds.
 
+# 🏗️ Structure
+GlobalConnect is organized into the following key components:
 # 🔧 How We Solve the Problem
 
 chatEasy tackles the language barrier challenge with these innovative solutions:
