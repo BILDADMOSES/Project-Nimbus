@@ -7,7 +7,142 @@ Welcome to **chatEasy**, the instant messaging application designed to break dow
 The purpose of chatEasy is to allow users from different nations to communicate effortlessly. By abstracting the translation process, users can send messages and interact with the application in their native language while receiving responses in a language they understand. This fosters genuine connections and friendships across diverse linguistic backgrounds.
 
 # 🏗️ Structure
-GlobalConnect is organized into the following key components:
+The project follows a standard Next.js application structure with additional directories for organization:
+```bash
+/project-nimbus
+    │
+    ├── app/
+    │   ├── (auth)/
+    │   │   ├── signin/
+    │   │   │   └── page.tsx
+    │   │   ├── signup/
+    │   │   │   └── page.tsx
+    │   ├── api/
+    │   │   ├── auth/
+    │   │   │   └── [...nextauth]/
+    │   │   │       └── route.ts
+    │   │   ├── chat/
+    │   │   │   ├── create/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── group/
+    │   │   │   │   └── route.ts
+    │   │   │   ├── invite/
+    │   │   │   │   └── route.ts
+    │   │   │   └── join/
+    │   │   │       └── route.ts
+    │   │   ├── user/
+    │   │   │   ├── language/
+    │   │   │   │   └── route.ts
+    │   │   │   └── profile/
+    │   │   │       └── route.ts
+    │   ├── chat/
+    │   │   ├── ai/
+    │   │   │   └── [sessionId]/
+    │   │   │       └── page.tsx
+    │   │   ├── group/
+    │   │   │   └── [groupId]/
+    │   │   │       └── page.tsx
+    │   │   ├── one-on-one/
+    │   │   │   └── [conversationId]/
+    │   │   │       └── page.tsx
+    │   ├── create-chat/
+    │   │   └── page.tsx
+    │   ├── join-chat/
+    │   │   └── page.tsx
+    │   ├── language-selection/
+    │   │   ├── layout.tsx
+    │   │   └── page.tsx
+    │   ├── profile/
+    │   │   └── page.tsx
+    │   ├── favicon.ico
+    │   ├── globals.css
+    │   ├── layout.tsx
+    │   └── page.tsx
+    │
+    ├── components/
+    │   ├── chat/
+    │   │   ├── Chat.tsx
+    │   │   ├── InvitationForm.tsx
+    │   │   ├── MessageInput.tsx
+    │   │   ├── MessageList.tsx
+    │   │   └── RoomInfoDisplay.tsx
+    │   ├── ChatroomCreator.tsx
+    │   ├── common/
+    │   │   ├── Footer.tsx
+    │   │   ├── Header.tsx
+    │   │   └── LoadingSpinner.tsx
+    │   ├── language/
+    │   │   └── LanguageSelector.tsx
+    │   └── user/
+    │       └── UserProfileForm.tsx
+    │
+    ├── hooks/
+    │   ├── useAIChat.ts
+    │   ├── useAuth.ts
+    │   ├── useTranslation.ts
+    │   └── useWebsocket.ts
+    │
+    ├── lib/
+    │   ├── storage/
+    │   │   ├── firebase.config.ts
+    │   │   └── firebase.ts
+    │   ├── utils/
+    │   │   ├── aiChat.ts
+    │   │   ├── invitationToken.ts
+    │   │   ├── password.ts
+    │   │   ├── translation.ts
+    │   │   └── validation.ts
+    │
+    ├── prisma/
+    │   ├── index.ts
+    │   ├── middleware.ts
+    │   └── schema.prisma
+    │
+    ├── public/
+    │   ├── next.svg
+    │   └── vercel.svg
+    │
+    ├── .env
+    ├── .eslintrc.json
+    ├── .gitignore
+    ├── next-env.d.ts
+    ├── next.config.mjs
+    ├── package-lock.json
+    ├── package.json
+    ├── postcss.config.mjs
+    ├── README.md
+    ├── server.ts
+    ├── server/
+    │   └── websocket.ts
+    ├── tailwind.config.ts
+    ├── tsconfig.json
+    ├── tsconfig.server.json
+    └── types/
+        ├── chat.ts
+        ├── index.ts
+        └── language.ts
+```
+
+- `.env`, `.eslintrc.json`, `.gitignore`: Configuration files
+- `app/`: Next.js app directory
+  - `(auth)/`: Authentication pages (sign-in and sign-up)
+  - `api/`: API routes for authentication, chat, and user management
+  - `chat/`: Chat pages for one-on-one, group, and AI chats
+  - `create-chat/`, `join-chat/`: Pages for creating and joining chats
+  - `language-selection/`: Language selection page and layout
+  - `profile/`: User profile page
+  - `layout.tsx`, `page.tsx`: App-level layout and homepage
+- `components/`: Reusable components for chat, common UI elements, language selection, and user profile
+- `hooks/`: Custom hooks for AI chat, authentication, translation, and websockets
+- `lib/`: Utility functions and Firebase configuration
+- `prisma/`: Prisma schema and middleware
+- `public/`: Public assets (icons and images)
+- `server/`: Server-side code for websockets
+- `types/`: TypeScript type definitions for chat, language, and index
+- `tailwind.config.ts`, `tsconfig.json`, `tsconfig.server.json`: Tailwind CSS and TypeScript configuration files
+
+Please note that the project structure may change as development is ongoing. Always refer to the most recent version of the project for the accurate structure.
+
 # 🔧 How We Solve the Problem
 
 chatEasy tackles the language barrier challenge with these innovative solutions:
