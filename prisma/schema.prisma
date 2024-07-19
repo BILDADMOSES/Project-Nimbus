@@ -53,14 +53,14 @@ model Group {
   name             String
   description      String?
   ownerId          String   @db.ObjectId
-  lastMessageId    String?  @db.ObjectId
+  lastMessageId    String?  @db.ObjectId @unique
   defaultLanguage  String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   owner            User     @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   language         Language @relation(fields: [defaultLanguage], references: [code])
-  lastMessage      Message? @relation("GroupLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  lastMessage      Message? @relation("GroupLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   members          GroupUser[]
   messages         Message[]
   invitations      Invitation[]
@@ -83,13 +83,15 @@ model Message {
   senderId          String   @db.ObjectId
   groupId           String?  @db.ObjectId
   conversationId    String?  @db.ObjectId
+  receiverId        String?  @db.ObjectId
   originalLanguage  String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   sender            User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  group             Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  receiver          User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
+  group             Group?   @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   language          Language @relation(fields: [originalLanguage], references: [code])
   attachments       MessageAttachment[]
   translations      Translation[]
@@ -115,13 +117,13 @@ model Conversation {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   userId1        String   @db.ObjectId
   userId2        String   @db.ObjectId
-  lastMessageId  String?  @db.ObjectId
+  lastMessageId  String?  @db.ObjectId @unique
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   user1          User     @relation("User1", fields: [userId1], references: [id], onDelete: Cascade)
   user2          User     @relation("User2", fields: [userId2], references: [id], onDelete: Cascade)
-  lastMessage    Message? @relation("ConversationLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  lastMessage    Message? @relation("ConversationLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   messages       Message[]
   invitations    Invitation[]
 }
