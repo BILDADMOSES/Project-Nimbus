@@ -16,7 +16,7 @@ chatEasy tackles the language barrier challenge with these innovative solutions:
 
 3) **Seamless Integration**: The translation service is seamlessly integrated into the backend, abstracting the complexity from the end-user.
    
-By leveraging cutting-edge AI and machine learning technologies, GlobalConnect provides an experience where users can interact as if they are speaking the same language, regardless of their geographical and linguistic differences.
+By leveraging cutting-edge AI and machine learning technologies, chatEasy provides an experience where users can interact as if they are speaking the same language, regardless of their geographical and linguistic differences.
 
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
