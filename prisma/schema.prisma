@@ -28,12 +28,13 @@ model User {
   email             String   @unique
   emailVerifiedAt   DateTime?
   isAdmin           Boolean  @default(false)
-  password          String
+  password          String?
   rememberToken     String?
   preferredLanguage String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   blockedAt         DateTime?
+  temporaryId       String?  @unique
 
   language          Language @relation(fields: [preferredLanguage], references: [code])
   ownedGroups       Group[]  @relation("GroupOwner")
@@ -43,6 +44,8 @@ model User {
   conversations1    Conversation[] @relation("User1")
   conversations2    Conversation[] @relation("User2")
   languageProficiencies UserLanguageProficiency[]
+  aiChats           AIChat[]
+  sentInvitations   Invitation[] @relation("SentInvitations")
 }
 
 model Group {
@@ -55,11 +58,12 @@ model Group {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  owner            User     @relation("GroupOwner", fields: [ownerId], references: [id])
+  owner            User     @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   language         Language @relation(fields: [defaultLanguage], references: [code])
-  lastMessage      Message? @relation("GroupLastMessage", fields: [lastMessageId], references: [id])
+  lastMessage      Message? @relation("GroupLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
   members          GroupUser[]
   messages         Message[]
+  invitations      Invitation[]
 }
 
 model GroupUser {
@@ -67,31 +71,31 @@ model GroupUser {
   userId  String @db.ObjectId
   groupId String @db.ObjectId
 
-  user    User   @relation(fields: [userId], references: [id])
-  group   Group  @relation(fields: [groupId], references: [id])
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
 }
 
 model Message {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  message           String
+  content           String
   senderId          String   @db.ObjectId
   groupId           String?  @db.ObjectId
-  receiverId        String?  @db.ObjectId
+  conversationId    String?  @db.ObjectId
   originalLanguage  String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  sender            User     @relation("MessageSender", fields: [senderId], references: [id])
-  group             Group?   @relation(fields: [groupId], references: [id])
-  receiver          User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
+  sender            User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  group             Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   language          Language @relation(fields: [originalLanguage], references: [code])
   attachments       MessageAttachment[]
   translations      Translation[]
   translationLogs   TranslationLog[]
   lastMessageGroup  Group?   @relation("GroupLastMessage")
-  conversation      Conversation? @relation("ConversationLastMessage")
+  lastMessageConversation Conversation? @relation("ConversationLastMessage")
 }
 
 model MessageAttachment {
@@ -104,7 +108,7 @@ model MessageAttachment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  message   Message  @relation(fields: [messageId], references: [id])
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model Conversation {
@@ -115,9 +119,11 @@ model Conversation {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  user1          User     @relation("User1", fields: [userId1], references: [id])
-  user2          User     @relation("User2", fields: [userId2], references: [id])
-  lastMessage    Message? @relation("ConversationLastMessage", fields: [lastMessageId], references: [id])
+  user1          User     @relation("User1", fields: [userId1], references: [id], onDelete: Cascade)
+  user2          User     @relation("User2", fields: [userId2], references: [id], onDelete: Cascade)
+  lastMessage    Message? @relation("ConversationLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  messages       Message[]
+  invitations    Invitation[]
 }
 
 model Translation {
@@ -129,7 +135,7 @@ model Translation {
   updatedAt         DateTime @updatedAt
   cachedUntil       DateTime?
 
-  message           Message  @relation(fields: [messageId], references: [id])
+  message           Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
   language          Language @relation(fields: [languageCode], references: [code])
 }
 
@@ -141,7 +147,7 @@ model UserLanguageProficiency {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  user             User     @relation(fields: [userId], references: [id])
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   language         Language @relation(fields: [languageCode], references: [code])
 
   @@unique([userId, languageCode])
@@ -155,9 +161,47 @@ model TranslationLog {
   translationService String
   translationTime    DateTime @default(now())
 
-  message            Message  @relation(fields: [messageId], references: [id])
+  message            Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
   fromLanguageRef    Language @relation("FromLanguage", fields: [fromLanguage], references: [code])
   toLanguageRef      Language @relation("ToLanguage", fields: [toLanguage], references: [code])
+}
+
+model AIChat {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  language  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIMessage[]
+}
+
+model AIMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  aiChatId  String   @db.ObjectId
+  content   String
+  isUser    Boolean
+  createdAt DateTime @default(now())
+
+  aiChat    AIChat   @relation(fields: [aiChatId], references: [id], onDelete: Cascade)
+}
+
+model Invitation {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String
+  token        String   @unique
+  inviterId    String   @db.ObjectId
+  groupId      String?  @db.ObjectId
+  conversationId String? @db.ObjectId
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  inviter      User     @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
+  group        Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
 
 enum ProficiencyLevel {
@@ -165,4 +209,11 @@ enum ProficiencyLevel {
   INTERMEDIATE
   ADVANCED
   NATIVE
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
