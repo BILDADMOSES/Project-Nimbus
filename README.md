@@ -1,5 +1,5 @@
-🌍✨ GlobalConnect 🌍✨
-Welcome to GlobalConnect, the instant messaging application designed to break down language barriers and bring friends from different corners of the world closer together. With real-time translation for messages and UI elements, GlobalConnect ensures a seamless communication experience where language is no longer a hurdle.
+# <p style = "text-align: center"> 🌍✨ chatEasy 🌍✨ </p>
+Welcome to **chatEasy**, the instant messaging application designed to break down language barriers and bring friends from different corners of the world closer together. With real-time translation for messages and UI elements, GlobalConnect ensures a seamless communication experience where language is no longer a hurdle.
 
 📜 Purpose
 The purpose of GlobalConnect is to allow users from different nations to communicate effortlessly. By abstracting the translation process, users can send messages and interact with the application in their native language while receiving responses in a language they understand. This fosters genuine connections and friendships across diverse linguistic backgrounds.
