@@ -1,4 +1,4 @@
-# <p style = "text-align: center"> 🌍✨ chatEasy 🌍✨ </p>
+<center> # <p style = "text-align: center"> 🌍✨ chatEasy 🌍✨ </p> </center>
 Welcome to **chatEasy**, the instant messaging application designed to break down language barriers and bring friends from different corners of the world closer together. With real-time translation for messages and UI elements, GlobalConnect ensures a seamless communication experience where language is no longer a hurdle.
 
 📜 Purpose
