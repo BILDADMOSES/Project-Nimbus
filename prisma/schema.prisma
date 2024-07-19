@@ -1,0 +1,168 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Language {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  code  String @unique
+  name  String
+
+  users                   User[]
+  groups                  Group[]
+  messages                Message[]
+  translations            Translation[]
+  userLanguageProficiencies UserLanguageProficiency[]
+  translationLogsFrom     TranslationLog[] @relation("FromLanguage")
+  translationLogsTo       TranslationLog[] @relation("ToLanguage")
+}
+
+model User {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  avatar            String?
+  name              String
+  email             String   @unique
+  emailVerifiedAt   DateTime?
+  isAdmin           Boolean  @default(false)
+  password          String
+  rememberToken     String?
+  preferredLanguage String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  blockedAt         DateTime?
+
+  language          Language @relation(fields: [preferredLanguage], references: [code])
+  ownedGroups       Group[]  @relation("GroupOwner")
+  groupsMembership  GroupUser[]
+  sentMessages      Message[] @relation("MessageSender")
+  receivedMessages  Message[] @relation("MessageReceiver")
+  conversations1    Conversation[] @relation("User1")
+  conversations2    Conversation[] @relation("User2")
+  languageProficiencies UserLanguageProficiency[]
+}
+
+model Group {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  description      String?
+  ownerId          String   @db.ObjectId
+  lastMessageId    String?  @db.ObjectId
+  defaultLanguage  String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  owner            User     @relation("GroupOwner", fields: [ownerId], references: [id])
+  language         Language @relation(fields: [defaultLanguage], references: [code])
+  lastMessage      Message? @relation("GroupLastMessage", fields: [lastMessageId], references: [id])
+  members          GroupUser[]
+  messages         Message[]
+}
+
+model GroupUser {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String @db.ObjectId
+  groupId String @db.ObjectId
+
+  user    User   @relation(fields: [userId], references: [id])
+  group   Group  @relation(fields: [groupId], references: [id])
+
+  @@unique([userId, groupId])
+}
+
+model Message {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  message           String
+  senderId          String   @db.ObjectId
+  groupId           String?  @db.ObjectId
+  receiverId        String?  @db.ObjectId
+  originalLanguage  String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  sender            User     @relation("MessageSender", fields: [senderId], references: [id])
+  group             Group?   @relation(fields: [groupId], references: [id])
+  receiver          User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
+  language          Language @relation(fields: [originalLanguage], references: [code])
+  attachments       MessageAttachment[]
+  translations      Translation[]
+  translationLogs   TranslationLog[]
+  lastMessageGroup  Group?   @relation("GroupLastMessage")
+  conversation      Conversation? @relation("ConversationLastMessage")
+}
+
+model MessageAttachment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  messageId String   @db.ObjectId
+  name      String
+  mime      String
+  size      Int
+  path      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  message   Message  @relation(fields: [messageId], references: [id])
+}
+
+model Conversation {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId1        String   @db.ObjectId
+  userId2        String   @db.ObjectId
+  lastMessageId  String?  @db.ObjectId
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user1          User     @relation("User1", fields: [userId1], references: [id])
+  user2          User     @relation("User2", fields: [userId2], references: [id])
+  lastMessage    Message? @relation("ConversationLastMessage", fields: [lastMessageId], references: [id])
+}
+
+model Translation {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  messageId         String   @db.ObjectId
+  languageCode      String
+  translatedContent String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  cachedUntil       DateTime?
+
+  message           Message  @relation(fields: [messageId], references: [id])
+  language          Language @relation(fields: [languageCode], references: [code])
+}
+
+model UserLanguageProficiency {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  languageCode     String
+  proficiencyLevel ProficiencyLevel
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User     @relation(fields: [userId], references: [id])
+  language         Language @relation(fields: [languageCode], references: [code])
+
+  @@unique([userId, languageCode])
+}
+
+model TranslationLog {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  messageId          String   @db.ObjectId
+  fromLanguage       String
+  toLanguage         String
+  translationService String
+  translationTime    DateTime @default(now())
+
+  message            Message  @relation(fields: [messageId], references: [id])
+  fromLanguageRef    Language @relation("FromLanguage", fields: [fromLanguage], references: [code])
+  toLanguageRef      Language @relation("ToLanguage", fields: [toLanguage], references: [code])
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  NATIVE
+}
