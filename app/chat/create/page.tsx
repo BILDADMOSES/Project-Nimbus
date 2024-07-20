@@ -25,8 +25,8 @@ const CreateChatForm = () => {
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-base-200">
-      <div className="card w-full md:w-4/5  bg-base-100 shadow-xl">
-        <div className="card-body flex flex-col md:flex-row">
+      <div className="card  w-full md:w-4/5  bg-base-100 shadow-xl">
+        <div className=" flex flex-col md:flex-row">
           {/* Left Column - Multi-step Form */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -88,7 +88,6 @@ const CreateChatForm = () => {
               </button>
             </div>
           </motion.div>
-
           {/* Right Column - Chat Interface Illustration */}
           <ChatIllustration />
         </div>

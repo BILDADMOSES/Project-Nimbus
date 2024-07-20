@@ -63,7 +63,7 @@ const ChatIllustration: React.FC = () => {
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full md:w-1/2 bg-indigo-100 p-4 md:p-8 flex justify-center items-center"
+      className="w-full md:w-1/2 bg-indigo-100 p-4 md:p-8 flex justify-center items-center rounded-r-2xl"
     >
       <div className="w-full max-w-md flex flex-col items-center">
         <div className="w-full bg-white rounded-lg shadow-xl overflow-hidden mb-6 md:mb-8">
