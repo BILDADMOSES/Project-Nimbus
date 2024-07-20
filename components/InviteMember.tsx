@@ -1,31 +1,24 @@
-import { useState } from 'react';
-import QRCode from 'qrcode.react';
-import { Copy, Check, Send } from 'lucide-react';
+import { useState } from "react";
+import QRCode from "qrcode.react";
+import { Copy, Check, Send } from "lucide-react";
 
-interface InviteMemberProps {
-  emails: string[];
-  onAdd: (email: string) => void;
-  onRemove: (email: string) => void;
-  inviteLink: string;
-  isOneOnOne: boolean;
-  onSendInvitations: () => void;
-}
+import { InviteMemberProps } from "@/types/invite";
 
-export const InviteMember: React.FC<InviteMemberProps> = ({ 
-  emails, 
-  onAdd, 
-  onRemove, 
-  inviteLink, 
+export const InviteMember: React.FC<InviteMemberProps> = ({
+  emails,
+  onAdd,
+  onRemove,
+  inviteLink,
   isOneOnOne,
-  onSendInvitations
+  onSendInvitations,
 }) => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isCopied, setIsCopied] = useState(false);
 
   const handleAddEmail = () => {
     if (email && !emails.includes(email)) {
       onAdd(email);
-      setEmail('');
+      setEmail("");
     }
   };
 
@@ -38,10 +31,14 @@ export const InviteMember: React.FC<InviteMemberProps> = ({
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">Invite {isOneOnOne ? 'a Member' : 'Members'}</h2>
-      
+      <h2 className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">
+        Invite {isOneOnOne ? "a Member" : "Members"}
+      </h2>
+
       <div className="mb-8">
-        <h3 className="text-sm md:text-base text-gray-500 font-medium mb-2">Add by Email</h3>
+        <h3 className="text-sm md:text-base text-gray-500 font-medium mb-2">
+          Add by Email
+        </h3>
         <div className="flex mb-4">
           <input
             type="email"
@@ -64,7 +61,10 @@ export const InviteMember: React.FC<InviteMemberProps> = ({
             <h4 className="text-md font-medium mb-2">Invited Members</h4>
             <ul className="list-disc list-inside mb-4">
               {emails.map((invitedEmail) => (
-                <li key={invitedEmail} className="flex items-center justify-between">
+                <li
+                  key={invitedEmail}
+                  className="flex items-center justify-between"
+                >
                   {invitedEmail}
                   <button
                     onClick={() => onRemove(invitedEmail)}
@@ -89,7 +89,9 @@ export const InviteMember: React.FC<InviteMemberProps> = ({
       <div className="divider">OR</div>
 
       <div className="mb-8">
-        <h3 className="text-sm md:text-base text-gray-500">Share Invite Link</h3>
+        <h3 className="text-sm md:text-base text-gray-500">
+          Share Invite Link
+        </h3>
         <div className="flex items-center mb-4">
           <input
             type="text"
@@ -99,8 +101,8 @@ export const InviteMember: React.FC<InviteMemberProps> = ({
           />
           <button
             onClick={copyToClipboard}
-            className={`btn ml-2 ${isCopied ? 'btn-success' : 'btn-primary'}`}
-            aria-label={isCopied ? 'Copied' : 'Copy to clipboard'}
+            className={`btn ml-2 ${isCopied ? "btn-success" : "btn-primary"}`}
+            aria-label={isCopied ? "Copied" : "Copy to clipboard"}
           >
             {isCopied ? <Check size={20} /> : <Copy size={20} />}
           </button>

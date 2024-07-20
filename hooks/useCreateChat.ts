@@ -1,20 +1,15 @@
-"use client"
-import { useState } from 'react';
-import axios from 'axios';
-
-export type ChatType = 'oneOnOne' | 'group' | 'ai';
-
-export interface Language {
-  code: string;
-  name: string;
-}
+"use client";
+import { useState } from "react";
+import axios from "axios";
+import { Language } from "@/types/language";
+import { ChatType } from "@/types/chat";
 
 export const useCreateChat = () => {
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState<Language | null>(null);
   const [chatType, setChatType] = useState<ChatType | null>(null);
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
-  const [inviteLink, setInviteLink] = useState('');
+  const [inviteLink, setInviteLink] = useState("");
   const [chatId, setChatId] = useState<string | null>(null);
 
   const handleLanguageSelect = (selectedLanguage: Language) => {
@@ -30,15 +25,19 @@ export const useCreateChat = () => {
   };
 
   const handleRemoveInviteMember = (email: string) => {
-    setInviteEmails(inviteEmails.filter(e => e !== email));
+    setInviteEmails(inviteEmails.filter((e) => e !== email));
   };
 
-  const createChat = async (data: { language: string; chatType: ChatType; inviteEmails: string[] }) => {
+  const createChat = async (data: {
+    language: string;
+    chatType: ChatType;
+    inviteEmails: string[];
+  }) => {
     try {
-      const response = await axios.post('/api/chat/create', data);
+      const response = await axios.post("/api/chat/create", data);
       return response.data;
     } catch (error) {
-      console.error('Error creating chat:', error);
+      console.error("Error creating chat:", error);
       throw error;
     }
   };
@@ -46,11 +45,15 @@ export const useCreateChat = () => {
   const sendInvitations = async () => {
     if (!chatId) return;
     try {
-      await axios.post('/api/chat/invite', { chatId, emails: inviteEmails, chatType });
-      // Handle success 
+      await axios.post("/api/chat/invite", {
+        chatId,
+        emails: inviteEmails,
+        chatType,
+      });
+      // Handle success
     } catch (error) {
-      console.error('Error sending invitations:', error);
-      // Handle error 
+      console.error("Error sending invitations:", error);
+      // Handle error
     }
   };
 
@@ -58,12 +61,20 @@ export const useCreateChat = () => {
     if (step === 1 && language) {
       setStep(2);
     } else if (step === 2 && chatType) {
-      if (chatType === 'ai') {
-        const chat = await createChat({ language: language!.code, chatType, inviteEmails: [] });
+      if (chatType === "ai") {
+        const chat = await createChat({
+          language: language!.code,
+          chatType,
+          inviteEmails: [],
+        });
         setChatId(chat.id);
         // Redirect to AI chat interface
       } else {
-        const chat = await createChat({ language: language!.code, chatType, inviteEmails: [] });
+        const chat = await createChat({
+          language: language!.code,
+          chatType,
+          inviteEmails: [],
+        });
         setChatId(chat.id);
         setInviteLink(`${window.location.origin}/chat/join?token=${chat.id}`);
         setStep(3);
@@ -79,7 +90,8 @@ export const useCreateChat = () => {
     }
   };
 
-  const isLastStep = (step === 3 && chatType !== 'ai') || (step === 2 && chatType === 'ai');
+  const isLastStep =
+    (step === 3 && chatType !== "ai") || (step === 2 && chatType === "ai");
 
   return {
     step,

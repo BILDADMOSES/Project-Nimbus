@@ -1,13 +1,15 @@
-"use client"
-import Image from 'next/image';
-import { motion } from 'framer-motion';
-import phoneChat from '@/app/assets/img/phone-chat.png';
+"use client";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import phoneChat from "@/app/assets/img/phone-chat.png";
+import logo_light from "@/app/assets/img/icon.svg";
+import Link from "next/link";
 
 const Home = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <header className="container mx-auto px-4 py-6 flex justify-between items-center">
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -16,13 +18,15 @@ const Home = () => {
           chatEasy
         </motion.h1>
         <nav className="flex items-center gap-4">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="px-4 py-2 rounded-full bg-white text-black text-sm font-medium"
-          >
-            Sign in
-          </motion.button>
+          <Link href="/sign-in">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-4 py-2 rounded-full bg-white text-black text-sm font-medium"
+            >
+              Sign in
+            </motion.button>
+          </Link>
           {/* <button className="text-2xl">⋯</button> */}
         </nav>
       </header>
@@ -34,20 +38,35 @@ const Home = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-5xl font-bold mb-4">Difference in language is never an issue<br />Communicate with Ease </h2>
-          <p className="text-xl text-gray-400 mb-8">Break language barriers with real-time translation</p>
+          <span className="flex space-x-5 text-5xl font-black justify-center my-10 items-center mx-auto">
+            <h1>chatEasy</h1>
+            <Image src={logo_light} width={50} height={50} alt="Logo" />
+          </span>
+          <h2 className="text-5xl font-bold mb-4">
+            Difference in language is never an issue
+            <br />
+            Communicate with Ease{" "}
+          </h2>
+          <p className="text-xl text-gray-400 mb-8">
+            Break language barriers with real-time translation
+          </p>
           <div className="flex justify-center gap-2">
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-6 py-3 rounded-full bg-white text-black font-medium flex items-center"
-            >
-              Let's get started
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 ml-2" viewBox="0 0 512 512">
-                <path d="M505.941 239.029L419.882 152.97c-15.119-15.119-40.971-4.411-40.971 16.971V216H35.059c-13.255 0-24 10.745-24 24v32c0 13.255 10.745 24 24 24H378.91v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.569 0-33.941z"/>
-              </svg>
-  
-            </motion.button>
+            <Link href="/sign-up">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 rounded-full bg-white text-black font-medium flex items-center"
+              >
+                Let's get started
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 ml-2"
+                  viewBox="0 0 512 512"
+                >
+                  <path d="M505.941 239.029L419.882 152.97c-15.119-15.119-40.971-4.411-40.971 16.971V216H35.059c-13.255 0-24 10.745-24 24v32c0 13.255 10.745 24 24 24H378.91v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.569 0-33.941z" />
+                </svg>
+              </motion.button>
+            </Link>
           </div>
         </motion.div>
 

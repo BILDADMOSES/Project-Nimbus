@@ -1,24 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { NextRequest, NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
+import { CreateChatParams, Chat } from "@/types/chat";
 
 const prisma = new PrismaClient();
-
-export interface CreateChatParams {
-  language: string;
-  chatType: 'oneOnOne' | 'group' | 'ai';
-}
-
-export interface Chat {
-  id: string;
-  inviteLink: string;
-}
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -28,10 +19,10 @@ export async function POST(request: NextRequest) {
     let chat: Chat;
 
     switch (body.chatType) {
-      case 'group':
+      case "group":
         const group = await prisma.group.create({
           data: {
-            name: 'New Group', // You might want to allow users to set this
+            name: "New Group", // You might want to allow users to set this
             ownerId: userId,
             defaultLanguage: body.language,
           },
@@ -42,7 +33,7 @@ export async function POST(request: NextRequest) {
         };
         break;
 
-      case 'oneOnOne':
+      case "oneOnOne":
         const conversation = await prisma.conversation.create({
           data: {
             userId1: userId,
@@ -56,32 +47,41 @@ export async function POST(request: NextRequest) {
         };
         break;
 
-      case 'ai':
-        // Implement AI chat creation 
-        return NextResponse.json({ error: 'AI chat creation not implemented' }, { status: 501 });
+      case "ai":
+        // Implement AI chat creation
+        return NextResponse.json(
+          { error: "AI chat creation not implemented" },
+          { status: 501 }
+        );
 
       default:
-        return NextResponse.json({ error: 'Invalid chat type' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Invalid chat type" },
+          { status: 400 }
+        );
     }
 
     return NextResponse.json(chat);
   } catch (error) {
-    console.error('Error creating chat:', error);
-    return NextResponse.json({ error: 'Failed to create chat' }, { status: 500 });
+    console.error("Error creating chat:", error);
+    return NextResponse.json(
+      { error: "Failed to create chat" },
+      { status: 500 }
+    );
   }
 }
 
 export async function createChat(params: CreateChatParams): Promise<Chat> {
-  const response = await fetch('/api/chat/create', {
-    method: 'POST',
+  const response = await fetch("/api/chat/create", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(params),
   });
 
   if (!response.ok) {
-    throw new Error('Failed to create chat');
+    throw new Error("Failed to create chat");
   }
 
   return response.json();
