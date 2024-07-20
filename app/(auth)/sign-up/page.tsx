@@ -42,12 +42,14 @@ const SignUp = () => {
           <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">Create an Account</h1>
           <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">Join us to start chatting across languages.</p>
 
-          <div className="card bg-base-100 shadow-sm mb-6">
-            <div className="card-body p-3 md:p-4 flex-row items-center justify-center">
-              <Image src={gIcon} width={16} height={16} alt="Google" className="mr-2" />
-              <span className="text-sm md:text-base">Sign up with Google</span>
+          <button 
+            className="card bg-base-100 shadow-sm mb-6 w-full cursor-pointer hover:bg-gray-100 transition-colors flex-row justify-center"
+          >
+            <div className="card-body p-3 md:p-4 flex-row items-center justify-center text-center">
+              <Image src={gIcon} width={16} height={16} alt="Google" className="mr-2 text-center" />
+              <span className="text-sm md:text-base text-center">Sign up with Google</span>
             </div>
-          </div>
+          </button>
 
           <p className="text-center text-gray-400 text-sm md:text-base mb-6">or</p>
 

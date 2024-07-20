@@ -1,15 +1,16 @@
-import { SessionProvider } from "next-auth/react"
+"use client"
+import { SessionProvider } from "next-auth/react";
 
-export default function Layout({
+export default function ChatLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <SessionProvider>
-        {children}
-      </SessionProvider>
-    </html>
-  )
+    <SessionProvider>
+      <section className="chat-layout">
+        <main>{children}</main>
+      </section>
+    </SessionProvider>
+  );
 }

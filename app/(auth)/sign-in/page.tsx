@@ -24,11 +24,11 @@ const SignIn = () => {
 
           <button 
             onClick={handleGoogleSignIn}
-            className="card bg-base-100 shadow-sm mb-6 w-full cursor-pointer hover:bg-gray-100 transition-colors"
+            className="card bg-base-100 shadow-sm mb-6 w-full cursor-pointer hover:bg-gray-100 transition-colors flex-row justify-center"
           >
-            <div className="card-body p-3 md:p-4 flex-row items-center justify-center">
-              <Image src={gIcon} width={16} height={16} alt="Google" className="mr-2" />
-              <span className="text-sm md:text-base">Sign in with Google</span>
+            <div className="card-body p-3 md:p-4 flex-row items-center justify-center text-center">
+              <Image src={gIcon} width={16} height={16} alt="Google" className="mr-2 text-center" />
+              <span className="text-sm md:text-base text-center">Sign in with Google</span>
             </div>
           </button>
 
@@ -158,7 +158,7 @@ const SignIn = () => {
             <div className="p-3 md:p-4 border-t">
               <div className="flex rounded-full bg-gray-100 p-2">
                 <input type="text" placeholder="Type a message..." className="flex-grow bg-transparent outline-none px-2 text-sm md:text-base" />
-                <button className="bg-indigo-500 text-white rounded-full p-2">
+                <button className="btn-primary text-white rounded-full p-2">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
