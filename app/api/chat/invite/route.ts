@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         });
 
         // send an email with the invitation link
-        console.log(`Invitation link for ${email}: ${process.env.NEXT_PUBLIC_BASE_URL}/join/${token}`);
+        console.log(`Invitation link for ${email}: ${process.env.NEXT_PUBLIC_BASE_URL}/chat/join?token=${token}`);
 
         return invitation;
       })

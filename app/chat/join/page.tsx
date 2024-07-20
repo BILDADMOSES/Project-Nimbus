@@ -11,35 +11,36 @@ export default function JoinPage() {
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
-
+  
   useEffect(() => {
     if (status === 'loading') return;
     const tokenOrId = searchParams.get('tokenOrId');
     if (!tokenOrId) {
+      console.log(tokenOrId);
       setError('Invalid join link');
       return;
     }
-
+  
     if (!session) {
       const joinUrl = `/join?token=${tokenOrId}`;
       signIn(undefined, { callbackUrl: joinUrl });
       return;
     }
-
+  
     const validateInvitation = async () => {
       setIsValidating(true);
       try {
-        const response = await fetch(`/api/join/${tokenOrId}`, {
+        const response = await fetch(`/api/chat/join/${tokenOrId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });
-
+  
         if (!response.ok) {
           throw new Error('Failed to join');
         }
-
+  
         const data = await response.json();
-
+  
         setIsRedirecting(true);
         setTimeout(() => {
           if (data.type === 'conversation') {
@@ -56,9 +57,9 @@ export default function JoinPage() {
         setIsValidating(false);
       }
     };
-
+  
     validateInvitation();
-  }, [session, status, searchParams, router]);
+  }, [searchParams, session, status]);
 
    // Render helpers
    const renderStatus = () => {

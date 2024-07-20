@@ -65,7 +65,7 @@ export const useCreateChat = () => {
       } else {
         const chat = await createChat({ language: language!.code, chatType, inviteEmails: [] });
         setChatId(chat.id);
-        setInviteLink(`${window.location.origin}/join/${chat.id}`);
+        setInviteLink(`${window.location.origin}/chat/join?token=${chat.id}`);
         setStep(3);
       }
     } else if (step === 3) {

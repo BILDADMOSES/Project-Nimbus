@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         });
         chat = {
           id: group.id,
-          inviteLink: `${process.env.NEXT_PUBLIC_BASE_URL}/join/group/${group.id}`,
+          inviteLink: `${process.env.NEXT_PUBLIC_BASE_URL}/chat/join?token=${group.id}`,
         };
         break;
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         });
         chat = {
           id: conversation.id,
-          inviteLink: `${process.env.NEXT_PUBLIC_BASE_URL}/join/conversation/${conversation.id}`,
+          inviteLink: `${process.env.NEXT_PUBLIC_BASE_URL}/chat/join?token=${conversation.id}`,
         };
         break;
 
