@@ -14,9 +14,11 @@ const variantClasses = {
 
 const Toast: React.FC<ToastProps> = ({ message, variant }) => {
   return (
-    <div className={`alert ${variantClasses[variant]} shadow-lg`}>
-      <div>
-        <span>{message}</span>
+    <div className="toast toast-top toast-end">
+      <div className={`alert ${variantClasses[variant]} shadow-lg`}>
+        <div>
+          <span>{message}</span>
+        </div>
       </div>
     </div>
   );
