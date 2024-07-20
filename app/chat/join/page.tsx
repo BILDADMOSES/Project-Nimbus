@@ -14,9 +14,8 @@ export default function JoinPage() {
   
   useEffect(() => {
     if (status === 'loading') return;
-    const tokenOrId = searchParams.get('tokenOrId');
+    const tokenOrId = searchParams.get('token');
     if (!tokenOrId) {
-      console.log(tokenOrId);
       setError('Invalid join link');
       return;
     }
