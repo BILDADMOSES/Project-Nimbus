@@ -44,7 +44,7 @@ export default function JoinPage() {
         setIsRedirecting(true);
         setTimeout(() => {
           if (data.type === "conversation") {
-            router.push(`/chat/conversation/${data.id}`);
+            router.push(`/chat/one-on-one?uuid=${data.id}`);
           } else if (data.type === "group") {
             router.push(`/chat/group/${data.id}`);
           } else {

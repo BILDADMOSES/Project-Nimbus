@@ -53,8 +53,8 @@ model Group {
   id               String   @id @default(uuid()) @map("_id")
   name             String
   description      String?
-  ownerId          String   @db.ObjectId
-  lastMessageId    String?  @db.ObjectId @unique
+  ownerId          String  
+  lastMessageId    String?  @unique
   defaultLanguage  String
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -69,8 +69,8 @@ model Group {
 
 model GroupUser {
   id      String @id @default(auto()) @map("_id") @db.ObjectId
-  userId  String @db.ObjectId
-  groupId String @db.ObjectId
+  userId  String
+  groupId String
 
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -81,10 +81,10 @@ model GroupUser {
 model Message {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
   content           String
-  senderId          String   @db.ObjectId
-  groupId           String?  @db.ObjectId
-  conversationId    String?  @db.ObjectId
-  receiverId        String?  @db.ObjectId
+  senderId          String  
+  groupId           String? 
+  conversationId    String? 
+  receiverId        String? 
   originalLanguage  String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -103,7 +103,7 @@ model Message {
 
 model MessageAttachment {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  messageId String   @db.ObjectId
+  messageId String  
   name      String
   mime      String
   size      Int
@@ -116,9 +116,9 @@ model MessageAttachment {
 
 model Conversation {
   id             String   @id @default(uuid()) @map("_id")
-  userId1        String   @db.ObjectId
-  userId2        String?  @db.ObjectId
-  lastMessageId  String?  @db.ObjectId @unique
+  userId1        String   
+  userId2        String?  
+  lastMessageId  String?  @unique
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -131,7 +131,7 @@ model Conversation {
 
 model Translation {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  messageId         String   @db.ObjectId
+  messageId         String  
   languageCode      String
   translatedContent String
   createdAt         DateTime @default(now())
@@ -144,7 +144,7 @@ model Translation {
 
 model UserLanguageProficiency {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String   @db.ObjectId
+  userId           String  
   languageCode     String
   proficiencyLevel ProficiencyLevel
   createdAt        DateTime @default(now())
@@ -158,7 +158,7 @@ model UserLanguageProficiency {
 
 model TranslationLog {
   id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  messageId          String   @db.ObjectId
+  messageId          String  
   fromLanguage       String
   toLanguage         String
   translationService String
@@ -171,7 +171,7 @@ model TranslationLog {
 
 model AIChat {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
+  userId    String  
   name      String
   language  String
   createdAt DateTime @default(now())
@@ -183,7 +183,7 @@ model AIChat {
 
 model AIMessage {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  aiChatId  String   @db.ObjectId
+  aiChatId  String  
   content   String
   isUser    Boolean
   createdAt DateTime @default(now())
@@ -195,7 +195,7 @@ model Invitation {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   email          String
   token          String   @unique
-  inviterId      String   @db.ObjectId
+  inviterId      String  
   groupId        String?
   conversationId String?
   status         InvitationStatus @default(PENDING)
