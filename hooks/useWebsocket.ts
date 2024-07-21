@@ -1,50 +1,71 @@
 import { useEffect, useRef, useState } from 'react';
-import io, { Socket } from 'socket.io-client';
+import Pusher from 'pusher-js';
 
 export function useWebSocket(userId: string, roomId: string, roomType: 'group' | 'conversation' | 'ai') {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
-  const socketRef = useRef<Socket | null>(null);
+  const pusherRef = useRef<Pusher | null>(null);
 
   useEffect(() => {
-    // Initialize the socket connection
-    socketRef.current = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3000');
+    // Initialize Pusher connection
+    pusherRef.current = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+      authEndpoint: '/api/pusher/auth',
+    });
+
+    // Subscribe to channels
+    const userChannel = pusherRef.current.subscribe(`private-user-${userId}`);
+    const roomChannel = pusherRef.current.subscribe(`private-${roomType}-${roomId}`);
 
     // Setup event listeners
-    const socket = socketRef.current;
-
-    socket.on('connect', () => {
+    userChannel.bind('pusher:subscription_succeeded', () => {
       setIsConnected(true);
-      socket.emit('join', { userId, roomId, roomType });
+      // Simulate join event
+      fetch('/api/chat/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, roomId, roomType }),
+      });
     });
 
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
-
-    socket.on('roomHistory', (history) => {
+    roomChannel.bind('roomHistory', (history: any[]) => {
       setMessages(history);
     });
 
-    socket.on('newMessage', (message) => {
+    userChannel.bind('newMessage', (message: any) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    socket.on('error', (error) => {
-      console.error('WebSocket error:', error);
+    roomChannel.bind('newMessage', (message: any) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
+    });
+
+    userChannel.bind('error', (error: any) => {
+      console.error('Pusher error:', error);
     });
 
     // Cleanup function
     return () => {
-      if (socket) {
-        socket.emit('leave', { userId, roomId, roomType });
-        socket.disconnect();
+      if (pusherRef.current) {
+        pusherRef.current.unsubscribe(`private-user-${userId}`);
+        pusherRef.current.unsubscribe(`private-${roomType}-${roomId}`);
+        pusherRef.current.disconnect();
       }
+      // Simulate leave event
+      fetch('/api/chat/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, roomId, roomType }),
+      });
     };
   }, [userId, roomId, roomType]);
 
   const sendMessage = (content: string, language: string) => {
-    socketRef.current?.emit('sendMessage', { userId, roomId, roomType, content, language });
+    fetch('/api/chat/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, roomId, roomType, content, language }),
+    });
   };
 
   return { isConnected, messages, sendMessage };

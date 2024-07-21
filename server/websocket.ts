@@ -8,7 +8,7 @@ import prisma from '../prisma';
 export function setupWebSocketServer(httpServer: HttpServer) {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+      origin: process.env.FRONTEND_URL || 'https://chat-easy-six.vercel.app',
       methods: ['GET', 'POST'],
     },
   });

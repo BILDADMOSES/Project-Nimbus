@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { setupWebSocketServer } from './server/websocket';
+import { setupPusherServer } from './server/pusher';
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -14,10 +14,10 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl);
   });
 
-  setupWebSocketServer(server);
+  setupPusherServer();
 
   server.listen(3000, () => {
-    console.log(`[${new Date().toISOString()}] Server is ready on http://localhost:3000`);
+    console.log(`[${new Date().toISOString()}] Server is ready on https://chat-easy-six.vercel.app`);
     console.log(`[${new Date().toISOString()}] Environment: ${process.env.NODE_ENV}`);
   });
 

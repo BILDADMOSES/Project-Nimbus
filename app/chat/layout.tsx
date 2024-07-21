@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { SessionProvider, useSession } from 'next-auth/react';
-import Translator from '@/components/language/LanguageTranslator'; 
+import LanguageTranslator from '@/components/language/LanguageTranslator'; 
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -12,13 +12,13 @@ const LayoutContent: React.FC<LayoutProps> = ({ children }) => {
   const preferredLanguage = session?.user?.preferredLanguage || 'en';
 
   return (
-    <Translator targetLanguage={preferredLanguage}>
+    <LanguageTranslator languageCode={preferredLanguage}>
       <section className="chat-layout">
         <main>
           {children}
         </main>
       </section>
-    </Translator>
+    </LanguageTranslator>
   );
 };
 
