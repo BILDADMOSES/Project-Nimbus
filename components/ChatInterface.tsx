@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Plus, Paperclip, Smile, Mic, Send } from "lucide-react";
@@ -18,12 +17,10 @@ function useWebSocket(
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Initialize the socket connection
     socketRef.current = io(
       process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3000"
     );
 
-    // Setup event listeners
     const socket = socketRef.current;
 
     socket.on("connect", () => {
@@ -59,7 +56,6 @@ function useWebSocket(
       console.error("WebSocket error:", error);
     });
 
-    // Cleanup function
     return () => {
       if (socket) {
         socket.emit("leave", { userId, roomId, roomType });
@@ -101,7 +97,6 @@ interface ChatInterfaceProps {
   chatType?: string;
 }
 
-// Chat Interface Component
 const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
@@ -123,19 +118,17 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
   );
 
   useEffect(() => {
-    // Fetch chat list from API
     fetch("/api/chat")
       .then((response) => response.json())
       .then((data) => {
         setChatList(data);
         if (chatId && chatType) {
-          // Find the chat room based on the ID and type from the props
           const room = data.find(
             (chat: any) => chat.id === chatId && chat.type === chatType
           );
           setSelectedRoom(room);
         } else {
-          setSelectedRoom(data[0]); // Select the first room by default
+          setSelectedRoom(data[0]);
         }
       })
       .catch((error) => {
@@ -148,6 +141,14 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
       sendMessage(message, session?.user?.preferredLanguage || "en");
       setMessage("");
     }
+  };
+
+  const getDisplayName = (room: any) => {
+    if (room?.type === "conversation" && room?.members) {
+      const otherUser = room.members.find((member: any) => member.id !== userId);
+      return otherUser ? otherUser.name : "Unknown User";
+    }
+    return room?.name || "Chat";
   };
 
   return (
@@ -172,7 +173,6 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {/* Chat list items */}
           {chatList.map((chat) => (
             <div
               key={chat.id}
@@ -183,21 +183,22 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
             >
               <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
               <div className="flex-1">
-                <div className="font-semibold">{chat.name}</div>
-                <div className="text-sm text-base-content truncate ">
-                  {chat.lastMessage.slice(0, 25) + "..."}
+                <div className="font-semibold">{getDisplayName(chat)}</div>
+                <div className="text-sm text-base-content truncate">
+                  {chat.lastMessage?.slice(0, 25) + "..."}
                 </div>
               </div>
               <div className="text-xs text-base-content">
-                {new Date(chat.lastMessageTimestamp).toDateString() ===
-                new Date().toDateString()
-                  ? "Today"
-                  : new Date(chat.lastMessageTimestamp).toLocaleString(
-                      undefined,
-                      { month: "short", day: "numeric" }
-                    )}
+                {chat.lastMessageTimestamp
+                  ? new Date(chat.lastMessageTimestamp).toDateString() ===
+                    new Date().toDateString()
+                    ? "Today"
+                    : new Date(chat.lastMessageTimestamp).toLocaleString(
+                        undefined,
+                        { month: "short", day: "numeric" }
+                      )
+                  : ""}
               </div>
-
               {chat.unreadCount > 0 && (
                 <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
                   {chat.unreadCount}
@@ -214,10 +215,10 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
         <div className="bg-base-200 p-4 border-b border-base-300 flex items-center">
           <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
           <div>
-            <div className="font-semibold">{selectedRoom?.name}</div>
+            <div className="font-semibold">{getDisplayName(selectedRoom)}</div>
             <div className="text-sm text-success">
               {selectedRoom?.type === "group"
-                ? `${selectedRoom?.members.length} members`
+                ? `${selectedRoom?.members?.length || 0} members`
                 : selectedRoom?.type === "conversation"
                 ? "Private conversation"
                 : "AI Chat"}
@@ -245,20 +246,15 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
               <React.Fragment key={msg.id}>
                 <motion.div
                   className={`flex items-end ${
-                    msg.isUser ? "justify-end" : "justify-start"
+                    msg.senderId === userId ? "justify-end" : "justify-start"
                   }`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  {/* <div
-                    className={`w-8 h-8 bg-gray-300 rounded-full mr-2 ${
-                      msg.isUser ? "order-2 ml-2" : "mr-2"
-                    }`}
-                  ></div> */}
                   <div
                     className={`rounded-lg p-3 max-w-xs h-auto shadow-sm ${
-                      msg.isUser
+                      msg.senderId === userId
                         ? "bg-indigo-500 text-white order-2 ml-2"
                         : "bg-base-200 text-base-content"
                     }`}
