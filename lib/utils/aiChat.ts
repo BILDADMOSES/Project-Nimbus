@@ -4,8 +4,7 @@ import {
   ChatSession,
 } from "@google/generative-ai";
 
-const API_KEY =
-  process.env.GEMINI_API_KEY || "AIzaSyCEoQAvOtS8Jmo7bszhU4JARKFp_YtEqVc";
+const API_KEY = process.env.GEMINI_API_KEY || "";
 
 // if (!API_KEY) {
 //   throw new Error("GEMINI_API_KEY is not set in the environment variables.");
