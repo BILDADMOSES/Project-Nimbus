@@ -1,6 +1,7 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
-    "quotes": "off"
+    "quotes": "off",
+    "react/no-unescaped-entities": "off"
   }
 }
