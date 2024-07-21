@@ -174,6 +174,12 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const groupedChats = {
+    aiChats: chatList.filter(chat => chat.type === "ai"),
+    conversations: chatList.filter(chat => chat.type === "conversation"),
+    groups: chatList.filter(chat => chat.type === "group"),
+  };
+
   return (
     <div className="flex h-screen bg-base-100">
       {/* Left sidebar */}
@@ -197,8 +203,89 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
             />
           </div>
         </div>
+
+        {/* AI Chats */}
         <div className="flex-1 overflow-y-auto">
-          {chatList.map((chat) => (
+          <div className="p-4 border-b border-base-300">
+            {/* <h2 className="text-lg font-semibold">AI Chats</h2> */}
+          </div>
+          {groupedChats.aiChats.map((chat) => (
+            <div
+              key={chat.id}
+              className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
+                selectedRoom?.id === chat.id ? "bg-base-300" : ""
+              }`}
+              onClick={() => setSelectedRoom(chat)}
+            >
+              <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
+              <div className="flex-1">
+                <div className="font-semibold">{getDisplayName(chat)}</div>
+                <div className="text-sm text-base-content truncate">
+                  {chat.lastMessage?.slice(0, 25) + "..."}
+                </div>
+              </div>
+              <div className="text-xs text-base-content">
+                {chat.lastMessageTimestamp
+                  ? new Date(chat.lastMessageTimestamp).toDateString() ===
+                    new Date().toDateString()
+                    ? "Today"
+                    : new Date(chat.lastMessageTimestamp).toLocaleString(
+                        undefined,
+                        { month: "short", day: "numeric" }
+                      )
+                  : ""}
+              </div>
+              {chat.unreadCount > 0 && (
+                <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
+                  {chat.unreadCount}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Conversations */}
+          <div className="p-4 border-b border-base-300">
+            {/* <h2 className="text-lg font-semibold">Conversations</h2> */}
+          </div>
+          {groupedChats.conversations.map((chat) => (
+            <div
+              key={chat.id}
+              className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
+                selectedRoom?.id === chat.id ? "bg-base-300" : ""
+              }`}
+              onClick={() => setSelectedRoom(chat)}
+            >
+              <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
+              <div className="flex-1">
+                <div className="font-semibold">{getDisplayName(chat)}</div>
+                <div className="text-sm text-base-content truncate">
+                  {chat.lastMessage?.slice(0, 25) + "..."}
+                </div>
+              </div>
+              <div className="text-xs text-base-content">
+                {chat.lastMessageTimestamp
+                  ? new Date(chat.lastMessageTimestamp).toDateString() ===
+                    new Date().toDateString()
+                    ? "Today"
+                    : new Date(chat.lastMessageTimestamp).toLocaleString(
+                        undefined,
+                        { month: "short", day: "numeric" }
+                      )
+                  : ""}
+              </div>
+              {chat.unreadCount > 0 && (
+                <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
+                  {chat.unreadCount}
+                </div>
+              )}
+            </div>
+          ))},
+
+          {/* Groups */}
+          <div className="p-4 border-b border-base-300">
+            {/* <h2 className="text-lg font-semibold">Groups</h2> */}
+          </div>
+          {groupedChats.groups.map((chat) => (
             <div
               key={chat.id}
               className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
@@ -246,8 +333,6 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
                 ? `${selectedRoom?.members?.length || 0} members`
                 : selectedRoom?.type === "conversation"
                 ? "Private conversation"
-                : selectedRoom?.type === "conversation"
-                ? "Private conversation"
                 : "No Invitations have been accepted yet"}
             </div>
           </div>
@@ -291,7 +376,6 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
             ))}
           <div ref={messagesEndRef} />
         </div>
-
 
         {/* Typing indicator */}
         <div className="p-2 text-sm text-primary">
