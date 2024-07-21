@@ -19,12 +19,9 @@ export interface CreateChatParams {
 export interface Chat {
   id: string;
   inviteLink: string;
+  name?: string;
 }
 
-export interface Chat {
-  id: string;
-  inviteLink: string;
-}
 
 export interface ChatTypeSelectProps {
   selectedType: ChatType | null;

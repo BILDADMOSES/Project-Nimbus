@@ -1,7 +1,8 @@
+// @/server/websocket.ts
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { translateMessage } from '../lib/utils/translation';
-import { generateAIResponse } from '../lib/utils/aiChat';
+import { generateResponse } from '../lib/utils/aiChat';
 import prisma from '../prisma';
 
 export function setupWebSocketServer(httpServer: HttpServer) {
@@ -88,8 +89,8 @@ export function setupWebSocketServer(httpServer: HttpServer) {
             }
           }
         } else if (roomType === 'ai') {
-          const aiResponse = await generateAIResponse(content, language);
-          console.log(`[${new Date().toISOString()}] Generated AI response for user ${userId} in AI chat ${roomId}`);
+          const aiResponse = await generateResponse(content, language);
+          console.log(`[${new Date().toISOString()}] Generated AI response for user ${userId} in AI chat ${roomId} and the language being ${language}`);
           const aiMessage = await saveMessage('AI', roomId, 'ai', aiResponse, language);
           socket.emit('newMessage', aiMessage);
           console.log(`[${new Date().toISOString()}] Sent AI response to user ${userId} in AI chat ${roomId}`);

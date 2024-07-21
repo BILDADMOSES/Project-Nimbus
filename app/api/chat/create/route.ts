@@ -33,19 +33,40 @@ export async function POST(request: NextRequest) {
         };
         break;
 
-      case "oneOnOne":
-        const conversation = await prisma.conversation.create({
-          data: {
-            userId1: userId,
-            userId2: userId,
-            // userId2 will be set when the invitation is accepted
-          },
-        });
-        chat = {
-          id: conversation.id,
-          inviteLink: `${process.env.NEXT_PUBLIC_BASE_URL}/chat/join?token=${conversation.id}`,
-        };
-        break;
+        case "oneOnOne":
+          const conversation = await prisma.conversation.create({
+            data: {
+              userId1: userId,
+              userId2: userId,
+              // userId2 will be set when the invitation is accepted
+            },
+            include: {
+              user1: true,
+              user2: true,
+            },
+          });
+          const otherUser = conversation.user1.id === userId ? conversation.user2 : conversation.user1;
+          chat = {
+            id: conversation.id,
+            name: otherUser.name,
+            inviteLink: `${process.env.NEXT_PUBLIC_BASE_URL}/chat/join?token=${conversation.id}`,
+          };
+          break;
+        
+        case "ai":
+          const aiChat = await prisma.aIChat.create({
+            data: {
+              userId,
+              name: "AI Chat",
+              language: body.language,
+            },
+          });
+          chat = {
+            id: aiChat.id,
+            name: aiChat.name,
+            inviteLink: "",
+          };
+          break;
 
       case "ai":
         // Implement AI chat creation

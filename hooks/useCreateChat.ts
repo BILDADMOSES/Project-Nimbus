@@ -68,7 +68,8 @@ export const useCreateChat = () => {
           inviteEmails: [],
         });
         setChatId(chat.id);
-        // Redirect to AI chat interface
+        // Redirect to the AI chat page with the chat ID
+        window.location.href = `/chat/ai?uuid=${chat.id}`;
       } else {
         const chat = await createChat({
           language: language!.code,
@@ -80,7 +81,12 @@ export const useCreateChat = () => {
         setStep(3);
       }
     } else if (step === 3) {
-      //  "Send Invitations" button in the InviteMember component
+      // Redirect to the chat interface with the created chat ID
+      if (chatType === "group") {
+        window.location.href = `/chat/group/${chatId}`;
+      } else if (chatType === "oneOnOne") {
+        window.location.href = `/chat/conversation/${chatId}`;
+      }
     }
   };
 
