@@ -1,3 +1,4 @@
+"use client"
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -17,6 +18,35 @@ export const useSignIn = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const fetchLastConversation = async () => {
+    try {
+      const response = await fetch('/api/chat/last-conversation');
+      if (!response.ok) {
+        throw new Error('Failed to fetch last conversation');
+      }
+      const data = await response.json();
+      return data.conversation;
+    } catch (error) {
+      console.error('Error fetching last conversation:', error);
+      return null;
+    }
+  };
+
+  const handleSuccessfulLogin = async () => {
+    const savedJoinUrl = localStorage.getItem('joinCallbackUrl');
+    if (savedJoinUrl) {
+      localStorage.removeItem('joinCallbackUrl');
+      router.push(savedJoinUrl);
+    } else {
+      const lastConversation = await fetchLastConversation();
+      if (lastConversation) {
+        router.push(`/chat/one-on-one?uuid=${lastConversation.id}`);
+      } else {
+        router.push('/chat/create');
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -33,8 +63,8 @@ export const useSignIn = () => {
         setError("Invalid email or password");
         toast.error("Invalid email or password");
       } else {
-        toast.success("Log In Successfull");
-        router.push("/chats");
+        toast.success("Log In Successful");
+        await handleSuccessfulLogin();
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -43,8 +73,14 @@ export const useSignIn = () => {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    signIn("google", { callbackUrl: "/chats" });
+  const handleGoogleSignIn = async () => {
+    const result = await signIn("google", { redirect: false });
+    if (result?.error) {
+      setError("Failed to sign in with Google");
+      toast.error("Failed to sign in with Google");
+    } else {
+      await handleSuccessfulLogin();
+    }
   };
 
   return {

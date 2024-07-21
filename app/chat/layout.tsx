@@ -6,6 +6,7 @@ export default function ChatLayout({
 }: {
   children: React.ReactNode;
 }) {
+  
   return (
     <SessionProvider>
       <section className="chat-layout">

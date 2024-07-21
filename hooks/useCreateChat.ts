@@ -83,9 +83,9 @@ export const useCreateChat = () => {
     } else if (step === 3) {
       // Redirect to the chat interface with the created chat ID
       if (chatType === "group") {
-        window.location.href = `/chat/group/${chatId}`;
+        window.location.href = `/chat/group?uuid=${chatId}`;
       } else if (chatType === "oneOnOne") {
-        window.location.href = `/chat/conversation/${chatId}`;
+        window.location.href = `/chat/one-on-one?uuid=${chatId}`;
       }
     }
   };

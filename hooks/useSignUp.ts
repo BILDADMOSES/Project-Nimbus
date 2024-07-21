@@ -1,6 +1,8 @@
+"use client";
 import { useState } from 'react';
 import axios from 'axios';
 import {SignUpForm, SignUpError} from '@/types';
+import {useRouter} from 'next/navigation';
 
 
 export const useSignUp = () => {
@@ -13,6 +15,7 @@ export const useSignUp = () => {
   });
   const [errors, setErrors] = useState<SignUpError>({});
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const validateForm = () => {
     const newErrors: SignUpError = {};
@@ -42,10 +45,8 @@ export const useSignUp = () => {
         password: form.password,
         preferredLanguage: 'en', // Default to English
       });
+      router.push('/sign-in');
       
-      // language-selection is next
-      // Handle successful sign up redirect to setting up the chat room
-      console.log('Sign up successful', response.data);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         setErrors({ general: error.response.data.message || 'Failed to sign up. Please try again.' });
