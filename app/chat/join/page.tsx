@@ -156,23 +156,7 @@ export default function JoinPage() {
       </motion.div>
 
       {/* Right Column - Chat Illustration */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full md:w-1/2 bg-indigo-100 p-4 md:p-8 flex justify-center items-center"
-      >
-        <div className="w-full max-w-md flex flex-col items-center">
-          {renderChatIllustration()}
-
-          <h2 className="text-xl md:text-2xl font-semibold mb-2 text-center">
-            Join the conversation
-          </h2>
-          <p className="text-gray-600 text-center text-sm md:text-base">
-            Connect with others and share your thoughts
-          </p>
-        </div>
-      </motion.div>
+      {renderChatIllustration()}
     </div>
   );
 }
