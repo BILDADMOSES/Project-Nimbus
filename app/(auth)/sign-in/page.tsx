@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import gIcon from "@/app/assets/img/g-icon.png";
 import { useSignIn } from "@/hooks/useAuth";
-import { useState, Suspense } from "react";
+import { useState, Suspense, useCallback } from "react";
 import ChatIllustration from "@/components/common/ChatIllustration";
 import Link from "next/link";
+import ErrorBoundary from "@/components/ErrorBoundary";  
 
 const SignInContent = () => {
   const {
@@ -17,6 +18,10 @@ const SignInContent = () => {
     isLoading,
   } = useSignIn();
   const [showPassword, setShowPassword] = useState(false);
+
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword(prev => !prev);
+  }, []);
 
   return (
     <div className="w-full max-w-md">
@@ -30,6 +35,7 @@ const SignInContent = () => {
       <button
         onClick={handleGoogleSignIn}
         className="card bg-base-100 shadow-sm mb-6 w-full cursor-pointer hover:bg-gray-100 transition-colors flex-row justify-center"
+        disabled={isLoading}
       >
         <div className="card-body p-3 md:p-4 flex-row items-center justify-center text-center">
           <Image
@@ -82,7 +88,7 @@ const SignInContent = () => {
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={togglePasswordVisibility}
               className="absolute right-3 top-1/2 transform -translate-y-1/2"
             >
               {showPassword ? (
@@ -172,9 +178,11 @@ const SignIn = () => {
         transition={{ duration: 0.5 }}
         className="w-full md:w-1/2 p-4 md:p-8 flex flex-col justify-center items-center"
       >
-        <Suspense fallback={<div>Loading...</div>}>
-          <SignInContent />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<div>Loading...</div>}>
+            <SignInContent />
+          </Suspense>
+        </ErrorBoundary>
       </motion.div>
 
       {/* Right Column - Chat Interface Illustration */}

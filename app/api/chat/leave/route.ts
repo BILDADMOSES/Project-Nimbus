@@ -1,14 +1,7 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { setupPusherServer } from '@/server/pusher';
+import { NextRequest, NextResponse } from 'next/server';
 
-const pusherServer = setupPusherServer();
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    const { userId, roomId, roomType } = req.body;
-    pusherServer.handleLeave(userId, roomId, roomType);
-    res.status(200).json({ message: 'Left successfully' });
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
-  }
+export async function POST(request: NextRequest) {
+  const { userId, roomId, roomType } = await request.json();
+  console.log(`[${new Date().toISOString()}] User ${userId} left ${roomType} ${roomId}`);
+  return NextResponse.json({ message: 'Left successfully' }, { status: 200 });
 }

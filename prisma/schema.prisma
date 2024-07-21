@@ -14,7 +14,6 @@ model Language {
 
   users                   User[]
   groups                  Group[]
-  messages                Message[]
   translations            Translation[]
   userLanguageProficiencies UserLanguageProficiency[]
   translationLogsFrom     TranslationLog[] @relation("FromLanguage")
@@ -85,7 +84,7 @@ model Message {
   groupId           String? 
   conversationId    String? 
   receiverId        String? 
-  originalLanguage  String
+  originalLanguage  String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -93,7 +92,6 @@ model Message {
   receiver          User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
   group             Group?   @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  language          Language @relation(fields: [originalLanguage], references: [code])
   attachments       MessageAttachment[]
   translations      Translation[]
   translationLogs   TranslationLog[]

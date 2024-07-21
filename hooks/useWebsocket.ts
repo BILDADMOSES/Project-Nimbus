@@ -1,26 +1,30 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Pusher from 'pusher-js';
 
 export function useWebSocket(userId: string, roomId: string, roomType: 'group' | 'conversation' | 'ai') {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const pusherRef = useRef<Pusher | null>(null);
 
   useEffect(() => {
-    // Initialize Pusher connection
     pusherRef.current = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
       cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
       authEndpoint: '/api/pusher/auth',
+      auth: {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`, // Ensure the token is fetched appropriately
+        },
+        params: {},
+      }
     });
+  
 
-    // Subscribe to channels
     const userChannel = pusherRef.current.subscribe(`private-user-${userId}`);
     const roomChannel = pusherRef.current.subscribe(`private-${roomType}-${roomId}`);
 
-    // Setup event listeners
     userChannel.bind('pusher:subscription_succeeded', () => {
       setIsConnected(true);
-      // Simulate join event
       fetch('/api/chat/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,18 +44,20 @@ export function useWebSocket(userId: string, roomId: string, roomType: 'group' |
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    userChannel.bind('error', (error: any) => {
-      console.error('Pusher error:', error);
+    roomChannel.bind('typing', (typingUserId: string) => {
+      setTypingUsers((prevTypingUsers) => [...prevTypingUsers, typingUserId]);
     });
 
-    // Cleanup function
+    roomChannel.bind('stopTyping', (typingUserId: string) => {
+      setTypingUsers((prevTypingUsers) => prevTypingUsers.filter(id => id !== typingUserId));
+    });
+
     return () => {
       if (pusherRef.current) {
         pusherRef.current.unsubscribe(`private-user-${userId}`);
         pusherRef.current.unsubscribe(`private-${roomType}-${roomId}`);
         pusherRef.current.disconnect();
       }
-      // Simulate leave event
       fetch('/api/chat/leave', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -68,5 +74,21 @@ export function useWebSocket(userId: string, roomId: string, roomType: 'group' |
     });
   };
 
-  return { isConnected, messages, sendMessage };
+  const startTyping = () => {
+    fetch('/api/chat/typing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, roomId, roomType }),
+    });
+  };
+
+  const stopTyping = () => {
+    fetch('/api/chat/stopTyping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, roomId, roomType }),
+    });
+  };
+
+  return { isConnected, messages, typingUsers, sendMessage, startTyping, stopTyping };
 }

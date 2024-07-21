@@ -1,98 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Search, Plus, Paperclip, Smile, Mic, Send } from "lucide-react";
+import { Search, Plus, Paperclip, Smile, Send } from "lucide-react";
 import { motion } from "framer-motion";
-import io, { Socket } from "socket.io-client";
 import Logo from "./common/Logo";
 import Link from "next/link";
-
-// WebSocket Hook
-function useWebSocket(
-  userId: string,
-  roomId: string,
-  roomType: "group" | "conversation" | "ai"
-) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const socketRef = useRef<Socket | null>(null);
-
-  useEffect(() => {
-    socketRef.current = io(
-      process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3000"
-    );
-
-    const socket = socketRef.current;
-
-    socket.on("connect", () => {
-      setIsConnected(true);
-      socket.emit("authenticate", userId);
-      socket.emit("join", { userId, roomId, roomType });
-    });
-
-    socket.on("disconnect", () => {
-      setIsConnected(false);
-    });
-
-    socket.on("roomHistory", (history) => {
-      setMessages(history);
-      console.log("Room history:", history);
-    });
-
-    socket.on("newMessage", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-    });
-
-    socket.on("typing", (userId) => {
-      setTypingUsers((prevTypingUsers) => [...prevTypingUsers, userId]);
-    });
-
-    socket.on("stopTyping", (userId) => {
-      setTypingUsers((prevTypingUsers) =>
-        prevTypingUsers.filter((id) => id !== userId)
-      );
-    });
-
-    socket.on("error", (error) => {
-      console.error("WebSocket error:", error);
-    });
-
-    return () => {
-      if (socket) {
-        socket.emit("leave", { userId, roomId, roomType });
-        socket.disconnect();
-      }
-    };
-  }, [userId, roomId, roomType]);
-
-  const sendMessage = (content: string, language: string) => {
-    socketRef.current?.emit("sendMessage", {
-      userId,
-      roomId,
-      roomType,
-      content,
-      language,
-    });
-  };
-
-  const startTyping = () => {
-    socketRef.current?.emit("typing", { userId, roomId });
-  };
-
-  const stopTyping = () => {
-    socketRef.current?.emit("stopTyping", { userId, roomId });
-  };
-
-  return {
-    isConnected,
-    messages,
-    typingUsers,
-    sendMessage,
-    startTyping,
-    stopTyping,
-    setMessages,
-  };
-}
+import { useWebSocket } from "@/hooks/useWebsocket";
 
 interface ChatInterfaceProps {
   chatId?: string;
@@ -105,7 +17,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [chatList, setChatList] = useState<any[]>([]);
   const [message, setMessage] = useState("");
-  const [flag, setFlag] = useState<boolean>(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const {
     isConnected,
@@ -114,7 +26,6 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
     sendMessage,
     startTyping,
     stopTyping,
-    setMessages,
   } = useWebSocket(
     userId || "",
     selectedRoom?.id || "",
@@ -125,6 +36,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
     fetch("/api/chat")
       .then((response) => response.json())
       .then((data) => {
+        console.log("Chat list:", data);
         setChatList(data);
         scrollToBottom();
         if (chatId && chatType) {
@@ -139,21 +51,11 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
       .catch((error) => {
         console.error("Error fetching chat list:", error);
       });
-  }, [chatId, flag, chatType]);
+  }, [chatId, chatType]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          id: `temp-${Date.now()}`,
-          senderId: userId,
-          content: message,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
       sendMessage(message, session?.user?.preferredLanguage || "en");
-      setFlag(!flag);
       setMessage("");
     }
   };
@@ -167,8 +69,6 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
     }
     return room?.name || "New Group";
   };
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -204,119 +104,46 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
           </div>
         </div>
 
-        {/* AI Chats */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 border-b border-base-300">
-            {/* <h2 className="text-lg font-semibold">AI Chats</h2> */}
-          </div>
-          {groupedChats.aiChats.map((chat) => (
-            <div
-              key={chat.id}
-              className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
-                selectedRoom?.id === chat.id ? "bg-base-300" : ""
-              }`}
-              onClick={() => setSelectedRoom(chat)}
-            >
-              <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-              <div className="flex-1">
-                <div className="font-semibold">{getDisplayName(chat)}</div>
-                <div className="text-sm text-base-content truncate">
-                  {chat.lastMessage?.slice(0, 25) + "..."}
-                </div>
+          {Object.entries(groupedChats).map(([chatType, chats]) => (
+            <React.Fragment key={chatType}>
+              <div className="p-4 border-b border-base-300">
+                <h2 className="text-lg font-semibold capitalize">{chatType.replace('aiChats', 'AI Chats')}</h2>
               </div>
-              <div className="text-xs text-base-content">
-                {chat.lastMessageTimestamp
-                  ? new Date(chat.lastMessageTimestamp).toDateString() ===
-                    new Date().toDateString()
-                    ? "Today"
-                    : new Date(chat.lastMessageTimestamp).toLocaleString(
-                        undefined,
-                        { month: "short", day: "numeric" }
-                      )
-                  : ""}
-              </div>
-              {chat.unreadCount > 0 && (
-                <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
-                  {chat.unreadCount}
+              {chats.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
+                    selectedRoom?.id === chat.id ? "bg-base-300" : ""
+                  }`}
+                  onClick={() => setSelectedRoom(chat)}
+                >
+                  <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
+                  <div className="flex-1">
+                    <div className="font-semibold">{getDisplayName(chat)}</div>
+                    <div className="text-sm text-base-content truncate">
+                      {chat.lastMessage?.slice(0, 25) + "..."}
+                    </div>
+                  </div>
+                  <div className="text-xs text-base-content">
+                    {chat.lastMessageTimestamp
+                      ? new Date(chat.lastMessageTimestamp).toDateString() ===
+                        new Date().toDateString()
+                        ? "Today"
+                        : new Date(chat.lastMessageTimestamp).toLocaleString(
+                            undefined,
+                            { month: "short", day: "numeric" }
+                          )
+                      : ""}
+                  </div>
+                  {chat.unreadCount > 0 && (
+                    <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
+                      {chat.unreadCount}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
-
-          {/* Conversations */}
-          <div className="p-4 border-b border-base-300">
-            {/* <h2 className="text-lg font-semibold">Conversations</h2> */}
-          </div>
-          {groupedChats.conversations.map((chat) => (
-            <div
-              key={chat.id}
-              className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
-                selectedRoom?.id === chat.id ? "bg-base-300" : ""
-              }`}
-              onClick={() => setSelectedRoom(chat)}
-            >
-              <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-              <div className="flex-1">
-                <div className="font-semibold">{getDisplayName(chat)}</div>
-                <div className="text-sm text-base-content truncate">
-                  {chat.lastMessage?.slice(0, 25) + "..."}
-                </div>
-              </div>
-              <div className="text-xs text-base-content">
-                {chat.lastMessageTimestamp
-                  ? new Date(chat.lastMessageTimestamp).toDateString() ===
-                    new Date().toDateString()
-                    ? "Today"
-                    : new Date(chat.lastMessageTimestamp).toLocaleString(
-                        undefined,
-                        { month: "short", day: "numeric" }
-                      )
-                  : ""}
-              </div>
-              {chat.unreadCount > 0 && (
-                <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
-                  {chat.unreadCount}
-                </div>
-              )}
-            </div>
-          ))},
-
-          {/* Groups */}
-          <div className="p-4 border-b border-base-300">
-            {/* <h2 className="text-lg font-semibold">Groups</h2> */}
-          </div>
-          {groupedChats.groups.map((chat) => (
-            <div
-              key={chat.id}
-              className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
-                selectedRoom?.id === chat.id ? "bg-base-300" : ""
-              }`}
-              onClick={() => setSelectedRoom(chat)}
-            >
-              <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-              <div className="flex-1">
-                <div className="font-semibold">{getDisplayName(chat)}</div>
-                <div className="text-sm text-base-content truncate">
-                  {chat.lastMessage?.slice(0, 25) + "..."}
-                </div>
-              </div>
-              <div className="text-xs text-base-content">
-                {chat.lastMessageTimestamp
-                  ? new Date(chat.lastMessageTimestamp).toDateString() ===
-                    new Date().toDateString()
-                    ? "Today"
-                    : new Date(chat.lastMessageTimestamp).toLocaleString(
-                        undefined,
-                        { month: "short", day: "numeric" }
-                      )
-                  : ""}
-              </div>
-              {chat.unreadCount > 0 && (
-                <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
-                  {chat.unreadCount}
-                </div>
-              )}
-            </div>
+              ))}
+            </React.Fragment>
           ))}
         </div>
       </div>
@@ -333,7 +160,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
                 ? `${selectedRoom?.members?.length || 0} members`
                 : selectedRoom?.type === "conversation"
                 ? "Private conversation"
-                : "No Invitations have been accepted yet"}
+                : "AI Chat"}
             </div>
           </div>
           <button className="ml-auto text-base-content">
@@ -361,7 +188,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
               >
                 <div
                   className={`chat-bubble ${
-                    msg.senderId === userId ? "bg-primary text-white" : "bg-base-300 text-base-content"
+                    msg.senderId === userId ? "chat-bubble-primary" : ""
                   }`}
                 >
                   <div className="chat-header font-semibold">
@@ -381,12 +208,12 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
         <div className="p-2 text-sm text-primary">
           {typingUsers.length > 0 && (
             <div>
-              {typingUsers.map((userId, index) => (
-                <span key={userId}>
+              {typingUsers.map((typingUserId, index) => (
+                <span key={typingUserId}>
                   {
                     chatList
                       .find((chat) => chat.id === selectedRoom?.id)
-                      ?.members.find((member: any) => member.id === userId)?.name ||
+                      ?.members.find((member: any) => member.id === typingUserId)?.name ||
                       "Someone"
                   }
                   {index < typingUsers.length - 1 ? ", " : ""}
@@ -424,7 +251,6 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
               <Send className="w-6 h-6" />
             ) : (
               <span> </span>
-              // <Mic className="w-6 h-6" />
             )}
           </button>
         </div>

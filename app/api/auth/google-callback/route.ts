@@ -1,13 +1,13 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../authOptions";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, authOptions);
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
 
   if (session) {
-    res.redirect('/api/auth/session');
+    return NextResponse.redirect(new URL('/api/auth/session', request.url));
   } else {
-    res.redirect('/sign-in?error=GoogleAuthFailed');
+    return NextResponse.redirect(new URL('/sign-in?error=GoogleAuthFailed', request.url));
   }
 }

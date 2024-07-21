@@ -145,16 +145,26 @@ async function getMessages(roomId: string, roomType: string) {
   return messages;
 }
 
-async function saveMessage(userId: string, roomId: string, roomType: string, content: string, language: string) {
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
+async function saveMessage(userId: string, roomId: string, roomType: string, content: string, languageCode: string) {
   console.log(`[${new Date().toISOString()}] Saving message for user ${userId} in ${roomType} ${roomId}`);
   let savedMessage;
   if (roomType === 'group') {
     savedMessage = await prisma.message.create({
       data: {
         content,
-        originalLanguage: language,
-        senderId: userId,
-        groupId: roomId,
+        originalLanguage: languageCode,
+        language: {
+          connect: { code: languageCode },
+        },
+        sender: {
+          connect: { id: userId },
+        },
+        group: {
+          connect: { id: roomId },
+        },
       },
       include: { sender: true },
     });
@@ -162,9 +172,16 @@ async function saveMessage(userId: string, roomId: string, roomType: string, con
     savedMessage = await prisma.message.create({
       data: {
         content,
-        originalLanguage: language,
-        senderId: userId,
-        conversationId: roomId,
+        originalLanguage: languageCode,
+        language: {
+          connect: { code: languageCode },
+        },
+        sender: {
+          connect: { id: userId },
+        },
+        conversation: {
+          connect: { id: roomId },
+        },
       },
       include: { sender: true },
     });
@@ -173,7 +190,9 @@ async function saveMessage(userId: string, roomId: string, roomType: string, con
       data: {
         content,
         isUser: userId !== 'AI',
-        aiChatId: roomId,
+        aiChat: {
+          connect: { id: roomId },
+        },
       },
     });
   }

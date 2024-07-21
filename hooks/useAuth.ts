@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { SignInForm } from "@/types";
@@ -13,29 +13,26 @@ export const useSignIn = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParamsRef = useRef<URLSearchParams | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      searchParamsRef.current = new URLSearchParams(window.location.search);
-      const errorParam = searchParamsRef.current.get('error');
-      if (errorParam) {
-        setError("Failed to sign in. Please try again.");
-        toast.error("Failed to sign in");
-      }
+    const searchParams = new URLSearchParams(window.location.search);
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError("Failed to sign in. Please try again.");
+      toast.error("Failed to sign in");
+    }
 
-      const sessionParam = searchParamsRef.current.get('session');
-      if (sessionParam === 'success') {
-        handleSuccessfulLogin();
-      }
+    const sessionParam = searchParams.get('session');
+    if (sessionParam === 'success') {
+      handleSuccessfulLogin();
     }
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []);
 
-  const fetchLastConversation = async () => {
+  const fetchLastConversation = useCallback(async () => {
     try {
       const response = await fetch('/api/chat/last-conversation');
       if (!response.ok) {
@@ -47,9 +44,9 @@ export const useSignIn = () => {
       console.error('Error fetching last conversation:', error);
       return null;
     }
-  };
+  }, []);
 
-  const handleSuccessfulLogin = async () => {
+  const handleSuccessfulLogin = useCallback(async () => {
     const savedJoinUrl = localStorage.getItem('joinCallbackUrl');
     if (savedJoinUrl) {
       localStorage.removeItem('joinCallbackUrl');
@@ -62,9 +59,9 @@ export const useSignIn = () => {
         router.push('/chat/create');
       }
     }
-  };
+  }, [router, fetchLastConversation]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -88,9 +85,9 @@ export const useSignIn = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [form, handleSuccessfulLogin]);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = useCallback(async () => {
     setIsLoading(true);
     try {
       await signIn("google", { 
@@ -103,7 +100,7 @@ export const useSignIn = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     form,
