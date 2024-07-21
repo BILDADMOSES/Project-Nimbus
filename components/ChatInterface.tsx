@@ -4,6 +4,7 @@ import { Search, Plus, Paperclip, Smile, Mic, Send } from "lucide-react";
 import { motion } from "framer-motion";
 import io, { Socket } from "socket.io-client";
 import Logo from "./common/Logo";
+import Link from "next/link";
 
 // WebSocket Hook
 function useWebSocket(
@@ -89,6 +90,7 @@ function useWebSocket(
     sendMessage,
     startTyping,
     stopTyping,
+    setMessages,
   };
 }
 
@@ -103,6 +105,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [chatList, setChatList] = useState<any[]>([]);
   const [message, setMessage] = useState("");
+  const [flag, setFlag] = useState<boolean>(false);
 
   const {
     isConnected,
@@ -111,6 +114,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
     sendMessage,
     startTyping,
     stopTyping,
+    setMessages,
   } = useWebSocket(
     userId || "",
     selectedRoom?.id || "",
@@ -122,6 +126,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
       .then((response) => response.json())
       .then((data) => {
         setChatList(data);
+        scrollToBottom();
         if (chatId && chatType) {
           const room = data.find(
             (chat: any) => chat.id === chatId && chat.type === chatType
@@ -134,21 +139,39 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
       .catch((error) => {
         console.error("Error fetching chat list:", error);
       });
-  }, [chatId, chatType]);
+  }, [chatId, flag, chatType]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          id: `temp-${Date.now()}`,
+          senderId: userId,
+          content: message,
+          createdAt: new Date().toISOString(),
+        },
+      ]);
       sendMessage(message, session?.user?.preferredLanguage || "en");
+      setFlag(!flag);
       setMessage("");
     }
   };
 
   const getDisplayName = (room: any) => {
     if (room?.type === "conversation" && room?.members) {
-      const otherUser = room.members.find((member: any) => member.id !== userId);
+      const otherUser = room.members.find(
+        (member: any) => member.id !== userId
+      );
       return otherUser ? otherUser.name : "Unknown User";
     }
     return room?.name || "Chat";
+  };
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -158,9 +181,11 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
         <div className="p-4 border-b border-base-300 flex items-center">
           <div className="w-10 h-10 bg-gray-300 rounded-full mr-2"></div>
           <Logo fontSize="2rem" height={40} width={40} />
-          <button className="ml-auto bg-primary text-primary-content rounded-full p-2">
-            <Plus className="w-5 h-5" />
-          </button>
+          <Link href="/chat/create">
+            <button className="ml-auto bg-primary text-primary-content rounded-full p-2">
+              <Plus className="w-5 h-5" />
+            </button>
+          </Link>
         </div>
         <div className="p-4">
           <div className="flex items-center bg-base-300 rounded-md px-2">
@@ -230,7 +255,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
         </div>
 
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
+        <div className="hide-scrollbar flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
           {!isConnected && (
             <div className="text-center text-base-content">
               Connecting to chat...
@@ -272,6 +297,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
                 </motion.div>
               </React.Fragment>
             ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Message input */}
