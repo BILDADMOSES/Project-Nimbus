@@ -2,7 +2,6 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import phoneChat from "@/app/assets/img/phone-chat.png";
-import logo_light from "@/app/assets/img/icon.svg";
 import john from "@/app/assets/img/john.png";
 import jane from "@/app/assets/img/jane.png";
 import Link from "next/link";
@@ -18,7 +17,7 @@ const Home = () => {
           transition={{ duration: 0.5 }}
           className="text-3xl font-bold"
         >
-          <Logo width={40} height={40} fontSize="1.5rem" logoSrc={logo_light} />
+          <Logo width={40} height={40} fontSize="1.5rem" />
         </motion.h1>
         <nav className="flex items-center gap-4">
           <Link href="/sign-in">
@@ -42,12 +41,7 @@ const Home = () => {
           className="text-center mb-16"
         >
           <div className="my-12">
-            <Logo
-              width={40}
-              height={40}
-              fontSize="3.5rem"
-              logoSrc={logo_light}
-            />
+            <Logo width={40} height={40} fontSize="3.5rem" />
           </div>
           <h2 className="text-5xl font-bold mb-4">
             Difference in language is never an issue
