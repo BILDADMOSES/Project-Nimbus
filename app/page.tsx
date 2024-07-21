@@ -3,7 +3,10 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import phoneChat from "@/app/assets/img/phone-chat.png";
 import logo_light from "@/app/assets/img/icon.svg";
+import john from "@/app/assets/img/john.png";
+import jane from "@/app/assets/img/jane.png";
 import Link from "next/link";
+import Logo from "@/components/common/Logo";
 
 const Home = () => {
   return (
@@ -15,7 +18,7 @@ const Home = () => {
           transition={{ duration: 0.5 }}
           className="text-3xl font-bold"
         >
-          chatEasy
+          <Logo width={40} height={40} fontSize="1.5rem" logoSrc={logo_light} />
         </motion.h1>
         <nav className="flex items-center gap-4">
           <Link href="/sign-in">
@@ -38,10 +41,14 @@ const Home = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="flex space-x-5 text-5xl font-black justify-center my-10 items-center mx-auto">
-            <h1>chatEasy</h1>
-            <Image src={logo_light} width={50} height={50} alt="Logo" />
-          </span>
+          <div className="my-12">
+            <Logo
+              width={40}
+              height={40}
+              fontSize="3.5rem"
+              logoSrc={logo_light}
+            />
+          </div>
           <h2 className="text-5xl font-bold mb-4">
             Difference in language is never an issue
             <br />
@@ -108,7 +115,7 @@ const Home = () => {
             className="absolute right-0 top-1/3 bg-indigo-600 p-3 rounded-full shadow-md"
           >
             <Image
-              src="/api/placeholder/40/40"
+              src={john}
               alt="User Avatar"
               width={40}
               height={40}
@@ -124,7 +131,7 @@ const Home = () => {
             className="absolute left-1/4 bottom-16 bg-blue-600 p-3 rounded-lg shadow-md"
           >
             <Image
-              src="/api/placeholder/30/30"
+              src={jane}
               alt="User Avatar"
               width={30}
               height={30}
