@@ -165,7 +165,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
       );
       return otherUser ? otherUser.name : "Unknown User";
     }
-    return room?.name || "Chat";
+    return room?.name || "New Group";
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -246,7 +246,9 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
                 ? `${selectedRoom?.members?.length || 0} members`
                 : selectedRoom?.type === "conversation"
                 ? "Private conversation"
-                : "AI Chat"}
+                : selectedRoom?.type === "conversation"
+                ? "Private conversation"
+                : "No Invitations have been accepted yet"}
             </div>
           </div>
           <button className="ml-auto text-base-content">
@@ -262,73 +264,85 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
             </div>
           )}
           {isConnected && messages.length === 0 && (
-            <div className="text-center text-base-content">
-              No messages yet. Start the conversation!
-            </div>
+            <div className="text-center text-base-content">No messages yet.</div>
           )}
           {isConnected &&
-            messages.map((msg, index) => (
-              <React.Fragment key={msg.id}>
-                <motion.div
-                  className={`flex items-end ${
-                    msg.senderId === userId ? "justify-end" : "justify-start"
+            messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`chat ${
+                  msg.senderId === userId ? "chat-end" : "chat-start"
+                }`}
+              >
+                <div
+                  className={`chat-bubble ${
+                    msg.senderId === userId ? "bg-primary text-white" : "bg-base-300 text-base-content"
                   }`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <div
-                    className={`rounded-lg p-3 max-w-xs h-auto shadow-sm ${
-                      msg.senderId === userId
-                        ? "bg-indigo-500 text-white order-2 ml-2"
-                        : "bg-base-200 text-base-content"
-                    }`}
-                  >
-                    <p className="text-sm break-words text-wrap">
-                      {msg.content}
-                    </p>
+                  <div className="chat-header font-semibold">
+                    {msg.senderId === userId ? "You" : getDisplayName(selectedRoom)}
                   </div>
-                  <div className="text-xs text-base-content ml-2">
-                    {new Date(msg.createdAt).toLocaleTimeString(undefined, {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                  <div className="chat-body mt-1">{msg.content}</div>
+                  <div className="chat-footer text-xs text-right mt-1">
+                    {new Date(msg.createdAt).toLocaleTimeString()}
                   </div>
-                </motion.div>
-              </React.Fragment>
+                </div>
+              </div>
             ))}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message input */}
-        <div className="bg-base-200 p-4 border-t border-base-300">
-          <div className="flex items-center bg-base-300 rounded-full px-4">
-            <Smile className="w-6 h-6 text-base-content" />
-            <input
-              type="text"
-              placeholder="Type message..."
-              className="bg-transparent p-3 flex-1 focus:outline-none"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              onFocus={startTyping}
-              onBlur={stopTyping}
-            />
-            <Paperclip className="w-6 h-6 text-base-content" />
-            <Mic className="w-6 h-6 text-base-content" />
-            <button
-              onClick={handleSendMessage}
-              className="bg-primary text-primary-content rounded-full p-2 ml-2"
-              disabled={!isConnected}
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
+
+        {/* Typing indicator */}
+        <div className="p-2 text-sm text-primary">
           {typingUsers.length > 0 && (
-            <div className="text-sm text-base-content mt-2">
-              {typingUsers.join(", ")} is typing...
+            <div>
+              {typingUsers.map((userId, index) => (
+                <span key={userId}>
+                  {
+                    chatList
+                      .find((chat) => chat.id === selectedRoom?.id)
+                      ?.members.find((member: any) => member.id === userId)?.name ||
+                      "Someone"
+                  }
+                  {index < typingUsers.length - 1 ? ", " : ""}
+                </span>
+              ))}
+              {typingUsers.length === 1 ? " is typing..." : " are typing..."}
             </div>
           )}
+        </div>
+
+        {/* Chat input */}
+        <div className="p-4 flex items-center bg-base-200 border-t border-base-300">
+          <button className="text-base-content">
+            <Paperclip className="w-6 h-6 mr-2" />
+          </button>
+          <button className="text-base-content">
+            <Smile className="w-6 h-6 mr-2" />
+          </button>
+          <input
+            type="text"
+            className="flex-1 p-2 bg-base-300 rounded-lg focus:outline-none text-base-content"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSendMessage();
+            }}
+            onFocus={startTyping}
+            onBlur={stopTyping}
+          />
+          <button
+            className="text-base-content ml-2"
+            onClick={handleSendMessage}
+          >
+            {message.trim() ? (
+              <Send className="w-6 h-6" />
+            ) : (
+              <span> </span>
+              // <Mic className="w-6 h-6" />
+            )}
+          </button>
         </div>
       </div>
     </div>
