@@ -1,13 +1,16 @@
-"use client"
-import React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { Search, Plus, Paperclip, Smile, Mic, Send } from 'lucide-react';
-import { motion } from 'framer-motion';
-import io, { Socket } from 'socket.io-client';
+"use client";
+import React, { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { Search, Plus, Paperclip, Smile, Mic, Send } from "lucide-react";
+import { motion } from "framer-motion";
+import io, { Socket } from "socket.io-client";
 
 // WebSocket Hook
-function useWebSocket(userId: string, roomId: string, roomType: 'group' | 'conversation' | 'ai') {
+function useWebSocket(
+  userId: string,
+  roomId: string,
+  roomType: "group" | "conversation" | "ai"
+) {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
@@ -15,65 +18,81 @@ function useWebSocket(userId: string, roomId: string, roomType: 'group' | 'conve
 
   useEffect(() => {
     // Initialize the socket connection
-    socketRef.current = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3000');
+    socketRef.current = io(
+      process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3000"
+    );
 
     // Setup event listeners
     const socket = socketRef.current;
 
-    socket.on('connect', () => {
+    socket.on("connect", () => {
       setIsConnected(true);
-      socket.emit('authenticate', userId);
-      socket.emit('join', { userId, roomId, roomType });
+      socket.emit("authenticate", userId);
+      socket.emit("join", { userId, roomId, roomType });
     });
 
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       setIsConnected(false);
     });
 
-    socket.on('roomHistory', (history) => {
+    socket.on("roomHistory", (history) => {
       setMessages(history);
+      console.log("Room history:", history);
     });
 
-    socket.on('newMessage', (message) => {
+    socket.on("newMessage", (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    socket.on('typing', (userId) => {
+    socket.on("typing", (userId) => {
       setTypingUsers((prevTypingUsers) => [...prevTypingUsers, userId]);
     });
 
-    socket.on('stopTyping', (userId) => {
+    socket.on("stopTyping", (userId) => {
       setTypingUsers((prevTypingUsers) =>
         prevTypingUsers.filter((id) => id !== userId)
       );
     });
 
-    socket.on('error', (error) => {
-      console.error('WebSocket error:', error);
+    socket.on("error", (error) => {
+      console.error("WebSocket error:", error);
     });
 
     // Cleanup function
     return () => {
       if (socket) {
-        socket.emit('leave', { userId, roomId, roomType });
+        socket.emit("leave", { userId, roomId, roomType });
         socket.disconnect();
       }
     };
   }, [userId, roomId, roomType]);
 
   const sendMessage = (content: string, language: string) => {
-    socketRef.current?.emit('sendMessage', { userId, roomId, roomType, content, language });
+    socketRef.current?.emit("sendMessage", {
+      userId,
+      roomId,
+      roomType,
+      content,
+      language,
+    });
   };
 
   const startTyping = () => {
-    socketRef.current?.emit('typing', { userId, roomId });
+    socketRef.current?.emit("typing", { userId, roomId });
   };
 
   const stopTyping = () => {
-    socketRef.current?.emit('stopTyping', { userId, roomId });
+    socketRef.current?.emit("stopTyping", { userId, roomId });
   };
 
-  return { isConnected, messages, typingUsers, sendMessage, startTyping, stopTyping };
+  return {
+    isConnected,
+    messages,
+    typingUsers,
+    sendMessage,
+    startTyping,
+    stopTyping,
+  };
 }
 
 interface ChatInterfaceProps {
@@ -87,37 +106,46 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
   const userId = session?.user?.id;
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [chatList, setChatList] = useState<any[]>([]);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
 
-  const { isConnected, messages, typingUsers, sendMessage, startTyping, stopTyping } = useWebSocket(
-    userId || '',
-    selectedRoom?.id || '',
-    selectedRoom?.type || 'group'
+  const {
+    isConnected,
+    messages,
+    typingUsers,
+    sendMessage,
+    startTyping,
+    stopTyping,
+  } = useWebSocket(
+    userId || "",
+    selectedRoom?.id || "",
+    selectedRoom?.type || "group"
   );
 
   useEffect(() => {
     // Fetch chat list from API
-    fetch('/api/chat')
+    fetch("/api/chat")
       .then((response) => response.json())
       .then((data) => {
         setChatList(data);
         if (chatId && chatType) {
           // Find the chat room based on the ID and type from the props
-          const room = data.find((chat: any) => chat.id === chatId && chat.type === chatType);
+          const room = data.find(
+            (chat: any) => chat.id === chatId && chat.type === chatType
+          );
           setSelectedRoom(room);
         } else {
           setSelectedRoom(data[0]); // Select the first room by default
         }
       })
       .catch((error) => {
-        console.error('Error fetching chat list:', error);
+        console.error("Error fetching chat list:", error);
       });
   }, [chatId, chatType]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      sendMessage(message, session?.user?.preferredLanguage || 'en');
-      setMessage('');
+      sendMessage(message, session?.user?.preferredLanguage || "en");
+      setMessage("");
     }
   };
 
@@ -148,7 +176,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
             <div
               key={chat.id}
               className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
-                selectedRoom?.id === chat.id ? 'bg-base-300' : ''
+                selectedRoom?.id === chat.id ? "bg-base-300" : ""
               }`}
               onClick={() => setSelectedRoom(chat)}
             >
@@ -159,7 +187,9 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
                   {chat.lastMessage}
                 </div>
               </div>
-              <div className="text-xs text-base-content">{chat.lastMessageTimestamp}</div>
+              <div className="text-xs text-base-content">
+                {chat.lastMessageTimestamp}
+              </div>
               {chat.unreadCount > 0 && (
                 <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center ml-2">
                   {chat.unreadCount}
@@ -178,11 +208,11 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
           <div>
             <div className="font-semibold">{selectedRoom?.name}</div>
             <div className="text-sm text-success">
-              {selectedRoom?.type === 'group'
+              {selectedRoom?.type === "group"
                 ? `${selectedRoom?.members.length} members`
-                : selectedRoom?.type === 'conversation'
-                ? 'Private conversation'
-                : 'AI Chat'}
+                : selectedRoom?.type === "conversation"
+                ? "Private conversation"
+                : "AI Chat"}
             </div>
           </div>
           <button className="ml-auto text-base-content">
@@ -191,9 +221,11 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
         </div>
 
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
           {!isConnected && (
-            <div className="text-center text-base-content">Connecting to chat...</div>
+            <div className="text-center text-base-content">
+              Connecting to chat...
+            </div>
           )}
           {isConnected && messages.length === 0 && (
             <div className="text-center text-base-content">
@@ -204,17 +236,32 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
             messages.map((msg, index) => (
               <React.Fragment key={msg.id}>
                 <motion.div
-                  className="flex items-end"
+                  className={`flex items-end ${
+                    msg.isUser ? "justify-end" : "justify-start"
+                  }`}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                 >
-                  <div className="w-8 h-8 bg-gray-300 rounded-full mr-2"></div>
-                  <div className="bg-base-200 rounded-lg p-3 max-w-xs shadow-sm">
-                    <p className="text-sm">{msg.content}</p>
+                  {/* <div
+                    className={`w-8 h-8 bg-gray-300 rounded-full mr-2 ${
+                      msg.isUser ? "order-2 ml-2" : "mr-2"
+                    }`}
+                  ></div> */}
+                  <div
+                    className={`rounded-lg p-3 max-w-xs h-auto shadow-sm ${
+                      msg.isUser
+                        ? "bg-indigo-500 text-white"
+                        : "bg-base-200 text-base-content"
+                    }`}
+                  >
+                    <p className="text-sm text-wrap">{msg.content}</p>
                   </div>
                   <div className="text-xs text-base-content ml-2">
-                    {new Date(msg.createdAt).toLocaleTimeString()}
+                    {new Date(msg.createdAt).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </div>
                 </motion.div>
               </React.Fragment>
@@ -231,7 +278,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
               className="bg-transparent p-3 flex-1 focus:outline-none"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
               onFocus={startTyping}
               onBlur={stopTyping}
             />
@@ -247,7 +294,7 @@ const ChatInterface = ({ chatId, chatType }: ChatInterfaceProps) => {
           </div>
           {typingUsers.length > 0 && (
             <div className="text-sm text-base-content mt-2">
-              {typingUsers.join(', ')} is typing...
+              {typingUsers.join(", ")} is typing...
             </div>
           )}
         </div>

@@ -1,6 +1,11 @@
-import { GoogleGenerativeAI, GenerativeModel, ChatSession } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  GenerativeModel,
+  ChatSession,
+} from "@google/generative-ai";
 
-const API_KEY = process.env.GEMINI_API_KEY || "";
+const API_KEY =
+  process.env.GEMINI_API_KEY || "AIzaSyCEoQAvOtS8Jmo7bszhU4JARKFp_YtEqVc";
 
 // if (!API_KEY) {
 //   throw new Error("GEMINI_API_KEY is not set in the environment variables.");
@@ -11,7 +16,7 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Model configuration
 const modelConfig = {
-  model: "gemini-pro",  // Changed back to gemini-pro as it seems to be the correct model
+  model: "gemini-pro", // Changed back to gemini-pro as it seems to be the correct model
   generationConfig: {
     temperature: 1,
     topP: 0.95,
@@ -25,14 +30,14 @@ let chatSession: ChatSession;
 
 // Error handling
 function handleError(error: any): string {
-  console.error('Error generating response:', error);
-  
+  console.error("Error generating response:", error);
+
   if (error.status === 403) {
-    return 'Authentication error. Please check your API key and ensure it has the necessary permissions.';
+    return "Authentication error. Please check your API key and ensure it has the necessary permissions.";
   } else if (error.message.includes("API Key")) {
-    return 'Invalid or missing API key. Please check your API key configuration.';
+    return "Invalid or missing API key. Please check your API key configuration.";
   } else {
-    return 'An unexpected error occurred. Please try again later.';
+    return "An unexpected error occurred. Please try again later.";
   }
 }
 
@@ -44,12 +49,17 @@ export async function initializeChat(): Promise<void> {
       history: [],
     });
   } catch (error) {
-    console.error('Error initializing chat:', error);
-    throw new Error('Failed to initialize chat. Please check your configuration and try again.');
+    console.error("Error initializing chat:", error);
+    throw new Error(
+      "Failed to initialize chat. Please check your configuration and try again."
+    );
   }
 }
 
-export async function generateResponse(prompt: string, language: string = 'en'): Promise<string> {
+export async function generateResponse(
+  prompt: string,
+  language: string = "en"
+): Promise<string> {
   try {
     if (!chatSession) {
       await initializeChat();
@@ -68,34 +78,36 @@ export async function generateResponse(prompt: string, language: string = 'en'):
 }
 
 export async function practiceLanguage(): Promise<void> {
-  console.log('Welcome to Language Practice!');
-  console.log("Type 'exit' to end the session or specify a language (e.g., 'French: Bonjour').");
+  console.log("Welcome to Language Practice!");
+  console.log(
+    "Type 'exit' to end the session or specify a language (e.g., 'French: Bonjour')."
+  );
 
   try {
     await initializeChat();
   } catch (error) {
-    console.error('Failed to start language practice:', error);
+    console.error("Failed to start language practice:", error);
     return;
   }
 
   while (true) {
     try {
-      const userInput = prompt('You: ');
+      const userInput = prompt("You: ");
 
       if (!userInput) {
         console.log('Please enter a prompt or "exit" to quit.');
         continue;
       }
 
-      if (userInput.toLowerCase() === 'exit') {
-        console.log('Ending the session. Goodbye!');
+      if (userInput.toLowerCase() === "exit") {
+        console.log("Ending the session. Goodbye!");
         break;
       }
 
       // Extract language preference (optional)
       const languageMatch = userInput.match(/^([a-zA-Z]+):\s*(.*)$/);
       let promptText = userInput;
-      let language = 'en';
+      let language = "en";
 
       if (languageMatch) {
         language = languageMatch[1];
@@ -105,8 +117,10 @@ export async function practiceLanguage(): Promise<void> {
       const response = await generateResponse(promptText, language);
       console.log(`AI: ${response}`);
     } catch (error) {
-      console.error('Error during interaction:', error);
-      console.log('An error occurred. Please try again or type "exit" to quit.');
+      console.error("Error during interaction:", error);
+      console.log(
+        'An error occurred. Please try again or type "exit" to quit.'
+      );
     }
   }
 }
@@ -118,7 +132,7 @@ export async function verifyAPIKey(): Promise<boolean> {
     await model.generateContent("Test");
     return true;
   } catch (error: any) {
-    console.error('API Key verification failed:', error);
+    console.error("API Key verification failed:", error);
     return false;
   }
 }
