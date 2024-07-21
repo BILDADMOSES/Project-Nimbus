@@ -46,19 +46,46 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.preferredLanguage = user.preferredLanguage;
+      }
+      // Include the provider in the token
+      if (account) {
+        token.provider = account.provider;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.preferredLanguage = token.preferredLanguage;
+        session.user.id = token.id as string;
+        session.user.preferredLanguage = token.preferredLanguage as string;
+        // Include the provider in the session
+        session.provider = token.provider as string;
       }
       return session;
+    },
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        // Handle Google sign-in
+        const existingUser = await prisma.user.findUnique({
+          where: { email: profile?.email },
+        });
+
+        if (!existingUser) {
+          // Create a new user if they don't exist
+          await prisma.user.create({
+            data: {
+              email: profile?.email,
+              name: profile?.name,
+              // Set default preferred language or get it from profile if available
+              preferredLanguage: "en",
+            },
+          });
+        }
+      }
+      return true;
     },
     async redirect({ url, baseUrl }) {
       // If the url starts with baseUrl, allow it

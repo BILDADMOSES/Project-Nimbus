@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "chatEasy",
-  description: "Communicte. Collaborate. Connect.",
+  description: "Communicate. Collaborate. Connect.",
 };
 
 export default function RootLayout({

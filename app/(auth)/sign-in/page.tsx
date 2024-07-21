@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import gIcon from "@/app/assets/img/g-icon.png";
 import { useSignIn } from "@/hooks/useAuth";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import ChatIllustration from "@/components/common/ChatIllustration";
 import Link from "next/link";
 
@@ -18,7 +18,10 @@ const SignIn = () => {
   } = useSignIn();
   const [showPassword, setShowPassword] = useState(false);
 
+
   return (
+    <Suspense fallback={<div>Loading...</div>}>
+
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       {/* Left Column - Sign In Form */}
       <motion.div
@@ -172,6 +175,7 @@ const SignIn = () => {
       {/* Right Column - Chat Interface Illustration */}
       <ChatIllustration />
     </div>
+    </Suspense>
   );
 };
 
