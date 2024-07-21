@@ -1,56 +1,62 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 
-interface TranslatorProps {
+const Script = dynamic(() => import('next/script'), { ssr: false });
+
+interface LanguageTranslatorProps {
+  languageCode: string;
   children: React.ReactNode;
-  targetLanguage: string;
 }
 
-const Translator: React.FC<TranslatorProps> = ({ children, targetLanguage }) => {
-  const [translatedContent, setTranslatedContent] = useState<string | null>(null);
+declare global {
+  interface Window {
+    gtranslateSettings: any;
+    doGTranslate: (lang_pair: string) => void;
+  }
+}
+
+const LanguageTranslator: React.FC<LanguageTranslatorProps> = ({ languageCode, children }) => {
+  const [isTranslateReady, setIsTranslateReady] = useState(false);
 
   useEffect(() => {
-    const translateText = async (text: string) => {
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
-      const url = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
-      
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            q: text,
-            target: targetLanguage,
-          }),
-        });
-
-        const data = await response.json();
-        return data.data.translations[0].translatedText;
-      } catch (error) {
-        console.error('Translation error:', error);
-        return text;
-      }
+    const script = document.createElement('script');
+    script.src = "https://cdn.gtranslate.net/widgets/latest/float.js";
+    script.async = true;
+    script.onload = () => {
+      window.gtranslateSettings = {
+        "default_language": "en",
+        "languages": ["en","es","fr","de","it","pt"],
+        "wrapper_selector": ".g-translate-container",
+        "switcher_horizontal_position": "hidden",
+        "switcher_vertical_position": "hidden",
+        "float_switcher_open_direction": "top"
+      };
+      const gtElem = document.createElement('div');
+      gtElem.className = 'g-translate-container';
+      gtElem.style.visibility = 'hidden';
+      gtElem.style.position = 'absolute';
+      document.body.appendChild(gtElem);
+      setIsTranslateReady(true);
     };
+    document.body.appendChild(script);
 
-    const translateContent = async () => {
-      if (typeof children === 'string') {
-        const translated = await translateText(children);
-        setTranslatedContent(translated);
-      }
+    return () => {
+      document.body.removeChild(script);
     };
+  }, []);
 
-    if (targetLanguage !== 'en') {
-      translateContent();
+  useEffect(() => {
+    if (isTranslateReady && languageCode !== 'en' && window.doGTranslate) {
+      window.doGTranslate(`en|${languageCode}`);
     }
-  }, [children, targetLanguage]);
+  }, [isTranslateReady, languageCode]);
 
-  if (targetLanguage === 'en' || typeof children !== 'string') {
-    return <>{children}</>;
-  }
-
-  return <>{translatedContent || children}</>;
+  return (
+    <>
+      {children}
+    </>
+  );
 };
 
-export default Translator;
+export default LanguageTranslator;
