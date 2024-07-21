@@ -4,14 +4,14 @@ import {
   ChatSession,
 } from "@google/generative-ai";
 
-const API_KEY = process.env.GEMINI_API_KEY || "";
+const apiKey = process.env.GEMINI_API_KEY || "";
 
-if (!API_KEY) {
-  throw new Error("GEMINI_API_KEY is not set in the environment variables.");
-}
+// if (!apiKey) {
+//   throw new Error("GEMINI_API_KEY is not set in the environment variables.");
+// }
 
 // Initialize the Google Generative AI
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenerativeAI(apiKey);
 
 // Model configuration
 const modelConfig = {

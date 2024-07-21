@@ -1,7 +1,7 @@
 "use client"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { SignInForm } from "@/types";
 import { toast } from "react-hot-toast";
 
@@ -13,22 +13,23 @@ export const useSignIn = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParamsRef = useRef<URLSearchParams | null>(null);
 
   useEffect(() => {
-    // Check for error in URL params
-    const errorParam = searchParams.get('error');
-    if (errorParam) {
-      setError("Failed to sign in. Please try again.");
-      toast.error("Failed to sign in");
-    }
+    if (typeof window !== 'undefined') {
+      searchParamsRef.current = new URLSearchParams(window.location.search);
+      const errorParam = searchParamsRef.current.get('error');
+      if (errorParam) {
+        setError("Failed to sign in. Please try again.");
+        toast.error("Failed to sign in");
+      }
 
-    // Check for successful sign-in
-    const sessionParam = searchParams.get('session');
-    if (sessionParam === 'success') {
-      handleSuccessfulLogin();
+      const sessionParam = searchParamsRef.current.get('session');
+      if (sessionParam === 'success') {
+        handleSuccessfulLogin();
+      }
     }
-  }, [searchParams]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -96,9 +97,9 @@ export const useSignIn = () => {
         callbackUrl: `${window.location.origin}/api/auth/google-callback` 
       });
     } catch (err) {
-      console.log("###################################################" + err);
+      console.error("Google Sign-In Error:", err);
       setError("Failed to sign in with Google");
-      toast.error(`Failed to sign in with Google ${err}`);
+      toast.error("Failed to sign in with Google");
     } finally {
       setIsLoading(false);
     }
