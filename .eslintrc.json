@@ -1,6 +1,6 @@
 {
   "extends": "next/core-web-vitals",
   "rules": {
-    "quotes": ["error", { "avoidEscape": true }]
+    "quotes": [2, "single", { "avoidEscape": true }]
   }
 }

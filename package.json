@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "ts-node --project tsconfig.server.json server.ts",
     "build": "next build",
-    "start": "NODE_ENV=development ts-node --project tsconfig.server.json server.ts"
+    "start": "NODE_ENV=development ts-node --project tsconfig.server.json server.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@google-cloud/aiplatform": "^3.25.0",
