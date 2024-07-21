@@ -38,7 +38,6 @@ const TranslateLayout: React.FC<TranslateLayoutProps> = ({ children }) => {
 
   return (
     <>
-      <div className="gtranslate_wrapper"></div>
       <Script id="gtranslate-settings" strategy="beforeInteractive">
         {`
           window.gtranslateSettings = {

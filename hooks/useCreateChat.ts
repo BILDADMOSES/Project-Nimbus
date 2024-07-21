@@ -28,6 +28,24 @@ export const useCreateChat = () => {
     setInviteEmails(inviteEmails.filter((e) => e !== email));
   };
 
+  const updateUserLanguage = async (languageCode: string) => {
+    try {
+      const response = await fetch('/api/user/language', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ languageCode }),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to update user language');
+      }
+    } catch (error) {
+      console.error('Error updating user language:', error);
+    }
+  };
+
   const createChat = async (data: {
     language: string;
     chatType: ChatType;
@@ -59,6 +77,7 @@ export const useCreateChat = () => {
 
   const handleNext = async () => {
     if (step === 1 && language) {
+      await updateUserLanguage(language.code);
       setStep(2);
     } else if (step === 2 && chatType) {
       if (chatType === "ai") {
