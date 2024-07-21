@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import ChatIllustration from "@/components/common/ChatIllustration";
 
-export default function JoinPage() {
+const JoinPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -59,7 +59,7 @@ export default function JoinPage() {
     };
 
     validateInvitation();
-  }, [searchParams, session, status]);
+  }, [searchParams, session, status, router]);
 
   // Render helpers
   const renderStatus = () => {
@@ -122,41 +122,43 @@ export default function JoinPage() {
     return null;
   };
 
-  const renderChatIllustration = () => <ChatIllustration />;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full md:w-1/2 p-4 md:p-8 flex flex-col justify-center items-center"
+    >
+      <div className="w-full max-w-md">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">
+          Joining Chat
+        </h1>
+        <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">
+          {isValidating
+            ? "We're validating your invitation..."
+            : "Welcome to the conversation!"}
+        </p>
 
-  // Main render
+        {renderStatus()}
+
+        <button
+          onClick={() => router.push("/")}
+          className="btn btn-primary w-full mt-6"
+        >
+          Go to Home
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+export default function JoinPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      {/* Left Column - Join Status */}
-      <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full md:w-1/2 p-4 md:p-8 flex flex-col justify-center items-center"
-      >
-        <div className="w-full max-w-md">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">
-            Joining Chat
-          </h1>
-          <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">
-            {isValidating
-              ? "We're validating your invitation..."
-              : "Welcome to the conversation!"}
-          </p>
-
-          {renderStatus()}
-
-          <button
-            onClick={() => router.push("/")}
-            className="btn btn-primary w-full mt-6"
-          >
-            Go to Home
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Right Column - Chat Illustration */}
-      {renderChatIllustration()}
+      <Suspense fallback={<div>Loading...</div>}>
+        <JoinPageContent />
+      </Suspense>
+      <ChatIllustration />
     </div>
   );
 }
