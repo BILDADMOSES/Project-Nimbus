@@ -7,144 +7,33 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Language {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  code  String @unique
-  name  String
-
-  users                   User[]
-  groups                  Group[]
-  messages                Message[]
-  translations            Translation[]
-  userLanguageProficiencies UserLanguageProficiency[]
-  translationLogsFrom     TranslationLog[] @relation("FromLanguage")
-  translationLogsTo       TranslationLog[] @relation("ToLanguage")
-}
-
 model User {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  firebaseUid       String   @unique
   avatar            String?
   name              String
   email             String   @unique
   emailVerifiedAt   DateTime?
   isAdmin           Boolean  @default(false)
-  password          String?
-  rememberToken     String?
   preferredLanguage String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   blockedAt         DateTime?
-  temporaryId       String?  @unique
 
-  language          Language @relation(fields: [preferredLanguage], references: [code])
-  ownedGroups       Group[]  @relation("GroupOwner")
-  groupsMembership  GroupUser[]
-  sentMessages      Message[] @relation("MessageSender")
-  receivedMessages  Message[] @relation("MessageReceiver")
-  conversations1    Conversation[] @relation("User1")
-  conversations2    Conversation[] @relation("User2")
   languageProficiencies UserLanguageProficiency[]
-  aiChats           AIChat[]
-  sentInvitations   Invitation[] @relation("SentInvitations")
 }
 
+model Language {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  code  String @unique
+  name  String
 
-model Group {
-  id               String   @id @default(uuid()) @map("_id")
-  name             String
-  description      String?
-  ownerId          String  
-  lastMessageId    String?  @unique
-  defaultLanguage  String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  owner            User     @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  language         Language @relation(fields: [defaultLanguage], references: [code])
-  lastMessage      Message? @relation("GroupLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  members          GroupUser[]
-  messages         Message[]
-  invitations      Invitation[]
-}
-
-model GroupUser {
-  id      String @id @default(auto()) @map("_id") @db.ObjectId
-  userId  String
-  groupId String
-
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, groupId])
-}
-
-model Message {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  content           String
-  senderId          String  
-  groupId           String? 
-  conversationId    String? 
-  receiverId        String? 
-  originalLanguage  String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  sender            User     @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver          User?    @relation("MessageReceiver", fields: [receiverId], references: [id])
-  group             Group?   @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  conversation      Conversation? @relation(fields: [conversationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  language          Language @relation(fields: [originalLanguage], references: [code])
-  attachments       MessageAttachment[]
-  translations      Translation[]
-  translationLogs   TranslationLog[]
-  lastMessageGroup  Group?   @relation("GroupLastMessage")
-  lastMessageConversation Conversation? @relation("ConversationLastMessage")
-}
-
-model MessageAttachment {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  messageId String  
-  name      String
-  mime      String
-  size      Int
-  path      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-}
-
-model Conversation {
-  id             String   @id @default(uuid()) @map("_id")
-  userId1        String   
-  userId2        String?  
-  lastMessageId  String?  @unique
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user1          User     @relation("User1", fields: [userId1], references: [id], onDelete: Cascade)
-  user2          User?    @relation("User2", fields: [userId2], references: [id], onDelete: SetNull)
-  lastMessage    Message? @relation("ConversationLastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  messages       Message[]
-  invitations    Invitation[]
-}
-
-model Translation {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  messageId         String  
-  languageCode      String
-  translatedContent String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  cachedUntil       DateTime?
-
-  message           Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  language          Language @relation(fields: [languageCode], references: [code])
+  userLanguageProficiencies UserLanguageProficiency[]
 }
 
 model UserLanguageProficiency {
   id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String  
+  userId           String
   languageCode     String
   proficiencyLevel ProficiencyLevel
   createdAt        DateTime @default(now())
@@ -156,68 +45,9 @@ model UserLanguageProficiency {
   @@unique([userId, languageCode])
 }
 
-model TranslationLog {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  messageId          String  
-  fromLanguage       String
-  toLanguage         String
-  translationService String
-  translationTime    DateTime @default(now())
-
-  message            Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  fromLanguageRef    Language @relation("FromLanguage", fields: [fromLanguage], references: [code])
-  toLanguageRef      Language @relation("ToLanguage", fields: [toLanguage], references: [code])
-}
-
-model AIChat {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String  
-  name      String
-  language  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  AIMessage[]
-}
-
-model AIMessage {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  aiChatId  String  
-  content   String
-  isUser    Boolean
-  createdAt DateTime @default(now())
-
-  aiChat    AIChat   @relation(fields: [aiChatId], references: [id], onDelete: Cascade)
-}
-
-model Invitation {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  email          String
-  token          String   @unique
-  inviterId      String  
-  groupId        String?
-  conversationId String?
-  status         InvitationStatus @default(PENDING)
-  expiresAt      DateTime
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  inviter        User     @relation("SentInvitations", fields: [inviterId], references: [id], onDelete: Cascade)
-  group          Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-}
-
 enum ProficiencyLevel {
   BEGINNER
   INTERMEDIATE
   ADVANCED
   NATIVE
-}
-
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  REJECTED
-  EXPIRED
 }
