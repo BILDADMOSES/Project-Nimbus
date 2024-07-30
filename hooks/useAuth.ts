@@ -1,9 +1,12 @@
 "use client"
 import { useState, useEffect, useRef } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { SignInForm } from "@/types";
 import { toast } from "react-hot-toast";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "@/lib/firebase/firebaseClient";
+import axios from 'axios';
+import { getAuth } from 'firebase/auth';
 
 export const useSignIn = () => {
   const [form, setForm] = useState<SignInForm>({
@@ -23,11 +26,6 @@ export const useSignIn = () => {
         setError("Failed to sign in. Please try again.");
         toast.error("Failed to sign in");
       }
-
-      const sessionParam = searchParamsRef.current.get('session');
-      if (sessionParam === 'success') {
-        handleSuccessfulLogin();
-      }
     }
   }, []);
 
@@ -35,19 +33,33 @@ export const useSignIn = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const fetchLastConversation = async () => {
+
+
+  async function fetchLastConversation() {
     try {
-      const response = await fetch('/api/chat/last-conversation');
-      if (!response.ok) {
-        throw new Error('Failed to fetch last conversation');
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        throw new Error('No authenticated user');
       }
-      const data = await response.json();
-      return data.conversation;
+
+      const idToken = await user.getIdToken();
+
+      const response = await axios.get('/api/chat/last-conversation', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`
+        }
+      });
+
+      return response.data.conversation;
+
+       // statsus ==== 404 then we redrect to
     } catch (error) {
       console.error('Error fetching last conversation:', error);
-      return null;
+      throw error;
     }
-  };
+  }
 
   const handleSuccessfulLogin = async () => {
     const savedJoinUrl = localStorage.getItem('joinCallbackUrl');
@@ -70,21 +82,12 @@ export const useSignIn = () => {
     setError(null);
 
     try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email: form.email,
-        password: form.password,
-      });
-
-      if (result?.error) {
-        setError("Invalid email or password");
-        toast.error("Invalid email or password");
-      } else if (result?.ok) {
-        toast.success("Log In Successful");
-        await handleSuccessfulLogin();
-      }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
+      await signInWithEmailAndPassword(auth, form.email, form.password);
+      toast.success("Log In Successful");
+      await handleSuccessfulLogin();
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password");
+      toast.error("Invalid email or password");
     } finally {
       setIsLoading(false);
     }
@@ -93,12 +96,13 @@ export const useSignIn = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn("google", { 
-        callbackUrl: `${window.location.origin}/api/auth/google-callback` 
-      });
-    } catch (err) {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast.success("Log In Successful");
+      await handleSuccessfulLogin();
+    } catch (err: any) {
       console.error("Google Sign-In Error:", err);
-      setError("Failed to sign in with Google");
+      setError(err.message || "Failed to sign in with Google");
       toast.error("Failed to sign in with Google");
     } finally {
       setIsLoading(false);
