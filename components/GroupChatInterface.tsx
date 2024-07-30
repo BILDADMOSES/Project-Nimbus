@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Plus, Paperclip, Smile, Mic, Send, UserPlus, Settings } from "lucide-react";
 import { motion } from "framer-motion";
-import { useWebSocket } from "@/hooks/useWebsocket";
+import { useWebSocket } from "@/hooks/useFirestoreChat";
 
 interface GroupChatInterfaceProps {
   groupId: string;

@@ -3,8 +3,10 @@ import { useState } from "react";
 import axios from "axios";
 import { Language } from "@/types/language";
 import { ChatType } from "@/types/chat";
+import { useSession } from "next-auth/react";
 
 export const useCreateChat = () => {
+  const { data: session } = useSession();
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState<Language | null>(null);
   const [chatType, setChatType] = useState<ChatType | null>(null);
@@ -34,6 +36,7 @@ export const useCreateChat = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.id}`,
         },
         body: JSON.stringify({ languageCode }),
       });
@@ -52,7 +55,11 @@ export const useCreateChat = () => {
     inviteEmails: string[];
   }) => {
     try {
-      const response = await axios.post("/api/chat/create", data);
+      const response = await axios.post("/api/chat/create", data, {
+        headers: {
+          'Authorization': `Bearer ${session?.user?.id}`,
+        },
+      });
       return response.data;
     } catch (error) {
       console.error("Error creating chat:", error);
@@ -67,6 +74,10 @@ export const useCreateChat = () => {
         chatId,
         emails: inviteEmails,
         chatType,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${session?.user?.id}`,
+        },
       });
       // Handle success
     } catch (error) {

@@ -7,12 +7,16 @@ const AIChatContent = () => {
   const searchParams = useSearchParams();
   const id = searchParams.get('uuid');
 
-  return <ChatInterface chatId={id as string} chatType="ai" />;
+  if (!id) {
+    return <div>Error: AI Chat ID is missing</div>;
+  }
+
+  return <ChatInterface initialSelectedRoom={{ id, type: 'ai' }} />;
 };
 
 const AIChatPage = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>Loading AI chat...</div>}>
       <AIChatContent />
     </Suspense>
   );

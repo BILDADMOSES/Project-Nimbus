@@ -12,7 +12,7 @@ const GroupChatContent = () => {
     return <div>Error: Group ID is missing</div>;
   }
 
-  return <ChatInterface chatId={groupId as string} chatType="group" />;
+  return <ChatInterface initialSelectedRoom={{ id: groupId, type: 'group' }} />;
 };
 
 const GroupChatPage = () => {
