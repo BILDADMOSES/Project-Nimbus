@@ -1,3 +1,4 @@
+// app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const userDoc = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { firebaseUid: userId },
       include: { groups: true, conversations: true, aiChats: true }
     });
 
@@ -32,17 +33,18 @@ export async function GET(request: NextRequest) {
         .where(FieldPath.documentId(), 'in', groupIds)
         .get();
       
-      groupDocs.forEach(doc => {
+      for (const doc of groupDocs.docs) {
         const data = doc.data();
+        const unreadCount = await getUnreadCount(doc.id, 'groups', userId);
         chats.push({
           id: doc.id,
           name: data.name,
           type: 'group',
           lastMessage: data.lastMessage?.content || '',
           lastMessageTimestamp: data.lastMessage?.createdAt?.toDate() || null,
-          unreadCount: 0, // Implement unread count logic
+          unreadCount,
         });
-      });
+      }
     }
 
     // Fetch conversations
@@ -52,17 +54,21 @@ export async function GET(request: NextRequest) {
         .where(FieldPath.documentId(), 'in', conversationIds)
         .get();
       
-      conversationDocs.forEach(doc => {
+      for (const doc of conversationDocs.docs) {
         const data = doc.data();
+        const unreadCount = await getUnreadCount(doc.id, 'conversations', userId);
+        const otherUserId = data.members.find(memberId => memberId !== userId);
+        const isOnline = await checkOnlineStatus(otherUserId);
         chats.push({
           id: doc.id,
-          name: data.members.find(memberId => memberId !== userId) || 'Unknown',
+          name: otherUserId || 'Unknown',
           type: 'conversation',
           lastMessage: data.lastMessage?.content || '',
           lastMessageTimestamp: data.lastMessage?.createdAt?.toDate() || null,
-          unreadCount: 0, // Implement unread count logic
+          unreadCount,
+          isOnline,
         });
-      });
+      }
     }
 
     // Fetch AI chats
@@ -72,17 +78,18 @@ export async function GET(request: NextRequest) {
         .where(FieldPath.documentId(), 'in', aiChatIds)
         .get();
       
-      aiChatDocs.forEach(doc => {
+      for (const doc of aiChatDocs.docs) {
         const data = doc.data();
+        const unreadCount = await getUnreadCount(doc.id, 'aiChats', userId);
         chats.push({
           id: doc.id,
           name: data.name,
           type: 'ai',
           lastMessage: data.lastMessage?.content || '',
           lastMessageTimestamp: data.lastMessage?.createdAt?.toDate() || null,
-          unreadCount: 0, // Implement unread count logic
+          unreadCount,
         });
-      });
+      }
     }
 
     return NextResponse.json(chats);
@@ -100,69 +107,156 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { type, name } = body;
+    const { type, name, action } = body;
     const userId = session.user.id;
 
-    let chatRef;
-    let chatId;
-    switch (type) {
-      case 'group':
-        chatRef = await firestore.collection('groups').add({
-          name,
-          members: [userId],
-          createdAt: FieldValue.serverTimestamp(),
-          lastMessage: null,
-        });
-        chatId = chatRef.id;
-        await prisma.group.create({
-          data: {
-            id: chatId,
-            name,
-            users: {
-              connect: { id: userId }
-            }
-          }
-        });
-        break;
-      case 'conversation':
-        chatRef = await firestore.collection('conversations').add({
-          members: [userId],
-          createdAt: FieldValue.serverTimestamp(),
-          lastMessage: null,
-        });
-        chatId = chatRef.id;
-        await prisma.conversation.create({
-          data: {
-            id: chatId,
-            users: {
-              connect: { id: userId }
-            }
-          }
-        });
-        break;
-      case 'ai':
-        chatRef = await firestore.collection('aiChats').add({
-          name,
-          userId,
-          createdAt: FieldValue.serverTimestamp(),
-          lastMessage: null,
-        });
-        chatId = chatRef.id;
-        await prisma.aIChat.create({
-          data: {
-            id: chatId,
-            name,
-            userId
-          }
-        });
-        break;
-      default:
-        return NextResponse.json({ error: 'Invalid chat type' }, { status: 400 });
+    if (action === 'create') {
+      return await createChat(type, name, userId);
+    } else if (action === 'sendMessage') {
+      return await sendMessage(body, userId);
+    } else if (action === 'markAsRead') {
+      return await markAsRead(body, userId);
+    } else {
+      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
-
-    return NextResponse.json({ id: chatId, type });
   } catch (error) {
-    console.error('Error creating chat:', error);
-    return NextResponse.json({ error: 'Failed to create chat' }, { status: 500 });
+    console.error('Error processing request:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function createChat(type, name, userId) {
+  let chatRef;
+  let chatId;
+  switch (type) {
+    case 'group':
+      chatRef = await firestore.collection('groups').add({
+        name,
+        members: [userId],
+        createdAt: FieldValue.serverTimestamp(),
+        lastMessage: null,
+      });
+      chatId = chatRef.id;
+      await prisma.group.create({
+        data: {
+          id: chatId,
+          name,
+          users: {
+            connect: { firebaseUid: userId }
+          }
+        }
+      });
+      break;
+    case 'conversation':
+      chatRef = await firestore.collection('conversations').add({
+        members: [userId],
+        createdAt: FieldValue.serverTimestamp(),
+        lastMessage: null,
+      });
+      chatId = chatRef.id;
+      await prisma.conversation.create({
+        data: {
+          id: chatId,
+          users: {
+            connect: { firebaseUid: userId }
+          }
+        }
+      });
+      break;
+    case 'ai':
+      chatRef = await firestore.collection('aiChats').add({
+        name,
+        userId,
+        createdAt: FieldValue.serverTimestamp(),
+        lastMessage: null,
+      });
+      chatId = chatRef.id;
+      await prisma.aIChat.create({
+        data: {
+          id: chatId,
+          name,
+          userId
+        }
+      });
+      break;
+    default:
+      throw new Error('Invalid chat type');
+  }
+
+  return NextResponse.json({ id: chatId, type });
+}
+
+async function sendMessage(body, userId) {
+  const { chatId, chatType: originalChatType, content, fileUrl } = body;
+
+  // Determine the correct collection name
+  let collectionName = originalChatType;
+  if (originalChatType === 'conversation') {
+    collectionName = 'conversations';
+  }
+
+  const messageData = {
+    content,
+    senderId: userId,
+    createdAt: FieldValue.serverTimestamp(),
+    fileUrl: fileUrl || null,
+    readBy: [userId],
+  };
+
+  try {
+    // Start a new batch
+    const batch = firestore.batch();
+
+    // Reference to the chat document
+    const chatRef = firestore.collection(collectionName).doc(chatId);
+
+    // Reference to the new message document
+    const messageRef = chatRef.collection('messages').doc();
+
+    // Add the new message
+    batch.set(messageRef, messageData);
+
+    // Update the chat document
+    batch.set(chatRef, {
+      lastMessage: {
+        content: content || 'Attachment sent',
+        createdAt: FieldValue.serverTimestamp(),
+        senderId: userId,
+      },
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true }); // Use merge: true to update or create the document
+
+    // Commit the batch
+    await batch.commit();
+
+    return NextResponse.json({ id: messageRef.id, ...messageData });
+  } catch (error) {
+    console.error('Error sending message:', error);
+    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+  }
+}
+
+async function markAsRead(body, userId) {
+  const { chatId, chatType, messageId } = body;
+
+  await firestore.collection(chatType).doc(chatId)
+    .collection('messages').doc(messageId)
+    .update({
+      readBy: FieldValue.arrayUnion(userId)
+    });
+
+  return NextResponse.json({ success: true });
+}
+
+async function getUnreadCount(chatId, chatType, userId) {
+  const messagesRef = firestore.collection(chatType).doc(chatId).collection('messages');
+  const unreadQuery = messagesRef.where('readBy', 'array-contains', userId);
+  const unreadSnapshot = await unreadQuery.get();
+  return unreadSnapshot.size;
+}
+
+async function checkOnlineStatus(userId) {
+  const userStatusRef = firestore.collection('onlineUsers').doc(userId);
+  const userStatusDoc = await userStatusRef.get();
+  return userStatusDoc.exists && userStatusDoc.data().online;
 }

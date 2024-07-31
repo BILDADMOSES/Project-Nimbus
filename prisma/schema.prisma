@@ -8,8 +8,8 @@ generator client {
 }
 
 model User {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  firebaseUid       String    @unique  
+  id                String   @id @default(cuid()) @map("_id")
+  firebaseUid       String   @unique
   name              String
   email             String   @unique
   emailVerifiedAt   DateTime?
@@ -22,29 +22,41 @@ model User {
   blockedAt         DateTime?
   temporaryId       String?
 
-  groupIds        String[] @db.ObjectId
+  groupIds        String[]
   groups          Group[]  @relation(fields: [groupIds], references: [id])
-  conversationIds String[] @db.ObjectId
+  conversationIds String[]
   conversations   Conversation[] @relation(fields: [conversationIds], references: [id])
   aiChats         AIChat[]
 }
 
 model Group {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  userIds String[] @db.ObjectId
-  users  User[] @relation(fields: [userIds], references: [id])
+  id      String @id @default(cuid()) @map("_id")
+  name    String
+  userIds String[]
+  users   User[] @relation(fields: [userIds], references: [id])
 }
 
 model Conversation {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  userIds String[] @db.ObjectId
-  users  User[] @relation(fields: [userIds], references: [id])
+  id      String @id @default(cuid()) @map("_id")
+  userIds String[]
+  users   User[] @relation(fields: [userIds], references: [id])
 }
 
 model AIChat {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  id     String @id @default(cuid()) @map("_id")
   name   String
   user   User   @relation(fields: [userId], references: [id])
-  userId String @db.ObjectId
+  userId String
+}
+
+model Invitation {
+  id        String   @id @default(cuid()) @map("_id")
+  email     String
+  token     String   @unique
+  inviterId String
+  chatId    String
+  chatType  String
+  status    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }

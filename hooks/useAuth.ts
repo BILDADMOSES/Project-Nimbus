@@ -1,12 +1,10 @@
-"use client"
+"use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SignInForm } from "@/types";
 import { toast } from "react-hot-toast";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "@/lib/firebase/firebaseClient";
-import axios from 'axios';
-import { getAuth } from 'firebase/auth';
+import axios from "axios";
+import { signIn } from "next-auth/react";
 
 export const useSignIn = () => {
   const [form, setForm] = useState<SignInForm>({
@@ -19,9 +17,9 @@ export const useSignIn = () => {
   const searchParamsRef = useRef<URLSearchParams | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       searchParamsRef.current = new URLSearchParams(window.location.search);
-      const errorParam = searchParamsRef.current.get('error');
+      const errorParam = searchParamsRef.current.get("error");
       if (errorParam) {
         setError("Failed to sign in. Please try again.");
         toast.error("Failed to sign in");
@@ -33,45 +31,35 @@ export const useSignIn = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-
-
   async function fetchLastConversation() {
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (!user) {
-        throw new Error('No authenticated user');
-      }
-
-      const idToken = await user.getIdToken();
-
-      const response = await axios.get('/api/chat/last-conversation', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
+      const response = await axios.get("/api/chat/last-conversation", {
+        withCredentials: true,
       });
 
       return response.data.conversation;
-
-       // statsus ==== 404 then we redrect to
     } catch (error) {
-      console.error('Error fetching last conversation:', error);
+      console.error("Error fetching last conversation:", error);
       throw error;
     }
   }
 
   const handleSuccessfulLogin = async () => {
-    const savedJoinUrl = localStorage.getItem('joinCallbackUrl');
-    if (savedJoinUrl) {
-      localStorage.removeItem('joinCallbackUrl');
-      router.push(savedJoinUrl);
+    const callbackUrl = searchParamsRef.current?.get("callbackUrl");
+    if (callbackUrl) {
+      router.push(callbackUrl);
     } else {
-      const lastConversation = await fetchLastConversation();
-      if (lastConversation) {
-        router.push(`/chat/one-on-one?uuid=${lastConversation.id}`);
+      const savedJoinUrl = localStorage.getItem("joinCallbackUrl");
+      if (savedJoinUrl) {
+        localStorage.removeItem("joinCallbackUrl");
+        router.push(savedJoinUrl);
       } else {
-        router.push('/chat/create');
+        const lastConversation = await fetchLastConversation();
+        if (lastConversation) {
+          router.push(`/chat/one-on-one?uuid=${lastConversation.id}`);
+        } else {
+          router.push("/chat/create");
+        }
       }
     }
   };
@@ -82,12 +70,22 @@ export const useSignIn = () => {
     setError(null);
 
     try {
-      await signInWithEmailAndPassword(auth, form.email, form.password);
-      toast.success("Log In Successful");
-      await handleSuccessfulLogin();
+      const result = await signIn("credentials", {
+        redirect: false,
+        email: form.email,
+        password: form.password,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        toast.error("Invalid email or password");
+      } else {
+        toast.success("Log In Successful");
+        await handleSuccessfulLogin();
+      }
     } catch (err: any) {
-      setError(err.message || "Invalid email or password");
-      toast.error("Invalid email or password");
+      setError(err.message || "Failed to sign in");
+      toast.error("Failed to sign in");
     } finally {
       setIsLoading(false);
     }
@@ -96,10 +94,19 @@ export const useSignIn = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      toast.success("Log In Successful");
-      await handleSuccessfulLogin();
+      const callbackUrl = searchParamsRef.current?.get("callbackUrl");
+      const result = await signIn("google", {
+        redirect: false,
+        callbackUrl: callbackUrl || undefined,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        toast.error("Failed to sign in with Google");
+      } else {
+        toast.success("Log In Successful");
+        await handleSuccessfulLogin();
+      }
     } catch (err: any) {
       console.error("Google Sign-In Error:", err);
       setError(err.message || "Failed to sign in with Google");

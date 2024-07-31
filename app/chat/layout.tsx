@@ -1,7 +1,8 @@
 "use client";
 import React from 'react';
-import { SessionProvider, useSession } from 'next-auth/react';
-import LanguageTranslator from '@/components/language/LanguageTranslator'; 
+import { useSession } from 'next-auth/react';
+import LanguageTranslator from '@/components/language/LanguageTranslator';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,9 +25,7 @@ const LayoutContent: React.FC<LayoutProps> = ({ children }) => {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
-    <SessionProvider>
       <LayoutContent>{children}</LayoutContent>
-    </SessionProvider>
   );
 };
 

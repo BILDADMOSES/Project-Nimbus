@@ -1,18 +1,40 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { Language } from "@/types/language";
 import { ChatType } from "@/types/chat";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export const useCreateChat = () => {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [step, setStep] = useState(1);
   const [language, setLanguage] = useState<Language | null>(null);
   const [chatType, setChatType] = useState<ChatType | null>(null);
   const [inviteEmails, setInviteEmails] = useState<string[]>([]);
   const [inviteLink, setInviteLink] = useState("");
   const [chatId, setChatId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === "authenticated" || status === "unauthenticated") {
+      setIsLoading(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    console.log("Session information:", session);
+  }, [session]);
+
+  if (isLoading) {
+    return { isLoading: true };
+  }
+
+  if (status === "unauthenticated") {
+    router.push("/sign-in");
+    return { isLoading: false, isAuthenticated: false };
+  }
 
   const handleLanguageSelect = (selectedLanguage: Language) => {
     setLanguage(selectedLanguage);
@@ -36,7 +58,6 @@ export const useCreateChat = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.user?.id}`,
         },
         body: JSON.stringify({ languageCode }),
       });
@@ -55,11 +76,7 @@ export const useCreateChat = () => {
     inviteEmails: string[];
   }) => {
     try {
-      const response = await axios.post("/api/chat/create", data, {
-        headers: {
-          'Authorization': `Bearer ${session?.user?.id}`,
-        },
-      });
+      const response = await axios.post("/api/chat/create", data);
       return response.data;
     } catch (error) {
       console.error("Error creating chat:", error);
@@ -74,10 +91,6 @@ export const useCreateChat = () => {
         chatId,
         emails: inviteEmails,
         chatType,
-      }, {
-        headers: {
-          'Authorization': `Bearer ${session?.user?.id}`,
-        },
       });
       // Handle success
     } catch (error) {
@@ -130,6 +143,8 @@ export const useCreateChat = () => {
     (step === 3 && chatType !== "ai") || (step === 2 && chatType === "ai");
 
   return {
+    isLoading,
+    isAuthenticated: status === "authenticated",
     step,
     language,
     chatType,

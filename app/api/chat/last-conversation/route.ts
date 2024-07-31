@@ -1,34 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initFirebase } from '@/lib/firebase/firebaseAdmin';
-
-initFirebase();
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/authOptions";
+import { firestore } from '@/lib/firebase/firebaseAdmin';
 
 export async function GET(req: NextRequest) {
   try {
-    // Get the Authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ message: 'Missing or invalid Authorization header' }, { status: 401 });
+    // Get the session
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Extract the token
-    const idToken = authHeader.split('Bearer ')[1];
-
-    // Verify the Firebase token
-    let decodedToken;
-    try {
-      decodedToken = await getAuth().verifyIdToken(idToken);
-    } catch (error) {
-      console.error('Token verification error:', error);
-      return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
-    }
-
-    const firebaseUid = decodedToken.uid;
+    const firebaseUid = session.user.id;
 
     // Get Firestore instance
-    const db = getFirestore();
+    const db = firestore;
 
     // Fetch the last conversation
     const conversationsRef = db.collection('conversations');
@@ -46,7 +33,7 @@ export async function GET(req: NextRequest) {
     const snapshot = await query.get();
 
     if (snapshot.empty) {
-      return NextResponse.json({"conversation":null});
+      return NextResponse.json({ conversation: null });
     }
 
     const lastConversation = snapshot.docs[0].data();

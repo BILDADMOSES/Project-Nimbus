@@ -11,7 +11,7 @@ const OneOnOneContent = () => {
     return <div>Error: Conversation ID is missing</div>;
   }
 
-  return <ChatInterface initialSelectedRoom={{ id, type: 'conversation' }} />;
+  return <ChatInterface />;
 };
 
 const OneOnOnePage = () => {

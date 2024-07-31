@@ -1,11 +1,11 @@
 "use client";
-import { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSession, signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import ChatIllustration from "@/components/common/ChatIllustration";
+import { useSession } from "next-auth/react";
 
-const JoinPageContent = () => {
+const JoinPageContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
@@ -14,25 +14,28 @@ const JoinPageContent = () => {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    if (status === "loading") return;
     const tokenOrId = searchParams.get("token");
     if (!tokenOrId) {
       setError("Invalid join link");
       return;
     }
 
-    if (!session) {
-      const joinUrl = `/join?token=${tokenOrId}`;
-      signIn(undefined, { callbackUrl: joinUrl });
-      return;
-    }
-
     const validateInvitation = async () => {
+      if (status === "loading") return;
+
+      if (status === "unauthenticated") {
+        router.push(`/sign-in?callbackUrl=${encodeURIComponent(`/chat/join?token=${tokenOrId}`)}`);
+        return;
+      }
+
       setIsValidating(true);
       try {
         const response = await fetch(`/api/chat/join/${tokenOrId}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json"
+          },
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -59,9 +62,8 @@ const JoinPageContent = () => {
     };
 
     validateInvitation();
-  }, [searchParams, session, status, router]);
+  }, [searchParams, router, status]);
 
-  // Render helpers
   const renderStatus = () => {
     if (isValidating) {
       return (
@@ -135,7 +137,7 @@ const JoinPageContent = () => {
         </h1>
         <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">
           {isValidating
-            ? "We're validating your invitation..."
+            ? "We're processing your request..."
             : "Welcome to the conversation!"}
         </p>
 
@@ -152,7 +154,7 @@ const JoinPageContent = () => {
   );
 };
 
-export default function JoinPage() {
+const JoinPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
       <Suspense fallback={<div>Loading...</div>}>
@@ -161,4 +163,6 @@ export default function JoinPage() {
       <ChatIllustration />
     </div>
   );
-}
+};
+
+export default JoinPage;

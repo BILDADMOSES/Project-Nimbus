@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, arrayRemove } from 'firebase/firestore';
-import { db } from '@/lib/firebase/firebaseClient';
+import { firestore } from '@/lib/firebase/firebaseAdmin';
 
 export function useFirestoreChat(userId: string, chatId: string, chatType: 'group' | 'conversation' | 'ai') {
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    const chatRef = collection(db, `${chatType}s`, chatId, 'messages');
+    const chatRef = collection(firestore, `${chatType}s`, chatId, 'messages');
     const q = query(chatRef, orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -24,7 +24,7 @@ export function useFirestoreChat(userId: string, chatId: string, chatType: 'grou
 
   const sendMessage = async (content: string, language: string) => {
     try {
-      const chatRef = collection(db, `${chatType}s`, chatId, 'messages');
+      const chatRef = collection(firestore, `${chatType}s`, chatId, 'messages');
       await addDoc(chatRef, {
         content,
         senderId: userId,
@@ -42,7 +42,7 @@ export function useFirestoreChat(userId: string, chatId: string, chatType: 'grou
 // This function replaces the previous Pusher leave handler
 export async function leaveChat(userId: string, chatId: string, chatType: 'group' | 'conversation' | 'ai') {
   try {
-    const chatRef = doc(db, `${chatType}s`, chatId);
+    const chatRef = doc(firestore, `${chatType}s`, chatId);
     await updateDoc(chatRef, {
       members: arrayRemove(userId)
     });

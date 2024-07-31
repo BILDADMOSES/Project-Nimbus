@@ -7,12 +7,19 @@ import { InviteMember } from "@/components/InviteMember";
 import ChatIllustration from "@/components/common/ChatIllustration";
 
 const CreateChatForm = () => {
+  const createChatResult = useCreateChat();
+
+  if (!createChatResult) {
+    return <p>Loading....</p>; // or any other loading state component
+  }
+
   const {
     step,
     language,
     chatType,
     inviteEmails,
     inviteLink,
+    chatId,
     handleLanguageSelect,
     handleChatTypeSelect,
     handleAddInviteMember,
@@ -21,7 +28,7 @@ const CreateChatForm = () => {
     handleNext,
     handleBack,
     isLastStep,
-  } = useCreateChat();
+  } = createChatResult;
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-base-200">

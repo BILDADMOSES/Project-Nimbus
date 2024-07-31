@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase/firebaseClient';
+import { firebaseAuth } from '@/lib/firebase/firebaseClient';
 import axios from 'axios';
 import { SignUpForm, SignUpError } from '@/types';
 
@@ -42,7 +42,7 @@ export const useSignUp = () => {
       console.log('Starting user creation process');
       
       // Create user in Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, form.email, form.password);
       const user = userCredential.user;
       console.log('User created in Firebase:', user.uid);
 
@@ -74,7 +74,7 @@ export const useSignUp = () => {
 
       console.log('API Response:', response.data);
 
-      router.push('/sign-in');
+      router.push('/sign-in?signup=true');
     } catch (error: any) {
       console.error('Sign up error:', error);
       if (axios.isAxiosError(error)) {

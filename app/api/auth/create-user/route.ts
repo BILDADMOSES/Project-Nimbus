@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
+import { adminAuth } from '@/lib/firebase/firebaseAdmin';
 import prisma from '@/prisma';
-import { initFirebase } from '@/lib/firebase/firebaseAdmin';
 
-initFirebase();
 
 export async function POST(request: NextRequest) {
   console.log('Received request to create user');
@@ -24,7 +22,7 @@ export async function POST(request: NextRequest) {
     
     try {
       console.log('Verifying ID token');
-      const decodedToken = await getAuth().verifyIdToken(idToken);
+      const decodedToken = await adminAuth.verifyIdToken(idToken);
       if (decodedToken.uid !== firebaseUid) {
         console.log('Token UID does not match provided firebaseUid');
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
@@ -36,7 +34,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('Checking for existing user');
-    const existingUser = await prisma.user.findUnique({ where: { firebaseUid } });
+    const existingUser = await prisma.user.findUnique({
+      where: { firebaseUid },
+    });
     if (existingUser) {
       console.log('User already exists');
       return NextResponse.json({ message: 'User already exists' }, { status: 400 });

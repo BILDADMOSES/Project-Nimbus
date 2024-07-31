@@ -1,79 +1,99 @@
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import { auth } from "@/lib/firebase/firebaseAdmin";
-import { Prisma } from "@prisma/client";
-import prisma from "@/prisma";
-import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase/firebaseClient"; // Client-side auth
+import { firestore } from "@/lib/firebase/firebaseAdmin"; // Server-side admin Firestore
 
-export const authOptions: NextAuthOptions = {
+export const authOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password required");
+        }
+
+        try {
+          // Authenticate with Firebase
+          const userCredential = await signInWithEmailAndPassword(
+            firebaseAuth,
+            credentials.email,
+            credentials.password
+          );
+          const firebaseUser = userCredential.user;
+
+          // Get or create user in Firestore
+          const userRef = firestore.collection('users').doc(firebaseUser.uid);
+          const userSnap = await userRef.get();
+
+          let dbUser;
+          if (!userSnap.exists) {
+            dbUser = {
+              email: firebaseUser.email,
+              name: firebaseUser.displayName || firebaseUser.email.split("@")[0],
+              avatar: firebaseUser.photoURL,
+              preferredLanguage: "en",
+            };
+            await userRef.set(dbUser);
+          } else {
+            dbUser = userSnap.data();
+          }
+
+          console.log("Authenticated user:", dbUser);
+
+          return {
+            id: firebaseUser.uid,
+            email: dbUser.email,
+            name: dbUser.name,
+            image: dbUser.avatar,
+            preferredLanguage: dbUser.preferredLanguage,
+          };
+        } catch (error) {
+          console.error("Authentication error:", error);
+          return null;
+        }
+      }
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
-        try {
-          // Create or update user in Firebase
-          const firebaseUser = await auth.getUserByEmail(user.email!).catch(() => null);
-          
-          if (!firebaseUser) {
-            await auth.createUser({
-              uid: user.id,
-              email: user.email!,
-              displayName: user.name!,
-              photoURL: user.image,
-            });
-          } else {
-            await auth.updateUser(firebaseUser.uid, {
-              displayName: user.name!,
-              photoURL: user.image,
-            });
-          }
-
-          // Create or update user in your database (e.g., MongoDB via Prisma)
-          const dbUser = await prisma.user.upsert({
-            where: { email: user.email! },
-            update: {
-              firebaseUid: firebaseUser ? firebaseUser.uid : user.id,
-              name: user.name!,
-              avatar: user.image,
-            },
-            create: {
-              firebaseUid: firebaseUser ? firebaseUser.uid : user.id,
-              email: user.email!,
-              name: user.name!,
-              avatar: user.image,
-              preferredLanguage: "en",
-            },
-          } as Prisma.UserUpsertArgs);
-
-          user.id = dbUser.id; // Set the user id
-          return true;
-        } catch (error) {
-          console.error("Error syncing user data:", error);
-          return false;
-        }
+    async jwt({ token, user, account }) {
+      if (account && user) {
+        // This is the initial sign in
+        return {
+          ...token,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          preferredLanguage: user.preferredLanguage,
+        };
       }
-      return false;
+      // Subsequent requests will have the token but not the user
+      return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub!; // Use the token's sub as the user id
-      }
+      // Send properties to the client
+      session.user.id = token.id;
+      session.user.email = token.email;
+      session.user.name = token.name;
+      session.user.image = token.image;
+      session.user.preferredLanguage = token.preferredLanguage;
+
       return session;
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id; // Ensure the user's id is in the token
-      }
-      return token;
     },
   },
   pages: {
     signIn: "/sign-in",
     newUser: "/sign-up",
   },
+  session: {
+    strategy: "jwt",
+  },
+  debug: process.env.NODE_ENV === "development",
 };
+
+export default NextAuth(authOptions);
