@@ -4,6 +4,9 @@ import { Search, PlusCircle, Paperclip, Smile, Send, Phone, Video, MoreVertical,
 import { motion } from 'framer-motion';
 import { signOut } from 'next-auth/react';
 import { ErrorBoundary } from 'react-error-boundary';
+import  useUserStatus  from "@/hooks/useOnlineStatus"; 
+import { format, parseISO } from 'date-fns';
+
 
 // Types
 interface ChatRoom {
@@ -46,6 +49,8 @@ const ChatInterface: React.FC = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  useUserStatus();
 
   useEffect(() => {
     if (!userId) return;
@@ -54,6 +59,7 @@ const ChatInterface: React.FC = () => {
       const response = await fetch('/api/chat');
       if (response.ok) {
         const chats = await response.json();
+        console.log(chats);
         setChatList(chats);
       }
     };
@@ -144,16 +150,30 @@ const ChatInterface: React.FC = () => {
     }
   };
 
+  const formatMessageDate = (dateString) => {
+    if (!dateString) {
+      console.warn('Received invalid date:', dateString);
+      return 'Invalid Date';
+    }
+
+    try {
+      const date = parseISO(dateString);
+      return format(date, 'HH:mm, dd MMM yyyy');
+    } catch (error) {
+      console.error('Error parsing date:', error);
+      return 'Invalid Date';
+    }
+  };
+
   const loadMoreMessages = async () => {
     if (!selectedRoom || isLoadingMore) return;
 
     setIsLoadingMore(true);
     try {
-      const response = await fetch(`/api/chat?chatId=${selectedRoom.id}&chatType=${selectedRoom.type}&lastMessageId=${lastMessageRef.id}`);
+      const response = await fetch(`/api/chat?chatId=${selectedRoom.id}&chatType=${selectedRoom.type}&lastMessageId=${messages[0]?.id}`);
       if (response.ok) {
         const newMessages = await response.json();
         setMessages(prevMessages => [...newMessages, ...prevMessages]);
-        setLastMessageRef(newMessages[0]);
       }
     } catch (error) {
       console.error('Error loading more messages:', error);
@@ -161,6 +181,7 @@ const ChatInterface: React.FC = () => {
       setIsLoadingMore(false);
     }
   };
+  
 
   const handleTyping = () => {
     if (!selectedRoom || !userId) return;
@@ -277,13 +298,11 @@ const ChatInterface: React.FC = () => {
                 </div>
               </div>
   
-              {/* Chat messages */}
+                {/* Chat messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {isLoadingMore && <div className="text-center">Loading more messages...</div>}
-                <button onClick={loadMoreMessages} className="btn btn-sm btn-ghost">Load More</button>
-                {messages.map((msg, index) => (
+                {selectedRoom.messages.map((msg, index) => (
                   <motion.div
-                    key={msg.id}
+                    key={`${msg.id}-${index}`}
                     className={`chat ${msg.senderId === userId ? "chat-end" : "chat-start"}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -301,8 +320,8 @@ const ChatInterface: React.FC = () => {
                         </div>
                       )}
                       <div className="text-xs opacity-75 mt-1">
-                        {new Date(msg.createdAt).toLocaleTimeString()}
-                        {msg.senderId !== userId && msg.readBy && !msg.readBy.includes(userId) && (
+                        {format(parseISO(msg.createdAt), 'HH:mm, dd MMM yyyy')}
+                        {msg.senderId !== userId && !msg.readBy.includes(userId) && (
                           <span className="ml-2 text-success">•</span>
                         )}
                       </div>

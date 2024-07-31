@@ -1,10 +1,11 @@
-// app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { firestore } from "@/lib/firebase/firebaseAdmin";
-import { FieldPath, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import prisma from "@/prisma";
+import { ref, set, onDisconnect } from "firebase/database";
+import { database } from "@/lib/firebase/firebaseClient";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -15,82 +16,12 @@ export async function GET(request: NextRequest) {
   const userId = session.user.id;
 
   try {
-    const userDoc = await prisma.user.findUnique({
-      where: { firebaseUid: userId },
-      include: { groups: true, conversations: true, aiChats: true }
-    });
-
-    if (!userDoc) {
+    const userDoc = await firestore.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const chats = [];
-
-    // Fetch groups
-    const groupIds = userDoc.groups.map(group => group.id);
-    if (groupIds.length > 0) {
-      const groupDocs = await firestore.collection('groups')
-        .where(FieldPath.documentId(), 'in', groupIds)
-        .get();
-      
-      for (const doc of groupDocs.docs) {
-        const data = doc.data();
-        const unreadCount = await getUnreadCount(doc.id, 'groups', userId);
-        chats.push({
-          id: doc.id,
-          name: data.name,
-          type: 'group',
-          lastMessage: data.lastMessage?.content || '',
-          lastMessageTimestamp: data.lastMessage?.createdAt?.toDate() || null,
-          unreadCount,
-        });
-      }
-    }
-
-    // Fetch conversations
-    const conversationIds = userDoc.conversations.map(conv => conv.id);
-    if (conversationIds.length > 0) {
-      const conversationDocs = await firestore.collection('conversations')
-        .where(FieldPath.documentId(), 'in', conversationIds)
-        .get();
-      
-      for (const doc of conversationDocs.docs) {
-        const data = doc.data();
-        const unreadCount = await getUnreadCount(doc.id, 'conversations', userId);
-        const otherUserId = data.members.find(memberId => memberId !== userId);
-        const isOnline = await checkOnlineStatus(otherUserId);
-        chats.push({
-          id: doc.id,
-          name: otherUserId || 'Unknown',
-          type: 'conversation',
-          lastMessage: data.lastMessage?.content || '',
-          lastMessageTimestamp: data.lastMessage?.createdAt?.toDate() || null,
-          unreadCount,
-          isOnline,
-        });
-      }
-    }
-
-    // Fetch AI chats
-    const aiChatIds = userDoc.aiChats.map(chat => chat.id);
-    if (aiChatIds.length > 0) {
-      const aiChatDocs = await firestore.collection('aiChats')
-        .where(FieldPath.documentId(), 'in', aiChatIds)
-        .get();
-      
-      for (const doc of aiChatDocs.docs) {
-        const data = doc.data();
-        const unreadCount = await getUnreadCount(doc.id, 'aiChats', userId);
-        chats.push({
-          id: doc.id,
-          name: data.name,
-          type: 'ai',
-          lastMessage: data.lastMessage?.content || '',
-          lastMessageTimestamp: data.lastMessage?.createdAt?.toDate() || null,
-          unreadCount,
-        });
-      }
-    }
+    const chats = await fetchChats(userId);
 
     return NextResponse.json(chats);
   } catch (error) {
@@ -110,14 +41,15 @@ export async function POST(request: NextRequest) {
     const { type, name, action } = body;
     const userId = session.user.id;
 
-    if (action === 'create') {
-      return await createChat(type, name, userId);
-    } else if (action === 'sendMessage') {
-      return await sendMessage(body, userId);
-    } else if (action === 'markAsRead') {
-      return await markAsRead(body, userId);
-    } else {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    switch (action) {
+      case 'create':
+        return await createChat(type, name, userId);
+      case 'sendMessage':
+        return await sendMessage(body, userId);
+      case 'markAsRead':
+        return await markAsRead(body, userId);
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
     console.error('Error processing request:', error);
@@ -125,7 +57,109 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function createChat(type, name, userId) {
+async function fetchChats(userId: string) {
+  const chats = [];
+
+  async function fetchMessages(chatId: string, collectionName: string) {
+    const messagesSnapshot = await firestore.collection(collectionName)
+      .doc(chatId)
+      .collection('messages')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+
+    return messagesSnapshot.docs.map(msgDoc => {
+      const msgData = msgDoc.data();
+      return {
+        id: msgDoc.id,
+        content: msgData.content,
+        senderId: msgData.senderId,
+        createdAt: msgData.createdAt.toDate().toISOString(),
+        fileUrl: msgData.fileUrl || null,
+        readBy: msgData.readBy || [],
+      };
+    });
+  }
+
+  // Fetch conversations
+  const conversationsSnapshot = await firestore.collection('conversations')
+    .where('members', 'array-contains', userId)
+    .get();
+
+  for (const convDoc of conversationsSnapshot.docs) {
+    const data = convDoc.data();
+    const otherUserId = data.members.find(memberId => memberId !== userId);
+    
+    const otherUserDoc = await firestore.collection('users').doc(otherUserId).get();
+    const otherUserName = otherUserDoc.exists ? otherUserDoc.data().name : 'Unknown';
+
+    const isOnline = await checkOnlineStatus(otherUserId);
+    const messages = await fetchMessages(convDoc.id, 'conversations');
+
+    chats.push({
+      id: convDoc.id,
+      name: otherUserName,
+      type: 'conversation',
+      messages: messages,
+      lastMessage: messages[0]?.content || '',
+      lastMessageTimestamp: messages[0]?.createdAt || null,
+      unreadCount: messages.filter(msg => msg.senderId !== userId && !msg.readBy.includes(userId)).length,
+      isOnline,
+    });
+  }
+
+  // Fetch groups
+  const groupsSnapshot = await firestore.collection('groups')
+    .where('members', 'array-contains', userId)
+    .get();
+
+  for (const groupDoc of groupsSnapshot.docs) {
+    const data = groupDoc.data();
+    const messages = await fetchMessages(groupDoc.id, 'groups');
+
+    chats.push({
+      id: groupDoc.id,
+      name: data.name,
+      type: 'group',
+      messages: messages,
+      lastMessage: messages[0]?.content || '',
+      lastMessageTimestamp: messages[0]?.createdAt || null,
+      unreadCount: messages.filter(msg => msg.senderId !== userId && !msg.readBy.includes(userId)).length,
+    });
+  }
+
+  // Fetch AI chats
+  const aiChatsSnapshot = await firestore.collection('aiChats')
+    .where('userId', '==', userId)
+    .get();
+
+  for (const aiChatDoc of aiChatsSnapshot.docs) {
+    const data = aiChatDoc.data();
+    const messages = await fetchMessages(aiChatDoc.id, 'aiChats');
+
+    chats.push({
+      id: aiChatDoc.id,
+      name: data.name,
+      type: 'ai',
+      messages: messages,
+      lastMessage: messages[0]?.content || '',
+      lastMessageTimestamp: messages[0]?.createdAt || null,
+      unreadCount: messages.filter(msg => !msg.readBy.includes(userId)).length,
+    });
+  }
+
+  // Sort chats by last message timestamp, oldest first
+  chats.sort((a, b) => {
+    const timeA = a.lastMessageTimestamp ? new Date(a.lastMessageTimestamp).getTime() : 0;
+    const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : 0;
+    return timeA - timeB; // Change to timeA - timeB for oldest first
+  });
+
+
+  return chats;
+}
+
+async function createChat(type: string, name: string, userId: string) {
   let chatRef;
   let chatId;
   switch (type) {
@@ -186,47 +220,49 @@ async function createChat(type, name, userId) {
   return NextResponse.json({ id: chatId, type });
 }
 
-async function sendMessage(body, userId) {
-  const { chatId, chatType: originalChatType, content, fileUrl } = body;
+async function sendMessage(body: any, userId: string) {
+  const { chatId, chatType, content, fileUrl } = body;
 
-  // Determine the correct collection name
-  let collectionName = originalChatType;
-  if (originalChatType === 'conversation') {
-    collectionName = 'conversations';
-  }
+  const collectionName = chatType === 'conversation' ? 'conversations' : chatType;
 
   const messageData = {
     content,
     senderId: userId,
     createdAt: FieldValue.serverTimestamp(),
     fileUrl: fileUrl || null,
-    readBy: [userId],
+    readBy: [], // Initialize readBy as an empty array
   };
 
   try {
-    // Start a new batch
     const batch = firestore.batch();
 
-    // Reference to the chat document
     const chatRef = firestore.collection(collectionName).doc(chatId);
-
-    // Reference to the new message document
     const messageRef = chatRef.collection('messages').doc();
 
-    // Add the new message
     batch.set(messageRef, messageData);
 
-    // Update the chat document
-    batch.set(chatRef, {
+    const chatDoc = await chatRef.get();
+    const chatData = chatDoc.data() || {};
+
+    const updateData = {
       lastMessage: {
         content: content || 'Attachment sent',
         createdAt: FieldValue.serverTimestamp(),
         senderId: userId,
       },
       updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true }); // Use merge: true to update or create the document
+    };
 
-    // Commit the batch
+    if (chatData.members && Array.isArray(chatData.members)) {
+      chatData.members.forEach(memberId => {
+        if (memberId !== userId) {
+          updateData[`unreadCount.${memberId}`] = FieldValue.increment(1);
+        }
+      });
+    }
+
+    batch.set(chatRef, updateData, { merge: true });
+
     await batch.commit();
 
     return NextResponse.json({ id: messageRef.id, ...messageData });
@@ -236,27 +272,108 @@ async function sendMessage(body, userId) {
   }
 }
 
-async function markAsRead(body, userId) {
+async function markAsRead(body: any, userId: string) {
   const { chatId, chatType, messageId } = body;
 
-  await firestore.collection(chatType).doc(chatId)
-    .collection('messages').doc(messageId)
-    .update({
-      readBy: FieldValue.arrayUnion(userId)
+  const collectionName = chatType === 'conversation' ? 'conversations' : chatType;
+
+  try {
+    const chatRef = firestore.collection(collectionName).doc(chatId);
+
+    await firestore.runTransaction(async (transaction) => {
+      const chatDoc = await transaction.get(chatRef);
+      
+      if (!chatDoc.exists) {
+        throw new Error('Chat not found');
+      }
+
+      const chatData = chatDoc.data();
+      
+      if (!chatData.members.includes(userId)) {
+        throw new Error('User is not a member of this chat');
+      }
+
+      const messageRef = chatRef.collection('messages').doc(messageId);
+      const messageDoc = await transaction.get(messageRef);
+
+      if (!messageDoc.exists) {
+        throw new Error('Message not found');
+      }
+
+      const messageData = messageDoc.data();
+
+      if (messageData.senderId !== userId && !messageData.readBy.includes(userId)) {
+        transaction.update(messageRef, {
+          readBy: FieldValue.arrayUnion(userId)
+        });
+
+        transaction.update(chatRef, {
+          [`unreadCount.${userId}`]: 0
+        });
+      }
     });
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error marking message as read:', error);
+    return NextResponse.json({ error: error.message || 'Failed to mark message as read' }, { status: 500 });
+  }
 }
 
-async function getUnreadCount(chatId, chatType, userId) {
-  const messagesRef = firestore.collection(chatType).doc(chatId).collection('messages');
-  const unreadQuery = messagesRef.where('readBy', 'array-contains', userId);
-  const unreadSnapshot = await unreadQuery.get();
-  return unreadSnapshot.size;
+async function getUnreadCount(chatId: string, chatType: string, userId: string): Promise<number> {
+  try {
+    const chatRef = firestore.collection(chatType).doc(chatId);
+    const messagesRef = chatRef.collection('messages');
+    
+    const allMessages = await messagesRef.get();
+    
+    const unreadCount = allMessages.docs.reduce((count, doc) => {
+      const messageData = doc.data();
+      if (messageData.senderId !== userId && !messageData.readBy.includes(userId)) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+    
+    return unreadCount;
+  } catch (error) {
+    console.error(`Error getting unread count for ${chatType} ${chatId}:`, error);
+    return 0;
+  }
 }
 
-async function checkOnlineStatus(userId) {
-  const userStatusRef = firestore.collection('onlineUsers').doc(userId);
-  const userStatusDoc = await userStatusRef.get();
-  return userStatusDoc.exists && userStatusDoc.data().online;
+export async function updateUserStatus(userId: string, isOnline: boolean) {
+  const userStatusRef = ref(database, `status/${userId}`);
+  await set(userStatusRef, { 
+    online: isOnline,
+    lastSeen: Date.now()
+  });
+  if (isOnline) {
+    onDisconnect(userStatusRef).set({ 
+      online: false,
+      lastSeen: Date.now()
+    });
+  }
+}
+
+async function checkOnlineStatus(userId: string): Promise<boolean> {
+  try {
+    const userStatusRef = firestore.collection('userStatus').doc(userId);
+    const snapshot = await userStatusRef.get();
+    
+    if (!snapshot.exists) {
+      return false;
+    }
+    
+    const data = snapshot.data();
+    const isOnline = data?.online || false;
+    const lastSeen = data?.lastSeen?.toDate();
+    
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    
+    return isOnline && lastSeen && lastSeen > fiveMinutesAgo;
+  } catch (error) {
+    console.error('Error checking online status:', error);
+    return false;
+  }
 }

@@ -1,43 +1,37 @@
 import { useEffect } from 'react';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { useSession } from 'next-auth/react';
-import { firestore } from "@/lib/firebase/firebaseAdmin";
 
-export const useOnlineStatus = () => {
+function useUserStatus() {
   const { data: session } = useSession();
-  const userId = session?.user?.id;
 
   useEffect(() => {
-    if (!userId) return;
+    if (session) {
+      const updateStatus = async (isOnline: boolean) => {
+        try {
+          await fetch('/api/chat/user-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isOnline }),
+          });
+        } catch (error) {
+          console.error('Failed to update user status:', error);
+        }
+      };
 
-    const userStatusRef = doc(firestore, 'onlineUsers', userId);
+      const handleOnline = () => updateStatus(true);
+      const handleOffline = () => updateStatus(false);
 
-    const setOnline = async () => {
-      await setDoc(userStatusRef, { online: true }, { merge: true });
-    };
+      updateStatus(true);
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
 
-    const setOffline = async () => {
-      await deleteDoc(userStatusRef);
-    };
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+        updateStatus(false);
+      };
+    }
+  }, [session]);
+}
 
-    // Set user as online when they connect
-    setOnline();
-
-    // Set up event listeners for when the user goes offline or online
-    window.addEventListener('online', setOnline);
-    window.addEventListener('offline', setOffline);
-
-    // Set up beforeunload event to set user as offline when they close the tab
-    window.addEventListener('beforeunload', setOffline);
-
-    // Cleanup function
-    return () => {
-      window.removeEventListener('online', setOnline);
-      window.removeEventListener('offline', setOffline);
-      window.removeEventListener('beforeunload', setOffline);
-      setOffline();
-    };
-  }, [userId]);
-
-  // This hook doesn't return anything, it just manages the online status
-};
+export default useUserStatus;

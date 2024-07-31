@@ -1,6 +1,7 @@
 import { getApps, cert, initializeApp, App } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { getDatabase } from "firebase-admin/database";
 
 let app: App;
 
@@ -27,4 +28,10 @@ export const getAuthInstance = () => getAuth(initFirebase());
 
 // Export initialized instances for convenience
 export const firestore = getFirestoreInstance();
-export const adminAuth = getAuth();
+export const adminAuth = getAuthInstance();
+
+export const firebaseAdmin = {
+  app: initFirebase(),
+  firestore,
+  auth: adminAuth,
+};
