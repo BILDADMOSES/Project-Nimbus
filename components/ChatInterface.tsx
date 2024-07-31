@@ -1,35 +1,36 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Search, PlusCircle, Paperclip, Smile, Send, Phone, Video, MoreVertical, LogOut, Shield } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'next-auth/react';
 import { ErrorBoundary } from 'react-error-boundary';
-import  useUserStatus  from "@/hooks/useOnlineStatus"; 
+import useUserStatus from "@/hooks/useOnlineStatus";
 import { format, parseISO } from 'date-fns';
-
+import { useInfiniteQuery, useMutation, useQueryClient } from 'react-query';
 
 // Types
+interface Message {
+  id: string;
+  content: string;
+  senderId: string;
+  createdAt: string;
+  fileUrl?: string;
+  readBy: string[];
+}
+
 interface ChatRoom {
   id: string;
   name: string;
   type: 'conversation' | 'group' | 'ai';
   avatar?: string;
-  lastMessage?: string;
-  lastMessageTimestamp?: Date;
+  messages: Message[];
+  lastMessage: string;
+  lastMessageTimestamp: string;
   unreadCount: number;
   isOnline?: boolean;
 }
 
-interface Message {
-  id: string;
-  content: string;
-  senderId: string;
-  createdAt: any;
-  fileUrl?: string;
-  readBy: string[];
-}
-
-const ErrorFallback = ({ error }) => (
+const ErrorFallback = ({ error }: { error: Error }) => (
   <div className="text-error p-4">
     <p>Something went wrong:</p>
     <pre>{error.message}</pre>
@@ -40,58 +41,77 @@ const ChatInterface: React.FC = () => {
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const { data: session } = useSession();
   const userId = session?.user?.id;
-  const [chatList, setChatList] = useState<ChatRoom[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [lastMessageRef, setLastMessageRef] = useState<any>(null);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   
   useUserStatus();
 
-  useEffect(() => {
-    if (!userId) return;
+  // Fetch chat list
+  const { 
+    data: chatListData, 
+    isLoading: isLoadingChatList,
+    fetchNextPage: fetchNextChatPage,
+    hasNextPage: hasMoreChats,
+  } = useInfiniteQuery<{ chats: ChatRoom[], nextCursor: string | null }>(
+    'chatList',
+    async ({ pageParam = 0 }) => {
+      const response = await fetch(`/api/chat?page=${pageParam}`);
+      if (!response.ok) throw new Error('Failed to fetch chats');
+      return response.json();
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      enabled: !!userId,
+      refetchInterval: 30000, // Refetch every 30 seconds
+    }
+  );
 
-    const fetchChats = async () => {
-      const response = await fetch('/api/chat');
-      if (response.ok) {
-        const chats = await response.json();
-        console.log(chats);
-        setChatList(chats);
-      }
-    };
+  const chatList = chatListData?.pages.flatMap(page => page.chats) ?? [];
 
-    fetchChats();
-    const interval = setInterval(fetchChats, 30000); // Refresh every 30 seconds
+  // Send message mutation
+  const sendMessageMutation = useMutation(
+    async ({ content, fileUrl }: { content: string, fileUrl?: string }) => {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sendMessage',
+          chatId: selectedRoom?.id,
+          chatType: selectedRoom?.type,
+          content,
+          fileUrl,
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to send message');
+      return response.json();
+    },
+    {
+      onSuccess: (newMessage) => {
+        queryClient.setQueryData('chatList', (oldData: any) => ({
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            chats: page.chats.map((chat: ChatRoom) => 
+              chat.id === selectedRoom?.id
+                ? {
+                    ...chat,
+                    messages: [...chat.messages, newMessage],
+                    lastMessage: newMessage.content,
+                    lastMessageTimestamp: newMessage.createdAt,
+                  }
+                : chat
+            ),
+          })),
+        }));
+      },
+    }
+  );
 
-    return () => clearInterval(interval);
-  }, [userId]);
-
-  useEffect(() => {
-    if (!selectedRoom) return;
-
-    const fetchMessages = async () => {
-      const response = await fetch(`/api/chat?chatId=${selectedRoom.id}&chatType=${selectedRoom.type}`);
-      if (response.ok) {
-        const fetchedMessages = await response.json();
-        setMessages(fetchedMessages);
-        setLastMessageRef(fetchedMessages[fetchedMessages.length - 1]);
-      }
-    };
-
-    fetchMessages();
-  }, [selectedRoom]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(scrollToBottom, [messages]);
-
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if ((!message.trim() && !selectedFile) || !selectedRoom || !userId) return;
 
     try {
@@ -101,33 +121,14 @@ const ChatInterface: React.FC = () => {
         // For example, you might want to create a separate API route for file uploads
       }
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'sendMessage',
-          chatId: selectedRoom.id,
-          chatType: selectedRoom.type,
-          content: message,
-          fileUrl,
-        }),
-      });
-
-      if (response.ok) {
-        const newMessage = await response.json();
-        setMessages(prevMessages => [...prevMessages, newMessage]);
-        setMessage('');
-        setSelectedFile(null);
-      } else {
-        throw new Error('Failed to send message');
-      }
+      await sendMessageMutation.mutateAsync({ content: message, fileUrl });
+      setMessage('');
+      setSelectedFile(null);
     } catch (error) {
       console.error('Error sending message:', error);
       // You might want to show an error message to the user here
     }
-  };
+  }, [message, selectedFile, selectedRoom, userId, sendMessageMutation]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -150,7 +151,7 @@ const ChatInterface: React.FC = () => {
     }
   };
 
-  const formatMessageDate = (dateString) => {
+  const formatMessageDate = useCallback((dateString: string) => {
     if (!dateString) {
       console.warn('Received invalid date:', dateString);
       return 'Invalid Date';
@@ -163,34 +164,16 @@ const ChatInterface: React.FC = () => {
       console.error('Error parsing date:', error);
       return 'Invalid Date';
     }
-  };
+  }, []);
 
-  const loadMoreMessages = async () => {
-    if (!selectedRoom || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-    try {
-      const response = await fetch(`/api/chat?chatId=${selectedRoom.id}&chatType=${selectedRoom.type}&lastMessageId=${messages[0]?.id}`);
-      if (response.ok) {
-        const newMessages = await response.json();
-        setMessages(prevMessages => [...newMessages, ...prevMessages]);
-      }
-    } catch (error) {
-      console.error('Error loading more messages:', error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-  
-
-  const handleTyping = () => {
+  const handleTyping = useCallback(() => {
     if (!selectedRoom || !userId) return;
-    // Implement typing indicator logic
     setIsTyping(true);
-    setTimeout(() => setIsTyping(false), 5000);
-  };
+    const timer = setTimeout(() => setIsTyping(false), 5000);
+    return () => clearTimeout(timer);
+  }, [selectedRoom, userId]);
 
-  const markMessageAsRead = async (messageId: string) => {
+  const markMessageAsRead = useCallback(async (messageId: string) => {
     if (!selectedRoom || !userId) return;
 
     try {
@@ -209,7 +192,17 @@ const ChatInterface: React.FC = () => {
     } catch (error) {
       console.error('Error marking message as read:', error);
     }
-  };
+  }, [selectedRoom, userId]);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    if (selectedRoom?.messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [selectedRoom?.messages, scrollToBottom]);
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
@@ -238,33 +231,45 @@ const ChatInterface: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {chatList.map((chat) => (
-              <div
-                key={chat.id}
-                className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
-                  selectedRoom?.id === chat.id ? 'bg-base-300' : ''
-                }`}
-                onClick={() => setSelectedRoom(chat)}
+            {isLoadingChatList ? (
+              <div className="p-4 text-center">Loading chats...</div>
+            ) : (
+              chatList.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
+                    selectedRoom?.id === chat.id ? 'bg-base-300' : ''
+                  }`}
+                  onClick={() => setSelectedRoom(chat)}
+                >
+                  <div className="avatar">
+                    <div className="w-10 h-10 rounded-full">
+                      <img src={chat.avatar || "/default-avatar.png"} alt={chat.name} />
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="font-semibold">{chat.name}</div>
+                    <div className="text-sm text-base-content text-opacity-60 truncate">
+                      {chat.lastMessage}
+                    </div>
+                  </div>
+                  {chat.unreadCount > 0 && (
+                    <div className="badge badge-primary badge-sm">{chat.unreadCount}</div>
+                  )}
+                  {chat.isOnline && (
+                    <div className="w-3 h-3 bg-success rounded-full ml-2"></div>
+                  )}
+                </div>
+              ))
+            )}
+            {hasMoreChats && (
+              <button
+                className="btn btn-sm btn-ghost w-full"
+                onClick={() => fetchNextChatPage()}
               >
-                <div className="avatar">
-                  <div className="w-10 h-10 rounded-full">
-                    <img src={chat.avatar || "/default-avatar.png"} alt={chat.name} />
-                  </div>
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="font-semibold">{chat.name}</div>
-                  <div className="text-sm text-base-content text-opacity-60 truncate">
-                    {chat.lastMessage}
-                  </div>
-                </div>
-                {chat.unreadCount > 0 && (
-                  <div className="badge badge-primary badge-sm">{chat.unreadCount}</div>
-                )}
-                {chat.isOnline && (
-                  <div className="w-3 h-3 bg-success rounded-full ml-2"></div>
-                )}
-              </div>
-            ))}
+                Load more chats
+              </button>
+            )}
           </div>
         </div>
   
@@ -298,19 +303,29 @@ const ChatInterface: React.FC = () => {
                 </div>
               </div>
   
-                {/* Chat messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+           {/* Chat messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
+              {isTyping && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="text-sm text-base-content text-opacity-60"
+                >
+                  Someone is typing...
+                </motion.div>
+              )}
+              <AnimatePresence initial={false}>
                 {selectedRoom.messages.map((msg, index) => (
                   <motion.div
                     key={`${msg.id}-${index}`}
                     className={`chat ${msg.senderId === userId ? "chat-end" : "chat-start"}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.3 }}
                   >
-                    <div className={`chat-bubble ${
-                      msg.senderId === userId ? "chat-bubble-primary" : "chat-bubble-secondary"
-                    }`}>
+                    <div className={`chat-bubble ${msg.senderId === userId ? "chat-bubble-primary" : "chat-bubble-secondary"}`}>
                       {msg.content}
                       {msg.fileUrl && (
                         <div className="mt-2">
@@ -320,7 +335,7 @@ const ChatInterface: React.FC = () => {
                         </div>
                       )}
                       <div className="text-xs opacity-75 mt-1">
-                        {format(parseISO(msg.createdAt), 'HH:mm, dd MMM yyyy')}
+                        {formatMessageDate(msg.createdAt)}
                         {msg.senderId !== userId && !msg.readBy.includes(userId) && (
                           <span className="ml-2 text-success">•</span>
                         )}
@@ -328,9 +343,10 @@ const ChatInterface: React.FC = () => {
                     </div>
                   </motion.div>
                 ))}
-                {isTyping && <div className="text-sm text-base-content text-opacity-60">Someone is typing...</div>}
-                <div ref={messagesEndRef} />
-              </div>
+              </AnimatePresence>
+              <div ref={messagesEndRef} />
+            </div>
+
   
               {/* Chat input */}
               <div className="p-4 bg-base-200 border-t border-base-300">
@@ -355,14 +371,23 @@ const ChatInterface: React.FC = () => {
                     className="hidden"
                     onChange={handleFileChange}
                   />
-                  <button className="btn btn-circle btn-ghost tooltip" data-tip="Attach file" onClick={() => fileInputRef.current?.click()}>
+                  <button 
+                    className="btn btn-circle btn-ghost tooltip" 
+                    data-tip="Attach file" 
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Paperclip className="h-6 w-6" />
                   </button>
                   <button 
                     className="btn btn-circle btn-primary ml-2"
                     onClick={handleSendMessage}
+                    disabled={sendMessageMutation.isLoading}
                   >
-                    <Send className="h-5 w-5" />
+                    {sendMessageMutation.isLoading ? (
+                      <div className="loading loading-spinner loading-xs"></div>
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
                 {selectedFile && (

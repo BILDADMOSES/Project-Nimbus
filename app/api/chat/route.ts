@@ -7,6 +7,8 @@ import prisma from "@/prisma";
 import { ref, set, onDisconnect } from "firebase/database";
 import { database } from "@/lib/firebase/firebaseClient";
 
+const CHATS_PER_PAGE = 10;
+
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -14,6 +16,9 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = session.user.id;
+  const url = new URL(request.url);
+  const page = parseInt(url.searchParams.get('page') || '0', 10);
+  const lastTimestamp = url.searchParams.get('lastTimestamp');
 
   try {
     const userDoc = await firestore.collection('users').doc(userId).get();
@@ -21,9 +26,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const chats = await fetchChats(userId);
+    const { chats, nextCursor } = await fetchChats(userId, page, lastTimestamp);
 
-    return NextResponse.json(chats);
+
+    return NextResponse.json({ chats, nextCursor });
   } catch (error) {
     console.error('Error fetching chats:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -57,15 +63,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function fetchChats(userId: string) {
-  const chats = [];
 
-  async function fetchMessages(chatId: string, collectionName: string) {
+async function fetchChats(userId: string, page: number, lastTimestamp: string | null) {
+  console.log('Fetching chats for user:', userId, 'Page:', page, 'Last timestamp:', lastTimestamp);
+  const chats = [];
+  let nextCursor = null;
+
+  async function fetchAllMessages(chatId: string, collectionName: string) {
     const messagesSnapshot = await firestore.collection(collectionName)
       .doc(chatId)
       .collection('messages')
       .orderBy('createdAt', 'desc')
-      .limit(50)
       .get();
 
     return messagesSnapshot.docs.map(msgDoc => {
@@ -86,15 +94,16 @@ async function fetchChats(userId: string) {
     .where('members', 'array-contains', userId)
     .get();
 
+  console.log('Conversations found:', conversationsSnapshot.docs.length);
+
   for (const convDoc of conversationsSnapshot.docs) {
     const data = convDoc.data();
     const otherUserId = data.members.find(memberId => memberId !== userId);
     
     const otherUserDoc = await firestore.collection('users').doc(otherUserId).get();
     const otherUserName = otherUserDoc.exists ? otherUserDoc.data().name : 'Unknown';
-
     const isOnline = await checkOnlineStatus(otherUserId);
-    const messages = await fetchMessages(convDoc.id, 'conversations');
+    const messages = await fetchAllMessages(convDoc.id, 'conversations');
 
     chats.push({
       id: convDoc.id,
@@ -113,9 +122,11 @@ async function fetchChats(userId: string) {
     .where('members', 'array-contains', userId)
     .get();
 
+  console.log('Groups found:', groupsSnapshot.docs.length);
+
   for (const groupDoc of groupsSnapshot.docs) {
     const data = groupDoc.data();
-    const messages = await fetchMessages(groupDoc.id, 'groups');
+    const messages = await fetchAllMessages(groupDoc.id, 'groups');
 
     chats.push({
       id: groupDoc.id,
@@ -133,9 +144,11 @@ async function fetchChats(userId: string) {
     .where('userId', '==', userId)
     .get();
 
+  console.log('AI Chats found:', aiChatsSnapshot.docs.length);
+
   for (const aiChatDoc of aiChatsSnapshot.docs) {
     const data = aiChatDoc.data();
-    const messages = await fetchMessages(aiChatDoc.id, 'aiChats');
+    const messages = await fetchAllMessages(aiChatDoc.id, 'aiChats');
 
     chats.push({
       id: aiChatDoc.id,
@@ -148,15 +161,27 @@ async function fetchChats(userId: string) {
     });
   }
 
-  // Sort chats by last message timestamp, oldest first
+  // Sort chats by last message timestamp, newest first
   chats.sort((a, b) => {
     const timeA = a.lastMessageTimestamp ? new Date(a.lastMessageTimestamp).getTime() : 0;
     const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : 0;
-    return timeA - timeB; // Change to timeA - timeB for oldest first
+    return timeB - timeA;
   });
 
+  // Implement pagination
+  const CHATS_PER_PAGE = 10;
+  const startIndex = page * CHATS_PER_PAGE;
+  const paginatedChats = chats.slice(startIndex, startIndex + CHATS_PER_PAGE);
 
-  return chats;
+  if (paginatedChats.length === CHATS_PER_PAGE && chats.length > startIndex + CHATS_PER_PAGE) {
+    nextCursor = paginatedChats[CHATS_PER_PAGE - 1].lastMessageTimestamp;
+  }
+
+  console.log('Total chats:', chats.length);
+  console.log('Paginated chats:', paginatedChats.length);
+  console.log('Next cursor:', nextCursor);
+
+  return { chats: paginatedChats, nextCursor };
 }
 
 async function createChat(type: string, name: string, userId: string) {

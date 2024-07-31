@@ -2,6 +2,11 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChatInterface from '@/components/ChatInterface';
+import { QueryClient, QueryClientProvider } from 'react-query'
+
+
+const queryClient = new QueryClient()
+
 
 const OneOnOneContent = () => {
   const searchParams = useSearchParams();
@@ -11,7 +16,9 @@ const OneOnOneContent = () => {
     return <div>Error: Conversation ID is missing</div>;
   }
 
-  return <ChatInterface />;
+  return ( <QueryClientProvider client={queryClient}>
+    <ChatInterface />
+  </QueryClientProvider>);
 };
 
 const OneOnOnePage = () => {
