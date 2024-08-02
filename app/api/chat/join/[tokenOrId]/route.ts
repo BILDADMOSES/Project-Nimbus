@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
-import prisma from "@/prisma";
 import { firestore } from "@/lib/firebase/firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
-
 
 export async function POST(request: NextRequest, { params }: { params: { tokenOrId: string } }) {
   const session = await getServerSession(authOptions);
@@ -21,9 +19,12 @@ export async function POST(request: NextRequest, { params }: { params: { tokenOr
       return NextResponse.json({ message: 'Token or ID is required' }, { status: 400 });
     }
 
-    const invitation = await prisma.invitation.findUnique({ where: { token: tokenOrId } });
+    const invitationRef = firestore.collection('invitations').where('token', '==', tokenOrId).limit(1);
+    const invitationSnapshot = await invitationRef.get();
 
-    if (invitation) {
+    if (!invitationSnapshot.empty) {
+      const invitation = invitationSnapshot.docs[0].data();
+      
       if (invitation.status !== 'PENDING') {
         return NextResponse.json({ message: 'Invitation is no longer valid' }, { status: 400 });
       }
@@ -31,15 +32,13 @@ export async function POST(request: NextRequest, { params }: { params: { tokenOr
       const chatRef = firestore.collection(invitation.chatType === 'group' ? 'groups' : 'conversations').doc(invitation.chatId);
       await chatRef.update({ members: FieldValue.arrayUnion(userId) });
 
-      await prisma.invitation.update({
-        where: { id: invitation.id },
-        data: { status: 'ACCEPTED' },
-      });
+      await invitationSnapshot.docs[0].ref.update({ status: 'ACCEPTED' });
 
-      await prisma.user.update({
-        where: { firebaseUid: userId },
-        data: { [`${invitation.chatType}Ids`]: { push: invitation.chatId } },
-      });
+      // Update user document, create if it doesn't exist
+      const userRef = firestore.collection('users').doc(userId);
+      await userRef.set({
+        [`${invitation.chatType}Ids`]: FieldValue.arrayUnion(invitation.chatId)
+      }, { merge: true });
 
       return NextResponse.json({ type: invitation.chatType, id: invitation.chatId }, { status: 200 });
     }
@@ -49,10 +48,9 @@ export async function POST(request: NextRequest, { params }: { params: { tokenOr
     const groupDoc = await groupRef.get();
     if (groupDoc.exists) {
       await groupRef.update({ members: FieldValue.arrayUnion(userId) });
-      await prisma.user.update({
-        where: { firebaseUid: userId },
-        data: { groupIds: { push: tokenOrId } },
-      });
+      await firestore.collection('users').doc(userId).set({
+        groupIds: FieldValue.arrayUnion(tokenOrId)
+      }, { merge: true });
       return NextResponse.json({ type: 'group', id: tokenOrId }, { status: 200 });
     }
 
@@ -60,10 +58,9 @@ export async function POST(request: NextRequest, { params }: { params: { tokenOr
     const conversationDoc = await conversationRef.get();
     if (conversationDoc.exists) {
       await conversationRef.update({ members: FieldValue.arrayUnion(userId) });
-      await prisma.user.update({
-        where: { firebaseUid: userId },
-        data: { conversationIds: { push: tokenOrId } },
-      });
+      await firestore.collection('users').doc(userId).set({
+        conversationIds: FieldValue.arrayUnion(tokenOrId)
+      }, { merge: true });
       return NextResponse.json({ type: 'conversation', id: tokenOrId }, { status: 200 });
     }
 

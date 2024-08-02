@@ -2,6 +2,9 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChatInterface from '@/components/ChatInterface';
+import { QueryClient, QueryClientProvider } from 'react-query'
+
+const queryClient = new QueryClient()
 
 const AIChatContent = () => {
   const searchParams = useSearchParams();
@@ -11,7 +14,11 @@ const AIChatContent = () => {
     return <div>Error: AI Chat ID is missing</div>;
   }
 
-  return <ChatInterface initialSelectedRoom={{ id, type: 'ai' }} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ChatInterface chatId={id} chatType="ai" />
+    </QueryClientProvider>
+  );
 };
 
 const AIChatPage = () => {

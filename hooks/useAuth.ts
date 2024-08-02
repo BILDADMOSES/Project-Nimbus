@@ -31,15 +31,15 @@ export const useSignIn = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  async function fetchLastConversation() {
+  async function fetchLastChat() {
     try {
-      const response = await axios.get("/api/chat/last-conversation", {
+      const response = await axios.get("/api/chat/last-chat", {
         withCredentials: true,
       });
 
-      return response.data.conversation;
+      return response.data.chat;
     } catch (error) {
-      console.error("Error fetching last conversation:", error);
+      console.error("Error fetching last chat:", error);
       throw error;
     }
   }
@@ -54,9 +54,22 @@ export const useSignIn = () => {
         localStorage.removeItem("joinCallbackUrl");
         router.push(savedJoinUrl);
       } else {
-        const lastConversation = await fetchLastConversation();
-        if (lastConversation) {
-          router.push(`/chat/one-on-one?uuid=${lastConversation.id}`);
+        const lastChat = await fetchLastChat();
+        if (lastChat) {
+          switch (lastChat.type) {
+            case 'conversation':
+              router.push(`/chat/one-on-one?uuid=${lastChat.id}`);
+              break;
+            case 'aiChat':
+              router.push(`/chat/ai?uuid=${lastChat.id}`);
+              break;
+            case 'group':
+              router.push(`/chat/group?uuid=${lastChat.id}`);
+              break;
+            default:
+              console.error('Unknown chat type:', lastChat.type);
+              router.push("/chat/create");
+          }
         } else {
           router.push("/chat/create");
         }

@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@types/firebase": "^2.4.32",
+    "@types/lodash": "^4.17.7",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

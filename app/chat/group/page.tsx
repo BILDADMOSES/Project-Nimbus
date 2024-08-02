@@ -1,18 +1,24 @@
-"use client";
-
+"use client"
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ChatInterface from '@/components/ChatInterface';
+import { QueryClient, QueryClientProvider } from 'react-query'
+
+const queryClient = new QueryClient()
 
 const GroupChatContent = () => {
   const searchParams = useSearchParams();
-  const groupId = searchParams.get('uuid');
+  const id = searchParams.get('uuid');
 
-  if (!groupId) {
+  if (!id) {
     return <div>Error: Group ID is missing</div>;
   }
 
-  return <ChatInterface initialSelectedRoom={{ id: groupId, type: 'group' }} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ChatInterface chatId={id} chatType="group" />
+    </QueryClientProvider>
+  );
 };
 
 const GroupChatPage = () => {

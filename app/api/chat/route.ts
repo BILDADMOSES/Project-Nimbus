@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { firestore } from "@/lib/firebase/firebaseAdmin";
-import { FieldValue } from 'firebase-admin/firestore';
-import prisma from "@/prisma";
-import { ref, set, onDisconnect } from "firebase/database";
-import { database } from "@/lib/firebase/firebaseClient";
+import { FieldValue } from "firebase-admin/firestore";
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -16,43 +18,40 @@ export async function GET(request: NextRequest) {
 
   const userId = session.user.id;
   const url = new URL(request.url);
-  const page = parseInt(url.searchParams.get('page') || '0', 10);
-  const lastTimestamp = url.searchParams.get('lastTimestamp');
+  const isSSE = url.searchParams.get('sse') === 'true';
 
-  try {
-    const userDoc = await firestore.collection('users').doc(userId).get();
-    if (!userDoc.exists) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (isSSE) {
+    return handleSSE(request, userId);
+  } else {
+    const page = parseInt(url.searchParams.get('page') || '0', 10);
+    const lastTimestamp = url.searchParams.get('lastTimestamp');
+
+    try {
+      const { chats, nextCursor } = await fetchChats(userId, page, lastTimestamp);
+      return NextResponse.json({ chats, nextCursor });
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-
-    const { chats, nextCursor } = await fetchChats(userId, page, lastTimestamp);
-
-
-    return NextResponse.json({ chats, nextCursor });
-  } catch (error) {
-    console.error('Error fetching chats:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const body = await request.json();
-    const { type, name, action } = body;
+    const { action } = body;
     const userId = session.user.id;
 
     switch (action) {
-      case 'create':
-        return await createChat(type, name, userId);
       case 'sendMessage':
         return await sendMessage(body, userId);
-      case 'markAsRead':
-        return await markAsRead(body, userId);
+      case 'setTypingIndicator':
+        return await setTypingIndicator(body, userId);
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
@@ -62,6 +61,85 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function handleSSE(request: NextRequest, userId: string) {
+  const responseStream = new TransformStream();
+  const writer = responseStream.writable.getWriter();
+  const encoder = new TextEncoder();
+
+  const sendEvent = (eventType: string, data: any) => {
+    writer.write(encoder.encode(`event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`));
+  };
+
+  // Set up Firestore listeners
+  const unsubscribeChats = firestore.collection('conversations')
+    .where('members', 'array-contains', userId)
+    .onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' || change.type === 'modified') {
+          const chatData = change.doc.data();
+          sendEvent('chatUpdate', {
+            id: change.doc.id,
+            ...chatData,
+            lastMessage: chatData.lastMessage || null,
+          });
+        }
+      });
+    }, (error) => {
+      console.error('Error in chats listener:', error);
+      sendEvent('error', { message: 'Error in chats listener' });
+    });
+
+  // Online status listener
+  const unsubscribeOnlineStatus = firestore.collection('userStatus')
+    .onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'modified') {
+          const userData = change.doc.data();
+          sendEvent('onlineStatus', {
+            userId: change.doc.id,
+            isOnline: userData.online,
+          });
+        }
+      });
+    }, (error) => {
+      console.error('Error in online status listener:', error);
+      sendEvent('error', { message: 'Error in online status listener' });
+    });
+
+  // Typing indicator listener
+  const unsubscribeTyping = firestore.collection('typingIndicators')
+    .where('receiverId', '==', userId)
+    .onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' || change.type === 'modified') {
+          const typingData = change.doc.data();
+          sendEvent('typingIndicator', {
+            chatId: typingData.chatId,
+            userId: typingData.userId,
+            isTyping: typingData.isTyping,
+          });
+        }
+      });
+    }, (error) => {
+      console.error('Error in typing indicator listener:', error);
+      sendEvent('error', { message: 'Error in typing indicator listener' });
+    });
+
+  // Cleanup function
+  request.signal.addEventListener('abort', () => {
+    unsubscribeChats();
+    unsubscribeOnlineStatus();
+    unsubscribeTyping();
+  });
+
+  return new Response(responseStream.readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
 
 async function fetchChats(userId: string, page: number, lastTimestamp: string | null) {
   console.log('Fetching chats for user:', userId, 'Page:', page, 'Last timestamp:', lastTimestamp);
@@ -93,8 +171,6 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
     .where('members', 'array-contains', userId)
     .get();
 
-  console.log('Conversations found:', conversationsSnapshot.docs.length);
-
   for (const convDoc of conversationsSnapshot.docs) {
     const data = convDoc.data();
     const otherUserId = data.members.find(memberId => memberId !== userId);
@@ -121,8 +197,6 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
     .where('members', 'array-contains', userId)
     .get();
 
-  console.log('Groups found:', groupsSnapshot.docs.length);
-
   for (const groupDoc of groupsSnapshot.docs) {
     const data = groupDoc.data();
     const messages = await fetchAllMessages(groupDoc.id, 'groups');
@@ -142,8 +216,6 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
   const aiChatsSnapshot = await firestore.collection('aiChats')
     .where('userId', '==', userId)
     .get();
-
-  console.log('AI Chats found:', aiChatsSnapshot.docs.length);
 
   for (const aiChatDoc of aiChatsSnapshot.docs) {
     const data = aiChatDoc.data();
@@ -166,19 +238,6 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
     return timeB - timeA;
   });
   
-  // Sort messages within each chat, oldest first
-  chats.forEach(chat => {
-    if (chat.messages && Array.isArray(chat.messages)) {
-      chat.messages.sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return timeA - timeB;
-      });
-    }
-  });
-  
-  console.log("Sorted Chat List:", chats);
-
   // Implement pagination
   const CHATS_PER_PAGE = 10;
   const startIndex = page * CHATS_PER_PAGE;
@@ -188,16 +247,15 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
     nextCursor = paginatedChats[CHATS_PER_PAGE - 1].lastMessageTimestamp;
   }
 
-  console.log('Total chats:', chats.length);
-  console.log('Paginated chats:', paginatedChats.length);
-  console.log('Next cursor:', nextCursor);
-
   return { chats: paginatedChats, nextCursor };
 }
 
-async function createChat(type: string, name: string, userId: string) {
+async function createChat(body: any, userId: string) {
+  const { type, name, otherUserId } = body;
+  
   let chatRef;
   let chatId;
+
   switch (type) {
     case 'group':
       chatRef = await firestore.collection('groups').add({
@@ -219,7 +277,7 @@ async function createChat(type: string, name: string, userId: string) {
       break;
     case 'conversation':
       chatRef = await firestore.collection('conversations').add({
-        members: [userId],
+        members: [userId, otherUserId],
         createdAt: FieldValue.serverTimestamp(),
         lastMessage: null,
       });
@@ -228,7 +286,7 @@ async function createChat(type: string, name: string, userId: string) {
         data: {
           id: chatId,
           users: {
-            connect: { firebaseUid: userId }
+            connect: [{ firebaseUid: userId }, { firebaseUid: otherUserId }]
           }
         }
       });
@@ -259,14 +317,14 @@ async function createChat(type: string, name: string, userId: string) {
 async function sendMessage(body: any, userId: string) {
   const { chatId, chatType, content, fileUrl } = body;
 
-  const collectionName = chatType === 'conversation' ? 'conversations' : chatType;
+  const collectionName = chatType === 'conversation' ? 'conversations' : chatType + 's';
 
   const messageData = {
     content,
     senderId: userId,
     createdAt: FieldValue.serverTimestamp(),
     fileUrl: fileUrl || null,
-    readBy: [], // Initialize readBy as an empty array
+    readBy: [userId],
   };
 
   try {
@@ -277,27 +335,14 @@ async function sendMessage(body: any, userId: string) {
 
     batch.set(messageRef, messageData);
 
-    const chatDoc = await chatRef.get();
-    const chatData = chatDoc.data() || {};
-
-    const updateData = {
+    batch.update(chatRef, {
       lastMessage: {
         content: content || 'Attachment sent',
         createdAt: FieldValue.serverTimestamp(),
         senderId: userId,
       },
       updatedAt: FieldValue.serverTimestamp(),
-    };
-
-    if (chatData.members && Array.isArray(chatData.members)) {
-      chatData.members.forEach(memberId => {
-        if (memberId !== userId) {
-          updateData[`unreadCount.${memberId}`] = FieldValue.increment(1);
-        }
-      });
-    }
-
-    batch.set(chatRef, updateData, { merge: true });
+    });
 
     await batch.commit();
 
@@ -311,7 +356,7 @@ async function sendMessage(body: any, userId: string) {
 async function markAsRead(body: any, userId: string) {
   const { chatId, chatType, messageId } = body;
 
-  const collectionName = chatType === 'conversation' ? 'conversations' : chatType;
+  const collectionName = chatType === 'conversation' ? 'conversations' : chatType + 's';
 
   try {
     const chatRef = firestore.collection(collectionName).doc(chatId);
@@ -356,39 +401,23 @@ async function markAsRead(body: any, userId: string) {
   }
 }
 
-async function getUnreadCount(chatId: string, chatType: string, userId: string): Promise<number> {
-  try {
-    const chatRef = firestore.collection(chatType).doc(chatId);
-    const messagesRef = chatRef.collection('messages');
-    
-    const allMessages = await messagesRef.get();
-    
-    const unreadCount = allMessages.docs.reduce((count, doc) => {
-      const messageData = doc.data();
-      if (messageData.senderId !== userId && !messageData.readBy.includes(userId)) {
-        return count + 1;
-      }
-      return count;
-    }, 0);
-    
-    return unreadCount;
-  } catch (error) {
-    console.error(`Error getting unread count for ${chatType} ${chatId}:`, error);
-    return 0;
-  }
-}
+async function setTypingIndicator(body: any, userId: string) {
+  const { chatId, isTyping } = body;
 
-export async function updateUserStatus(userId: string, isOnline: boolean) {
-  const userStatusRef = ref(database, `status/${userId}`);
-  await set(userStatusRef, { 
-    online: isOnline,
-    lastSeen: Date.now()
-  });
-  if (isOnline) {
-    onDisconnect(userStatusRef).set({ 
-      online: false,
-      lastSeen: Date.now()
-    });
+  try {
+    const typingRef = firestore.collection('typingIndicators').doc(`${chatId}_${userId}`);
+    
+    await typingRef.set({
+      chatId,
+      userId,
+      isTyping,
+      timestamp: FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error setting typing indicator:', error);
+    return NextResponse.json({ error: 'Failed to set typing indicator' }, { status: 500 });
   }
 }
 
@@ -411,5 +440,28 @@ async function checkOnlineStatus(userId: string): Promise<boolean> {
   } catch (error) {
     console.error('Error checking online status:', error);
     return false;
+  }
+}
+
+async function getUnreadCount(chatId: string, chatType: string, userId: string): Promise<number> {
+  try {
+    const collectionName = chatType === 'conversation' ? 'conversations' : chatType + 's';
+    const chatRef = firestore.collection(collectionName).doc(chatId);
+    const messagesRef = chatRef.collection('messages');
+    
+    const allMessages = await messagesRef.get();
+    
+    const unreadCount = allMessages.docs.reduce((count, doc) => {
+      const messageData = doc.data();
+      if (messageData.senderId !== userId && !messageData.readBy.includes(userId)) {
+        return count + 1;
+      }
+      return count;
+    }, 0);
+    
+    return unreadCount;
+  } catch (error) {
+    console.error(`Error getting unread count for ${chatType} ${chatId}:`, error);
+    return 0;
   }
 }

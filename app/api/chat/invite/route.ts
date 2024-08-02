@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { v4 as uuidv4 } from "uuid";
-import prisma from "@/prisma";
 import { firestore } from "@/lib/firebase/firebaseAdmin";
 import { MailtrapClient } from "mailtrap";
 
@@ -28,11 +27,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Chat not found" }, { status: 404 });
     }
 
+    const invitationsRef = firestore.collection('invitations');
     const invitations = await Promise.all(
       emails.map(async (email: string) => {
         const token = uuidv4();
-        const invitation = await prisma.invitation.create({
-          data: { email, token, inviterId, chatId, chatType, expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+        const invitationDoc = invitationsRef.doc();
+        await invitationDoc.set({
+          email,
+          token,
+          inviterId,
+          chatId,
+          chatType,
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         });
 
         const invitationLink = `${process.env.NEXT_PUBLIC_BASE_URL}/chat/join?token=${token}`;
@@ -43,7 +50,7 @@ export async function POST(request: NextRequest) {
           text: `Hello,\n\nYou've been invited to join a chat. Click the link below to join:\n\n${invitationLink}\n\nThis link will expire in 7 days.\n\nBest regards,\nChatEasy Team`,
         });
 
-        return invitation;
+        return { id: invitationDoc.id, email, token };
       })
     );
 

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/authOptions";
 import { firestore } from "@/lib/firebase/firebaseAdmin";
-import prisma from "@/prisma";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -20,31 +19,9 @@ export async function POST(request: NextRequest) {
       members: firestore.FieldValue.arrayRemove(userId)
     });
 
-    // Update MongoDB
-    let updateField;
-    switch (chatType) {
-      case 'group':
-        updateField = 'groupIds';
-        break;
-      case 'conversation':
-        updateField = 'conversationIds';
-        break;
-      case 'ai':
-        updateField = 'aiChatIds';
-        break;
-      default:
-        throw new Error('Invalid chat type');
-    }
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        [updateField]: {
-          set: await prisma.user
-            .findUnique({ where: { id: userId } })
-            .then((user) => user?.[updateField].filter((id) => id !== chatId) || [])
-        }
-      }
+    // Update user's chat list
+    await firestore.collection("users").doc(userId).update({
+      [`${chatType}Ids`]: firestore.FieldValue.arrayRemove(chatId)
     });
 
     // If it's a group chat and the user is the owner, assign a new owner or delete the group
