@@ -35,15 +35,15 @@ interface ReadReceipt {
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected';
 
 export function useSSE(userId: string | undefined) {
-  const [chatList, setChatList] = useState<ChatRoom[]>([]);
-  const [onlineStatus, setOnlineStatus] = useState<OnlineStatus>({});
-  const [typingIndicators, setTypingIndicators] = useState<TypingIndicator>({});
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [newMessages, setNewMessages] = useState<NewMessage[]>([]);
-  const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
-
-  const connectSSE = useCallback(() => {
-    if (!userId) {
+    const [chatList, setChatList] = useState<ChatRoom[]>([]);
+    const [onlineStatus, setOnlineStatus] = useState<OnlineStatus>({});
+    const [typingIndicators, setTypingIndicators] = useState<TypingIndicator>({});
+    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
+    const [newMessages, setNewMessages] = useState<NewMessage[]>([]);
+    const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
+  
+    const connectSSE = useCallback(() => {
+      if (!userId) {
         console.log('useSSE: No userId provided, skipping connection');
         return;
       }
@@ -62,58 +62,107 @@ export function useSSE(userId: string | undefined) {
         setConnectionStatus('disconnected');
       };
   
-    eventSource.addEventListener('chatList', (event) => {
-      const chatData = JSON.parse(event.data);
-      setChatList(chatData);
-    });
-
-    eventSource.addEventListener('chatUpdate', (event) => {
-      const updatedChat = JSON.parse(event.data);
-      setChatList(prevList => updateChatList(prevList, updatedChat));
-    });
-
-    eventSource.addEventListener('onlineStatus', (event) => {
-      const { userId, isOnline } = JSON.parse(event.data);
-      setOnlineStatus(prev => ({ ...prev, [userId]: isOnline }));
-    });
-
-    eventSource.addEventListener('typingIndicator', (event) => {
-      const { chatId, userId, isTyping } = JSON.parse(event.data);
-      setTypingIndicators(prev => updateTypingIndicators(prev, chatId, userId, isTyping));
-    });
-
-    eventSource.addEventListener('newMessage', (event) => {
-      const newMessage = JSON.parse(event.data);
-      setNewMessages(prev => [...prev, newMessage]);
-      setChatList(prevList => updateChatListWithNewMessage(prevList, newMessage));
-    });
-
-    eventSource.addEventListener('readReceipt', (event) => {
-      const readReceipt = JSON.parse(event.data);
-      setReadReceipts(prev => [...prev, readReceipt]);
-      setChatList(prevList => updateChatListWithReadReceipt(prevList, readReceipt));
-    });
-
-    eventSource.addEventListener('error', (event) => {
-      console.error('SSE error:', event);
-      setConnectionStatus('disconnected');
-    });
-
-    return () => {
+      eventSource.addEventListener('chatList', (event) => {
+        const chatData = JSON.parse(event.data);
+        setChatList(chatData);
+      });
+  
+      eventSource.addEventListener('chatUpdate', (event) => {
+        const updatedChat = JSON.parse(event.data);
+        setChatList(prevList => updateChatList(prevList, updatedChat));
+      });
+  
+      eventSource.addEventListener('onlineStatus', (event) => {
+        const { userId, isOnline, lastSeen } = JSON.parse(event.data);
+        setOnlineStatus(prev => ({
+          ...prev,
+          [userId]: { isOnline, lastSeen },
+        }));
+      });
+  
+      eventSource.addEventListener('typingIndicator', (event) => {
+        const { chatId, userId, isTyping } = JSON.parse(event.data);
+        setTypingIndicators(prev => updateTypingIndicators(prev, chatId, userId, isTyping));
+      });
+  
+      eventSource.addEventListener('newMessage', (event) => {
+        const newMessage = JSON.parse(event.data);
+        setNewMessages(prev => [...prev, newMessage]);
+        setChatList(prevList => updateChatListWithNewMessage(prevList, newMessage));
+      });
+  
+      eventSource.addEventListener('readReceipt', (event) => {
+        const readReceipt = JSON.parse(event.data);
+        setReadReceipts(prev => [...prev, readReceipt]);
+        setChatList(prevList => updateChatListWithReadReceipt(prevList, readReceipt));
+      });
+  
+      eventSource.addEventListener('error', (event) => {
+        console.error('SSE error:', event);
+        setConnectionStatus('disconnected');
+      });
+  
+      return () => {
         console.log('useSSE: Closing connection');
         eventSource.close();
         setConnectionStatus('disconnected');
       };
     }, [userId]);
-
+  
     useEffect(() => {
-        console.log('useSSE: Setting up SSE connection');
-        const cleanup = connectSSE();
-        return () => {
-          console.log('useSSE: Cleaning up SSE connection');
-          if (cleanup) cleanup();
+      console.log('useSSE: Setting up SSE connection');
+      const cleanup = connectSSE();
+      return () => {
+        console.log('useSSE: Cleaning up SSE connection');
+        if (cleanup) cleanup();
+      };
+    }, [connectSSE]);
+
+    const updateOnlineStatus = useCallback(async (isOnline: boolean) => {
+        if (!userId) return;
+      
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateOnlineStatus',
+              isOnline,
+            }),
+          });
+      
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update online status');
+          }
+      
+          console.log(`Online status updated to ${isOnline}`);
+        } catch (error) {
+          console.error('Error updating online status:', error);
+          // Optionally, you can add user-facing error handling here
+        }
+      }, [userId]);
+
+      useEffect(() => {
+        if (!userId) return;
+    
+        const handleVisibilityChange = () => {
+          updateOnlineStatus(!document.hidden);
         };
-      }, [connectSSE]);
+    
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('online', () => updateOnlineStatus(true));
+        window.addEventListener('offline', () => updateOnlineStatus(false));
+    
+        updateOnlineStatus(true); // Set initial online status
+    
+        return () => {
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          window.removeEventListener('online', () => updateOnlineStatus(true));
+          window.removeEventListener('offline', () => updateOnlineStatus(false));
+          updateOnlineStatus(false); // Set offline status when unmounting
+        };
+      }, [userId, updateOnlineStatus]);
 
 
       const fetchMessages = useCallback(async (chatId: string) => {
@@ -162,17 +211,43 @@ export function useSSE(userId: string | undefined) {
         }
       }, []);
 
-  const markAsRead = useCallback(async (chatId: string, messageId: string) => {
-    await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'markAsRead',
-        chatId,
-        messageId,
-      }),
-    });
-  }, []);
+      const markAsRead = useCallback(async (chatId: string, chatType: 'conversation' | 'group' | 'ai', messageId: string) => {
+        if (!userId) {
+          console.error('markAsRead: No userId provided');
+          return;
+        }
+    
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'markAsRead',
+              chatId,
+              chatType,
+              messageId,
+            }),
+          });
+    
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to mark message as read');
+          }
+    
+          // Update local state to reflect the message has been read
+          setChatList(prevList => prevList.map(chat => 
+            chat.id === chatId
+              ? { ...chat, unreadCount: Math.max(0, chat.unreadCount - 1) }
+              : chat
+          ));
+    
+          console.log(`Message ${messageId} in chat ${chatId} marked as read`);
+        } catch (error) {
+          console.error('Error marking message as read:', error);
+          // Optionally, you can add user-facing error handling here
+        }
+      }, [userId]);
+    
 
   const setTypingIndicator = useCallback(async (chatId: string, isTyping: boolean) => {
     await fetch('/api/chat', {
@@ -196,7 +271,8 @@ export function useSSE(userId: string | undefined) {
     readReceipts,
     sendMessage,
     markAsRead,
-    setTypingIndicator
+    setTypingIndicator,
+    updateOnlineStatus, 
   };
 }
 

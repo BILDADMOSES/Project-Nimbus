@@ -4,7 +4,9 @@ import { Search, PlusCircle, Paperclip, Smile, Send, Phone, Video, MoreVertical,
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'next-auth/react';
 import { ErrorBoundary } from 'react-error-boundary';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+
 import { useSSE } from '@/hooks/useSSE';
 import debounce from 'lodash/debounce';
 
@@ -12,7 +14,7 @@ interface ChatRoom {
   id: string;
   name: string;
   type: 'conversation' | 'group' | 'ai';
-  lastMessage: string | null;
+  lastMessage: Message | null;
   lastMessageTimestamp: string | null;
   unreadCount: number;
   messages?: Message[];
@@ -59,11 +61,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
     typingIndicators, 
     connectionStatus,
     newMessages,
+    fetchMessages,
     readReceipts,
     sendMessage,
     markAsRead,
     setTypingIndicator,
-    fetchMessages
+    updateOnlineStatus, 
   } = useSSE(userId);
 
   useEffect(() => {
@@ -88,6 +91,60 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
       setChatListError(null);
     }
   }, [connectionStatus]);
+
+  useEffect(() => {
+    if (userId) {
+      // Set initial online status when component mounts
+      updateOnlineStatus(true);
+
+      // Update online status when window gains/loses focus
+      const handleVisibilityChange = () => {
+        updateOnlineStatus(!document.hidden);
+      };
+
+      // Update online status when network status changes
+      const handleOnline = () => updateOnlineStatus(true);
+      const handleOffline = () => updateOnlineStatus(false);
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      return () => {
+        // Clean up event listeners and set status to offline when component unmounts
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        updateOnlineStatus(false);
+      };
+    }
+  }, [userId, updateOnlineStatus]);
+
+
+  const handleUserActivity = useCallback(debounce(() => {
+    if (userId) {
+      updateOnlineStatus(true);
+    }
+  }, 5000), [userId, updateOnlineStatus]);
+
+  useEffect(() => {
+    // Add event listeners for user activity
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keypress', handleUserActivity);
+
+    return () => {
+      // Remove event listeners when component unmounts
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keypress', handleUserActivity);
+    };
+  }, [handleUserActivity]);
+
+  const getOtherUserId = (chat: ChatRoom): string | null => {
+    if (chat.type !== 'conversation' || !chat.members || !Array.isArray(chat.members)) {
+      return null;
+    }
+    return chat.members.find(id => id !== userId) || null;
+  };
 
   const mergedChatList = useMemo(() => {
     return chatList.sort((a, b) => {
@@ -151,9 +208,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
     window.location.reload(); // Simple reload for now, but consider a more sophisticated approach
   }, []);
 
-  const handleMarkAsRead = useCallback((chatId: string, messageId: string) => {
-    if (userId) markAsRead(chatId, messageId);
-  }, [markAsRead, userId]);
+  const handleMarkAsRead = useCallback((messageId: string) => {
+    if (selectedRoom && userId) {
+      markAsRead(selectedRoom.id, selectedRoom.type, messageId);
+    }
+  }, [selectedRoom, userId, markAsRead]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -233,7 +292,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
       setChatListError(null);
     }}
   >
-    <div className="flex h-screen bg-base-100">
+    <div className="flex h-screen bg-base-100" onMouseMove={handleUserActivity} onKeyPress={handleUserActivity}>
       {/* Chat list */}
       <div className="w-1/4 bg-base-200 border-r border-base-300 flex flex-col">
         <div className="p-4 border-b border-base-300 flex items-center">
@@ -258,61 +317,70 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {isLoadingChats ? (
-            <div className="flex justify-center items-center h-full">
-              <div className="loading loading-spinner loading-lg"></div>
-            </div>
-          ) : chatListError ? (
-            <div className="p-4 text-error">
-              <AlertCircle className="inline-block mr-2" />
-              {chatListError}
-            </div>
-          ) : mergedChatList.length === 0 ? (
-            <div className="p-4 text-center">No chats available</div>
-          ) : (
-            mergedChatList.map((chat) => (
-              <div
-                  key={chat.id}
-                  className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
-                    selectedRoom?.id === chat.id ? 'bg-base-300' : ''
-                  }`}
-                  onClick={() => handleChatSelect(chat)}
-                >
-                        <div className="avatar">
-                  <div className="w-10 h-10 rounded-full relative">
-                    <img src={chat.avatar || "/default-avatar.png"} alt={chat.name} />
-                    {onlineStatus[chat.id] && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+        {isLoadingChats ? (
+              <div className="flex justify-center items-center h-full">
+                <div className="loading loading-spinner loading-lg"></div>
+              </div>
+            ) : chatListError ? (
+              <div className="p-4 text-error">
+                <AlertCircle className="inline-block mr-2" />
+                {chatListError}
+              </div>
+            ) : mergedChatList.length === 0 ? (
+              <div className="p-4 text-center">No chats available</div>
+            ) : (
+              mergedChatList.map((chat) => {
+                const otherUserId = getOtherUserId(chat);
+                const isOnline = otherUserId ? onlineStatus[otherUserId] : false;
+
+                return (
+                  <div
+                    key={chat.id}
+                    className={`flex items-center p-4 hover:bg-base-300 cursor-pointer ${
+                      selectedRoom?.id === chat.id ? 'bg-base-300' : ''
+                    }`}
+                    onClick={() => handleChatSelect(chat)}
+                  >
+                    <div className="avatar">
+                      <div className="w-10 h-10 rounded-full relative">
+                        <img src={chat.avatar || "/default-avatar.png"} alt={chat.name} />
+                        {chat.type === 'conversation' && (
+                          <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                            isOnline ? 'bg-green-500' : 'bg-gray-500'
+                          }`}></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <div className="font-semibold">{chat.name}</div>
+                      <div className="text-sm text-base-content text-opacity-60 truncate">
+                        {chat.type === 'conversation' 
+                          ? (isOnline ? 'Online' : 'Offline')
+                          : (chat.lastMessage?.content || 'No messages yet')
+                        }
+                      </div>
+                    </div>
+                    {chat.unreadCount > 0 && (
+                      <div className="badge badge-primary badge-sm">{chat.unreadCount}</div>
                     )}
                   </div>
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="font-semibold">{chat.name}</div>
-                  <div className="text-sm text-base-content text-opacity-60 truncate">
-                    {chat.lastMessage?.content || 'No messages yet'}
-                  </div>
-                </div>
-                {chat.unreadCount > 0 && (
-                  <div className="badge badge-primary badge-sm">{chat.unreadCount}</div>
-                )}
-              </div>
-            ))
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
 
         {/* Main chat area */}
         <div className="flex-1 flex flex-col bg-base-100">
           {selectedRoom ? (
             <>
-              {/* Chat header */}
-              <div className="bg-base-200 p-4 border-b border-base-300 flex items-center">
-                <div className="avatar">
+               {/* Chat header */}
+               <div className="bg-base-200 p-4 border-b border-base-300 flex items-center">
                 <div className="avatar">
                   <div className="w-10 h-10 rounded-full">
                     <img 
-                      src={session?.user?.image || "/default-avatar.png"} 
-                      alt="User" 
+                      src={selectedRoom.avatar || "/default-avatar.png"} 
+                      alt={selectedRoom.name} 
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.onerror = null; // Prevent infinite loop
@@ -321,11 +389,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
                     />
                   </div>
                 </div>
-                </div>
                 <div className="ml-3">
-                  <div className="font-semibold">{selectedRoom?.name}</div>
+                  <div className="font-semibold">{selectedRoom.name}</div>
                   <div className="text-sm text-base-content text-opacity-60">
-                    {onlineStatus[selectedRoom.id] ? 'Online' : 'Offline'}
+                    {selectedRoom.type === 'conversation' && (
+                      (() => {
+                        const otherUserId = getOtherUserId(selectedRoom);
+                        return otherUserId && onlineStatus[otherUserId] ? 'Online' : 'Offline';
+                      })()
+                    )}
                   </div>
                 </div>
                 <div className="ml-auto flex space-x-2">
@@ -363,9 +435,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
                       exit={{ opacity: 0, y: 20 }}
                       transition={{ duration: 0.3 }}
                       onAnimationComplete={() => {
-                        if (msg.senderId !== userId && !msg.readBy.includes(userId)) {
-                          markAsRead(selectedRoom.id, msg.id);
-                        }
+                          if (msg.senderId !== userId && !msg.readBy.includes(userId)) {
+                            handleMarkAsRead(msg.id);
+                          }
                       }}
                     >
                       <div className={`chat-bubble ${msg.senderId === userId ? "chat-bubble-primary" : "chat-bubble-secondary"}`}>
@@ -441,7 +513,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
           )}
         </div>
 
-        
+
         {/* Details column */}
         <div className="w-1/4 bg-base-200 border-l border-base-300 flex flex-col">
           {selectedRoom && (
@@ -517,12 +589,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialChatId, initialCha
             </>
           )}
         </div>
-      </div>
+      
       {connectionStatus === 'disconnected' && (
         <div className="fixed bottom-4 right-4">
           <button className="btn btn-error" onClick={handleReconnect}>Reconnect</button>
         </div>
       )}
+      </div>
     </ErrorBoundary>
   );
 }

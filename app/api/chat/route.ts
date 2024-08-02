@@ -48,16 +48,16 @@ export async function POST(request: NextRequest) {
         return await sendMessage(body, userId);
       case 'setTypingIndicator':
         return await setTypingIndicator(body, userId);
-      case 'markAsRead':
-        return await markAsRead(body, userId);
+      case 'updateOnlineStatus':
+        return await updateOnlineStatus(userId, body.isOnline);
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+      }
+    } catch (error) {
+      console.error('Error processing request:', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-  } catch (error) {
-    console.error('Error processing request:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-}
 
 async function handleSSE(request: NextRequest, userId: string) {
   console.log('handleSSE: Starting SSE handling for user', userId);
@@ -108,24 +108,6 @@ async function handleSSE(request: NextRequest, userId: string) {
       }, (error) => {
         console.error('Error in chats listener:', error);
         sendEvent('error', { message: 'Error in chats listener' });
-      })
-  );
-
-  const unsubscribeOnlineStatus = setupListener('online status', () =>
-    firestore.collection('userStatus')
-      .onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'modified') {
-            const userData = change.doc.data();
-            sendEvent('onlineStatus', {
-              userId: change.doc.id,
-              isOnline: userData.online,
-            });
-          }
-        });
-      }, (error) => {
-        console.error('Error in online status listener:', error);
-        sendEvent('error', { message: 'Error in online status listener' });
       })
   );
 
@@ -192,6 +174,25 @@ async function handleSSE(request: NextRequest, userId: string) {
       }, (error) => {
         console.error('Error in read receipts listener:', error);
         sendEvent('error', { message: 'Error in read receipts listener' });
+      })
+  );
+
+  const unsubscribeOnlineStatus = setupListener('online status', () =>
+    firestore.collection('userStatus')
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'modified') {
+            const userData = change.doc.data();
+            sendEvent('onlineStatus', {
+              userId: change.doc.id,
+              isOnline: userData.online,
+              lastSeen: userData.lastSeen ? userData.lastSeen.toDate().toISOString() : null,
+            });
+          }
+        });
+      }, (error) => {
+        console.error('Error in online status listener:', error);
+        sendEvent('error', { message: 'Error in online status listener' });
       })
   );
 
@@ -380,8 +381,32 @@ async function setTypingIndicator(body: any, userId: string) {
   }
 }
 
+
+async function updateOnlineStatus(userId: string, isOnline: boolean) {
+  try {
+    const userStatusRef = firestore.collection('userStatus').doc(userId);
+
+    await userStatusRef.set({
+      online: isOnline,
+      lastChanged: FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    console.log(`User ${userId} online status updated to ${isOnline}`);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating online status:', error);
+    return NextResponse.json({ error: 'Failed to update online status' }, { status: 500 });
+  }
+}
+
+
 async function markAsRead(body: any, userId: string) {
   const { chatId, chatType, messageId } = body;
+
+  if (!chatId || !chatType || !messageId) {
+    console.error('markAsRead: Missing required parameters', { chatId, chatType, messageId });
+    return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+  }
 
   const collectionName = chatType === 'conversation' ? 'conversations' : chatType + 's';
 
@@ -392,12 +417,14 @@ async function markAsRead(body: any, userId: string) {
       const chatDoc = await transaction.get(chatRef);
       
       if (!chatDoc.exists) {
+        console.error(`markAsRead: Chat not found. Collection: ${collectionName}, ChatId: ${chatId}`);
         throw new Error('Chat not found');
       }
 
       const chatData = chatDoc.data();
       
-      if (!chatData.members.includes(userId)) {
+      if (!chatData.members || !chatData.members.includes(userId)) {
+        console.error(`markAsRead: User ${userId} is not a member of chat ${chatId}`);
         throw new Error('User is not a member of this chat');
       }
 
@@ -405,6 +432,7 @@ async function markAsRead(body: any, userId: string) {
       const messageDoc = await transaction.get(messageRef);
 
       if (!messageDoc.exists) {
+        console.error(`markAsRead: Message not found. ChatId: ${chatId}, MessageId: ${messageId}`);
         throw new Error('Message not found');
       }
 
@@ -416,11 +444,12 @@ async function markAsRead(body: any, userId: string) {
         });
 
         transaction.update(chatRef, {
-          [`unreadCount.${userId}`]: 0
+          [`unreadCount.${userId}`]: FieldValue.increment(-1)
         });
       }
     });
 
+    console.log(`markAsRead: Successfully marked message as read. ChatId: ${chatId}, MessageId: ${messageId}`);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error marking message as read:', error);
