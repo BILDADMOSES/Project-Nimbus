@@ -7,7 +7,6 @@ import prisma from "@/prisma";
 import { ref, set, onDisconnect } from "firebase/database";
 import { database } from "@/lib/firebase/firebaseClient";
 
-const CHATS_PER_PAGE = 10;
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -160,13 +159,25 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
       unreadCount: messages.filter(msg => !msg.readBy.includes(userId)).length,
     });
   }
-
-  // Sort chats by last message timestamp, newest first
+  
   chats.sort((a, b) => {
     const timeA = a.lastMessageTimestamp ? new Date(a.lastMessageTimestamp).getTime() : 0;
     const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : 0;
     return timeB - timeA;
   });
+  
+  // Sort messages within each chat, oldest first
+  chats.forEach(chat => {
+    if (chat.messages && Array.isArray(chat.messages)) {
+      chat.messages.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeA - timeB;
+      });
+    }
+  });
+  
+  console.log("Sorted Chat List:", chats);
 
   // Implement pagination
   const CHATS_PER_PAGE = 10;
