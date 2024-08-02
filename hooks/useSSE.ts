@@ -41,24 +41,35 @@ export function useSSE(userId: string | undefined) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [newMessages, setNewMessages] = useState<NewMessage[]>([]);
   const [readReceipts, setReadReceipts] = useState<ReadReceipt[]>([]);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRY_COUNT = 5;
-  const RETRY_INTERVAL = 5000; // 5 seconds
 
   const connectSSE = useCallback(() => {
-    if (!userId) return;
-
-    setConnectionStatus('connecting');
-    const eventSource = new EventSource(`/api/chat?userId=${userId}&sse=true`);
-
-    eventSource.onopen = () => {
-      setConnectionStatus('connected');
-      setRetryCount(0);
-    };
+    if (!userId) {
+        console.log('useSSE: No userId provided, skipping connection');
+        return;
+      }
+  
+      console.log('useSSE: Attempting to connect SSE');
+      setConnectionStatus('connecting');
+      const eventSource = new EventSource(`/api/chat?userId=${userId}&sse=true`);
+  
+      eventSource.onopen = () => {
+        console.log('useSSE: Connection opened');
+        setConnectionStatus('connected');
+      };
+  
+      eventSource.onerror = (error) => {
+        console.error('useSSE: Error in SSE connection', error);
+        setConnectionStatus('disconnected');
+      };
+  
+    eventSource.addEventListener('chatList', (event) => {
+      const chatData = JSON.parse(event.data);
+      setChatList(chatData);
+    });
 
     eventSource.addEventListener('chatUpdate', (event) => {
-      const chatData = JSON.parse(event.data);
-      setChatList(prevList => updateChatList(prevList, chatData));
+      const updatedChat = JSON.parse(event.data);
+      setChatList(prevList => updateChatList(prevList, updatedChat));
     });
 
     eventSource.addEventListener('onlineStatus', (event) => {
@@ -84,56 +95,115 @@ export function useSSE(userId: string | undefined) {
     });
 
     eventSource.addEventListener('error', (event) => {
-      const errorData = JSON.parse(event.data);
-      console.error('SSE error:', errorData.message);
+      console.error('SSE error:', event);
+      setConnectionStatus('disconnected');
     });
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      eventSource.close();
-      setConnectionStatus('disconnected');
-
-      if (retryCount < MAX_RETRY_COUNT) {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1);
-          connectSSE();
-        }, RETRY_INTERVAL);
-      } else {
-        console.error('Max retry count reached. SSE connection failed.');
-      }
-    };
-
     return () => {
-      eventSource.close();
-      setConnectionStatus('disconnected');
-    };
-  }, [userId, retryCount]);
+        console.log('useSSE: Closing connection');
+        eventSource.close();
+        setConnectionStatus('disconnected');
+      };
+    }, [userId]);
 
-  useEffect(() => {
-    const cleanup = connectSSE();
-    return cleanup;
-  }, [connectSSE]);
+    useEffect(() => {
+        console.log('useSSE: Setting up SSE connection');
+        const cleanup = connectSSE();
+        return () => {
+          console.log('useSSE: Cleaning up SSE connection');
+          if (cleanup) cleanup();
+        };
+      }, [connectSSE]);
 
-  const reconnect = useCallback(() => {
-    setRetryCount(0);
-    connectSSE();
-  }, [connectSSE]);
+
+      const fetchMessages = useCallback(async (chatId: string) => {
+        try {
+          const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
+          if (!response.ok) throw new Error('Failed to fetch messages');
+          const messages = await response.json();
+          console.log("The messages::::", messages)
+          // Update the chat with the fetched messages
+          setChatList(prevList => prevList.map(chat => 
+            chat.id === chatId ? { ...chat, messages } : chat
+          ));
+        } catch (error) {
+          console.error('Error fetching messages:', error);
+        }
+      }, []);
+
+      const sendMessage = useCallback(async (chatId: string, chatType: 'conversation' | 'group' | 'ai', content: string, fileUrl?: string) => {
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'sendMessage',
+              chatId,
+              chatType,
+              content,
+              fileUrl,
+            }),
+          });
+    
+          if (!response.ok) {
+            throw new Error('Failed to send message');
+          }
+    
+          const newMessage = await response.json();
+          console.log('Message sent successfully:', newMessage);
+    
+          // Update the local chat list with the new message
+          setChatList(prevList => updateChatListWithNewMessage(prevList, newMessage));
+    
+          return newMessage;
+        } catch (error) {
+          console.error('Error sending message:', error);
+          throw error;
+        }
+      }, []);
+
+  const markAsRead = useCallback(async (chatId: string, messageId: string) => {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'markAsRead',
+        chatId,
+        messageId,
+      }),
+    });
+  }, []);
+
+  const setTypingIndicator = useCallback(async (chatId: string, isTyping: boolean) => {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'setTypingIndicator',
+        chatId,
+        isTyping,
+      }),
+    });
+  }, []);
 
   return { 
-    chatList, 
+    chatList,
     onlineStatus, 
     typingIndicators, 
     connectionStatus,
     newMessages,
+    fetchMessages,
     readReceipts,
-    reconnect
+    sendMessage,
+    markAsRead,
+    setTypingIndicator
   };
 }
 
 // Helper function to update chat list
 function updateChatList(
   prevList: ChatRoom[], 
-  updatedChat: Partial<ChatRoom> & { id: string; type: 'conversation' | 'group' | 'ai' }
+  updatedChat: Partial<ChatRoom> & { id: string }
 ): ChatRoom[] {
   const index = prevList.findIndex(chat => chat.id === updatedChat.id);
   if (index !== -1) {

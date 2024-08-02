@@ -11,8 +11,10 @@ export const config = {
 };
 
 export async function GET(request: NextRequest) {
+  console.log('API: GET request received');
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
+    console.log('API: Unauthorized request');
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -21,20 +23,14 @@ export async function GET(request: NextRequest) {
   const isSSE = url.searchParams.get('sse') === 'true';
 
   if (isSSE) {
+    console.log('API: Handling SSE request for user', userId);
     return handleSSE(request, userId);
   } else {
-    const page = parseInt(url.searchParams.get('page') || '0', 10);
-    const lastTimestamp = url.searchParams.get('lastTimestamp');
-
-    try {
-      const { chats, nextCursor } = await fetchChats(userId, page, lastTimestamp);
-      return NextResponse.json({ chats, nextCursor });
-    } catch (error) {
-      console.error('Error fetching chats:', error);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-    }
+    console.log('API: Non-SSE request received');
+    return NextResponse.json({ error: 'SSE connection required' }, { status: 400 });
   }
 }
+
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -52,6 +48,8 @@ export async function POST(request: NextRequest) {
         return await sendMessage(body, userId);
       case 'setTypingIndicator':
         return await setTypingIndicator(body, userId);
+      case 'markAsRead':
+        return await markAsRead(body, userId);
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
@@ -62,109 +60,182 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleSSE(request: NextRequest, userId: string) {
+  console.log('handleSSE: Starting SSE handling for user', userId);
   const responseStream = new TransformStream();
   const writer = responseStream.writable.getWriter();
   const encoder = new TextEncoder();
 
   const sendEvent = (eventType: string, data: any) => {
+    console.log(`handleSSE: Sending ${eventType} event`, data);
     writer.write(encoder.encode(`event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`));
   };
 
+  const sendChatList = async () => {
+    try {
+      const chatList = await fetchAllChats(userId);
+      sendEvent('chatList', chatList);
+    } catch (error) {
+      console.error('Error fetching chat list:', error);
+      sendEvent('error', { message: 'Failed to fetch chat list' });
+    }
+  };
+
+  const setupListener = (name: string, listener: () => () => void): () => void => {
+    try {
+      return listener();
+    } catch (error) {
+      console.error(`Error setting up ${name} listener:`, error);
+      sendEvent('error', { message: `Failed to set up ${name} listener` });
+      return () => {}; // Return a no-op function if listener setup fails
+    }
+  };
+
   // Set up Firestore listeners
-  const unsubscribeChats = firestore.collection('conversations')
-    .where('members', 'array-contains', userId)
-    .onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added' || change.type === 'modified') {
-          const chatData = change.doc.data();
-          sendEvent('chatUpdate', {
-            id: change.doc.id,
-            ...chatData,
-            lastMessage: chatData.lastMessage || null,
-          });
-        }
-      });
-    }, (error) => {
-      console.error('Error in chats listener:', error);
-      sendEvent('error', { message: 'Error in chats listener' });
-    });
+  const unsubscribeChats = setupListener('chats', () =>
+    firestore.collection('conversations')
+      .where('members', 'array-contains', userId)
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added' || change.type === 'modified') {
+            const chatData = change.doc.data();
+            sendEvent('chatUpdate', {
+              id: change.doc.id,
+              ...chatData,
+              lastMessage: chatData.lastMessage || null,
+            });
+          }
+        });
+      }, (error) => {
+        console.error('Error in chats listener:', error);
+        sendEvent('error', { message: 'Error in chats listener' });
+      })
+  );
 
-  // Online status listener
-  const unsubscribeOnlineStatus = firestore.collection('userStatus')
-    .onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'modified') {
-          const userData = change.doc.data();
-          sendEvent('onlineStatus', {
-            userId: change.doc.id,
-            isOnline: userData.online,
-          });
-        }
-      });
-    }, (error) => {
-      console.error('Error in online status listener:', error);
-      sendEvent('error', { message: 'Error in online status listener' });
-    });
+  const unsubscribeOnlineStatus = setupListener('online status', () =>
+    firestore.collection('userStatus')
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'modified') {
+            const userData = change.doc.data();
+            sendEvent('onlineStatus', {
+              userId: change.doc.id,
+              isOnline: userData.online,
+            });
+          }
+        });
+      }, (error) => {
+        console.error('Error in online status listener:', error);
+        sendEvent('error', { message: 'Error in online status listener' });
+      })
+  );
 
-  // Typing indicator listener
-  const unsubscribeTyping = firestore.collection('typingIndicators')
-    .where('receiverId', '==', userId)
-    .onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added' || change.type === 'modified') {
-          const typingData = change.doc.data();
-          sendEvent('typingIndicator', {
-            chatId: typingData.chatId,
-            userId: typingData.userId,
-            isTyping: typingData.isTyping,
-          });
-        }
-      });
-    }, (error) => {
-      console.error('Error in typing indicator listener:', error);
-      sendEvent('error', { message: 'Error in typing indicator listener' });
-    });
+  const unsubscribeTyping = setupListener('typing indicator', () =>
+    firestore.collection('typingIndicators')
+      .where('receiverId', '==', userId)
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added' || change.type === 'modified') {
+            const typingData = change.doc.data();
+            sendEvent('typingIndicator', {
+              chatId: typingData.chatId,
+              userId: typingData.userId,
+              isTyping: typingData.isTyping,
+            });
+          }
+        });
+      }, (error) => {
+        console.error('Error in typing indicator listener:', error);
+        sendEvent('error', { message: 'Error in typing indicator listener' });
+      })
+  );
+
+  const unsubscribeNewMessages = setupListener('new messages', () =>
+    firestore.collectionGroup('messages')
+      .where('createdAt', '>', new Date())
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const messageData = change.doc.data();
+            const chatId = change.doc.ref.parent.parent?.id;
+            if (chatId) {
+              sendEvent('newMessage', {
+                id: change.doc.id,
+                chatId,
+                ...messageData,
+              });
+            }
+          }
+        });
+      }, (error) => {
+        console.error('Error in new messages listener:', error);
+        sendEvent('error', { message: 'Error in new messages listener' });
+      })
+  );
+
+  const unsubscribeReadReceipts = setupListener('read receipts', () =>
+    firestore.collectionGroup('messages')
+      .where('readBy', 'array-contains', userId)
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'modified') {
+            const messageData = change.doc.data();
+            const chatId = change.doc.ref.parent.parent?.id;
+            if (chatId) {
+              sendEvent('readReceipt', {
+                chatId,
+                messageId: change.doc.id,
+                userId,
+              });
+            }
+          }
+        });
+      }, (error) => {
+        console.error('Error in read receipts listener:', error);
+        sendEvent('error', { message: 'Error in read receipts listener' });
+      })
+  );
 
   // Cleanup function
-  request.signal.addEventListener('abort', () => {
+  const cleanup = () => {
+    console.log('handleSSE: Cleaning up listeners');
     unsubscribeChats();
     unsubscribeOnlineStatus();
     unsubscribeTyping();
-  });
+    unsubscribeNewMessages();
+    unsubscribeReadReceipts();
+  };
 
-  return new Response(responseStream.readable, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
-  });
-}
+  request.signal.addEventListener('abort', cleanup);
 
-async function fetchChats(userId: string, page: number, lastTimestamp: string | null) {
-  console.log('Fetching chats for user:', userId, 'Page:', page, 'Last timestamp:', lastTimestamp);
-  const chats = [];
-  let nextCursor = null;
+  try {
+    // Send initial chat list
+    console.log('handleSSE: Sending initial chat list');
+    await sendChatList();
 
-  async function fetchAllMessages(chatId: string, collectionName: string) {
-    const messagesSnapshot = await firestore.collection(collectionName)
-      .doc(chatId)
-      .collection('messages')
-      .orderBy('createdAt', 'desc')
-      .get();
-
-    return messagesSnapshot.docs.map(msgDoc => {
-      const msgData = msgDoc.data();
-      return {
-        id: msgDoc.id,
-        content: msgData.content,
-        senderId: msgData.senderId,
-        createdAt: msgData.createdAt.toDate().toISOString(),
-        fileUrl: msgData.fileUrl || null,
-        readBy: msgData.readBy || [],
-      };
+    console.log('handleSSE: Returning SSE response');
+    return new Response(responseStream.readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  } catch (error) {
+    console.error('handleSSE: Unexpected error', error);
+    sendEvent('error', { message: 'Unexpected error occurred' });
+    cleanup();
+    return new Response(responseStream.readable, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
   }
+}
+
+async function fetchAllChats(userId: string) {
+  const chats = [];
 
   // Fetch conversations
   const conversationsSnapshot = await firestore.collection('conversations')
@@ -178,16 +249,14 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
     const otherUserDoc = await firestore.collection('users').doc(otherUserId).get();
     const otherUserName = otherUserDoc.exists ? otherUserDoc.data().name : 'Unknown';
     const isOnline = await checkOnlineStatus(otherUserId);
-    const messages = await fetchAllMessages(convDoc.id, 'conversations');
 
     chats.push({
       id: convDoc.id,
       name: otherUserName,
       type: 'conversation',
-      messages: messages,
-      lastMessage: messages[0]?.content || '',
-      lastMessageTimestamp: messages[0]?.createdAt || null,
-      unreadCount: messages.filter(msg => msg.senderId !== userId && !msg.readBy.includes(userId)).length,
+      lastMessage: data.lastMessage || null,
+      lastMessageTimestamp: data.lastMessage?.createdAt || null,
+      unreadCount: data.unreadCount?.[userId] || 0,
       isOnline,
     });
   }
@@ -199,16 +268,13 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
 
   for (const groupDoc of groupsSnapshot.docs) {
     const data = groupDoc.data();
-    const messages = await fetchAllMessages(groupDoc.id, 'groups');
-
     chats.push({
       id: groupDoc.id,
       name: data.name,
       type: 'group',
-      messages: messages,
-      lastMessage: messages[0]?.content || '',
-      lastMessageTimestamp: messages[0]?.createdAt || null,
-      unreadCount: messages.filter(msg => msg.senderId !== userId && !msg.readBy.includes(userId)).length,
+      lastMessage: data.lastMessage || null,
+      lastMessageTimestamp: data.lastMessage?.createdAt || null,
+      unreadCount: data.unreadCount?.[userId] || 0,
     });
   }
 
@@ -219,99 +285,17 @@ async function fetchChats(userId: string, page: number, lastTimestamp: string | 
 
   for (const aiChatDoc of aiChatsSnapshot.docs) {
     const data = aiChatDoc.data();
-    const messages = await fetchAllMessages(aiChatDoc.id, 'aiChats');
-
     chats.push({
       id: aiChatDoc.id,
       name: data.name,
       type: 'ai',
-      messages: messages,
-      lastMessage: messages[0]?.content || '',
-      lastMessageTimestamp: messages[0]?.createdAt || null,
-      unreadCount: messages.filter(msg => !msg.readBy.includes(userId)).length,
+      lastMessage: data.lastMessage || null,
+      lastMessageTimestamp: data.lastMessage?.createdAt || null,
+      unreadCount: data.unreadCount || 0,
     });
   }
-  
-  chats.sort((a, b) => {
-    const timeA = a.lastMessageTimestamp ? new Date(a.lastMessageTimestamp).getTime() : 0;
-    const timeB = b.lastMessageTimestamp ? new Date(b.lastMessageTimestamp).getTime() : 0;
-    return timeB - timeA;
-  });
-  
-  // Implement pagination
-  const CHATS_PER_PAGE = 10;
-  const startIndex = page * CHATS_PER_PAGE;
-  const paginatedChats = chats.slice(startIndex, startIndex + CHATS_PER_PAGE);
 
-  if (paginatedChats.length === CHATS_PER_PAGE && chats.length > startIndex + CHATS_PER_PAGE) {
-    nextCursor = paginatedChats[CHATS_PER_PAGE - 1].lastMessageTimestamp;
-  }
-
-  return { chats: paginatedChats, nextCursor };
-}
-
-async function createChat(body: any, userId: string) {
-  const { type, name, otherUserId } = body;
-  
-  let chatRef;
-  let chatId;
-
-  switch (type) {
-    case 'group':
-      chatRef = await firestore.collection('groups').add({
-        name,
-        members: [userId],
-        createdAt: FieldValue.serverTimestamp(),
-        lastMessage: null,
-      });
-      chatId = chatRef.id;
-      await prisma.group.create({
-        data: {
-          id: chatId,
-          name,
-          users: {
-            connect: { firebaseUid: userId }
-          }
-        }
-      });
-      break;
-    case 'conversation':
-      chatRef = await firestore.collection('conversations').add({
-        members: [userId, otherUserId],
-        createdAt: FieldValue.serverTimestamp(),
-        lastMessage: null,
-      });
-      chatId = chatRef.id;
-      await prisma.conversation.create({
-        data: {
-          id: chatId,
-          users: {
-            connect: [{ firebaseUid: userId }, { firebaseUid: otherUserId }]
-          }
-        }
-      });
-      break;
-    case 'ai':
-      chatRef = await firestore.collection('aiChats').add({
-        name,
-        userId,
-        createdAt: FieldValue.serverTimestamp(),
-        lastMessage: null,
-      });
-      chatId = chatRef.id;
-      await prisma.aIChat.create({
-        data: {
-          id: chatId,
-          name,
-          userId
-        }
-      });
-      break;
-    default:
-      throw new Error('Invalid chat type');
-  }
-
-  return NextResponse.json({ id: chatId, type });
+  return chats;
 }
 
 async function sendMessage(body: any, userId: string) {
@@ -324,7 +308,7 @@ async function sendMessage(body: any, userId: string) {
     senderId: userId,
     createdAt: FieldValue.serverTimestamp(),
     fileUrl: fileUrl || null,
-    readBy: [userId],
+    readBy: [userId], // Initialize with the sender having read the message
   };
 
   try {
@@ -342,14 +326,57 @@ async function sendMessage(body: any, userId: string) {
         senderId: userId,
       },
       updatedAt: FieldValue.serverTimestamp(),
+      [`unreadCount.${userId}`]: 0, // Reset unread count for the sender
     });
+
+    // Increment unread count for other members
+    const chatDoc = await chatRef.get();
+    const chatData = chatDoc.data();
+    if (chatData && chatData.members) {
+      chatData.members.forEach((memberId) => {
+        if (memberId !== userId) {
+          batch.update(chatRef, {
+            [`unreadCount.${memberId}`]: FieldValue.increment(1),
+          });
+        }
+      });
+    }
 
     await batch.commit();
 
-    return NextResponse.json({ id: messageRef.id, ...messageData });
+    // Fetch the created message to return with server timestamp
+    const createdMessage = await messageRef.get();
+    const createdMessageData = createdMessage.data();
+
+    return NextResponse.json({ 
+      id: messageRef.id, 
+      ...createdMessageData,
+      createdAt: createdMessageData.createdAt.toDate().toISOString()
+    });
   } catch (error) {
     console.error('Error sending message:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+  }
+}
+
+
+async function setTypingIndicator(body: any, userId: string) {
+  const { chatId, isTyping } = body;
+
+  try {
+    const typingRef = firestore.collection('typingIndicators').doc(`${chatId}_${userId}`);
+    
+    await typingRef.set({
+      chatId,
+      userId,
+      isTyping,
+      timestamp: FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error setting typing indicator:', error);
+    return NextResponse.json({ error: 'Failed to set typing indicator' }, { status: 500 });
   }
 }
 
@@ -401,26 +428,6 @@ async function markAsRead(body: any, userId: string) {
   }
 }
 
-async function setTypingIndicator(body: any, userId: string) {
-  const { chatId, isTyping } = body;
-
-  try {
-    const typingRef = firestore.collection('typingIndicators').doc(`${chatId}_${userId}`);
-    
-    await typingRef.set({
-      chatId,
-      userId,
-      isTyping,
-      timestamp: FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error setting typing indicator:', error);
-    return NextResponse.json({ error: 'Failed to set typing indicator' }, { status: 500 });
-  }
-}
-
 async function checkOnlineStatus(userId: string): Promise<boolean> {
   try {
     const userStatusRef = firestore.collection('userStatus').doc(userId);
@@ -440,28 +447,5 @@ async function checkOnlineStatus(userId: string): Promise<boolean> {
   } catch (error) {
     console.error('Error checking online status:', error);
     return false;
-  }
-}
-
-async function getUnreadCount(chatId: string, chatType: string, userId: string): Promise<number> {
-  try {
-    const collectionName = chatType === 'conversation' ? 'conversations' : chatType + 's';
-    const chatRef = firestore.collection(collectionName).doc(chatId);
-    const messagesRef = chatRef.collection('messages');
-    
-    const allMessages = await messagesRef.get();
-    
-    const unreadCount = allMessages.docs.reduce((count, doc) => {
-      const messageData = doc.data();
-      if (messageData.senderId !== userId && !messageData.readBy.includes(userId)) {
-        return count + 1;
-      }
-      return count;
-    }, 0);
-    
-    return unreadCount;
-  } catch (error) {
-    console.error(`Error getting unread count for ${chatType} ${chatId}:`, error);
-    return 0;
   }
 }
