@@ -1,31 +1,27 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import TranslateScriptLoader from '@/components/language/TranslateScriptLoader';
-import SessionProviderWrapper from './SessionProviderWrapper';
+import { Inter } from 'next/font/google'
+import './globals.css'
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import SessionProvider from '@/components/SessionProvider'
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: "chatEasy",
-  description: "Communicate. Collaborate. Connect.",
-};
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
+  const session = await getServerSession(authOptions)
+
   return (
     <html lang="en">
-      <body data-theme="light" className={inter.className}>
-        <SessionProviderWrapper>
-          <Toaster position="top-right" />
-          <TranslateScriptLoader />
-          {children}
-        </SessionProviderWrapper>
+      <body className={inter.className}>
+        <SessionProvider session={session}>
+          <main>
+            {children}
+          </main>
+        </SessionProvider>
       </body>
     </html>
-  );
+  )
 }

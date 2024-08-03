@@ -12,3 +12,28 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+
+/* Add this in your global CSS or a relevant CSS module */
+
+.chat-start .chat-bubble {
+  background-color: #E5E7EB; /* light gray */
+  color: #000;
+}
+
+.chat-end .chat-bubble {
+  background-color: #A7F3D0; /* light green */
+  color: #000;
+}
+
+.chat-bubble {
+  max-width: 60%;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.chat-footer {
+  text-align: right;
+  margin-top: 5px;
+}
