@@ -3,81 +3,81 @@ import { useState, useRef, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { UserCircle, Plus, Settings, LogOut } from 'lucide-react'
+import { UserCircle, Camera, MoreVertical, Settings, LogOut, MessageSquarePlus, UserPlus, Users, Bot } from 'lucide-react'
 import CreateNewChat from "./CreateNewChat"
 import UserProfilePopup from "./UserProfile"
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebaseClient'
+import upload from '@/lib/upload'
+import { Dropdown, DropdownItem } from './common/Dropdown'
+import Logo from '@/components/common/Logo'
 
-const Dropdown = ({ isOpen, onClose, title, children }) => {
-  return (
-    <>
-      {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
-          <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-            <div className="px-4 py-2 text-sm font-medium text-base-content border-b border-base-300">{title}</div>
-            {children}
-          </div>
-        </div>
-      )}
-    </>
-  )
-}
 
-const DropdownItem = ({ onClick, children }) => {
-  return (
-    <button
-      onClick={onClick}
-      className="block w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 transition-colors duration-150"
-      role="menuitem"
-    >
-      {children}
-    </button>
-  )
-}
+
 
 export default function UserInfo() {
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const router = useRouter()
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isChatMenuOpen, setIsChatMenuOpen] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [selectedChatType, setSelectedChatType] = useState<'private' | 'group' | 'ai' | null>(null)
   const [showProfilePopup, setShowProfilePopup] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const chatMenuRef = useRef<HTMLDivElement>(null)
-  const profileButtonRef = useRef<HTMLButtonElement>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
     router.push('/')
   }
 
-  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen)
-  const toggleChatMenu = () => setIsChatMenuOpen(!isChatMenuOpen)
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen)
 
   const handleChatTypeSelect = (type: 'private' | 'group' | 'ai') => {
     setSelectedChatType(type)
-    setIsChatMenuOpen(false)
+    setIsNewChatOpen(false)
+    setIsMenuOpen(false)
   }
 
   const handleProfileClick = () => {
-    if (profileButtonRef.current) {
-      const rect = profileButtonRef.current.getBoundingClientRect()
-      setPopupPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-      })
-    }
     setShowProfilePopup(true)
-    setIsDropdownOpen(false)
+    setIsMenuOpen(false)
+  }
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && session?.user?.id) {
+      setIsLoading(true)
+      setError('')
+      try {
+        const avatarUrl = await upload(file)
+        
+        const userRef = doc(db, 'users', session.user.id)
+        await updateDoc(userRef, { avatar: avatarUrl })
+
+        await update({
+          ...session,
+          user: {
+            ...session.user,
+            image: avatarUrl,
+          },
+        })
+      } catch (err) {
+        setError('Failed to upload image. Please try again.')
+        console.error(err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
   }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
-      }
-      if (chatMenuRef.current && !chatMenuRef.current.contains(event.target as Node)) {
-        setIsChatMenuOpen(false)
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false)
+        setIsNewChatOpen(false)
       }
     }
 
@@ -87,7 +87,7 @@ export default function UserInfo() {
     }
   }, [])
 
-  if (status === 'loading') {
+  if (status === 'loading' || isLoading) {
     return (
       <div className="flex items-center justify-center h-16 bg-base-200">
         <div className="loading loading-spinner loading-md"></div>
@@ -102,49 +102,65 @@ export default function UserInfo() {
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-base-200 border-b border-base-300">
       <div className="flex items-center space-x-4">
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative">
+          <div className="w-10 h-10 rounded-full overflow-hidden">
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                alt="User avatar"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full flex items-center justify-center bg-base-300">
+                <UserCircle className="h-8 w-8 text-base-content/50" />
+              </div>
+            )}
+          </div>
           <button 
-            onClick={toggleDropdown}
-            className="btn btn-ghost btn-circle avatar"
+            onClick={() => fileInputRef.current?.click()} 
+            className="absolute bottom-0 right-0 bg-primary text-primary-content rounded-full p-1"
           >
-            <div className="w-10 rounded-full">
-              {session.user.image ? (
-                <Image
-                  src={session.user.image}
-                  alt="User avatar"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-base-300">
-                  <UserCircle className="h-8 w-8 text-base-content/50" />
-                </div>
-              )}
-            </div>
+            <Camera size={12} />
           </button>
-          <Dropdown isOpen={isDropdownOpen} onClose={() => setIsDropdownOpen(false)} title="User Options">
-            <DropdownItem onClick={handleProfileClick}>Profile</DropdownItem>
-            <DropdownItem onClick={() => { /* Handle settings click */ }}>Settings</DropdownItem>
-            <DropdownItem onClick={handleSignOut}>Logout</DropdownItem>
-          </Dropdown>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            className="hidden"
+            accept="image/*"
+          />
         </div>
         <div>
-          <p className="text-lg font-semibold text-base-content">{session.user.name}</p>
+          <Logo height={45} width={45} fontSize='text-3xl'/>
           <p className="text-sm text-base-content/70">{session.user.email}</p>
         </div>
       </div>
-      <div className="flex items-center space-x-6 relative" ref={chatMenuRef}>
+      {error && <div className="alert alert-error">{error}</div>}
+      <div className="relative" ref={menuRef}>
         <button 
           className="btn btn-circle btn-ghost"
-          onClick={toggleChatMenu}
+          onClick={toggleMenu}
         >
-          <Plus className="h-6 w-6" />
+          <MoreVertical className="h-6 w-6" />
         </button>
-        <Dropdown isOpen={isChatMenuOpen} onClose={() => setIsChatMenuOpen(false)} title="New Chat">
-          <DropdownItem onClick={() => handleChatTypeSelect('private')}>Private Chat</DropdownItem>
-          <DropdownItem onClick={() => handleChatTypeSelect('group')}>Group Chat</DropdownItem>
-          <DropdownItem onClick={() => handleChatTypeSelect('ai')}>AI Chat</DropdownItem>
+        <Dropdown isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} title="Menu">
+          <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={MessageSquarePlus}>
+            New Chat
+            {isNewChatOpen && (
+              <div className="absolute left-full top-0 mt-0 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+                <div className="py-1">
+                  <DropdownItem onClick={() => handleChatTypeSelect('private')} icon={UserPlus}>Private Chat</DropdownItem>
+                  <DropdownItem onClick={() => handleChatTypeSelect('group')} icon={Users}>Group Chat</DropdownItem>
+                  <DropdownItem onClick={() => handleChatTypeSelect('ai')} icon={Bot}>AI Chat</DropdownItem>
+                </div>
+              </div>
+            )}
+          </DropdownItem>
+          <DropdownItem onClick={handleProfileClick} icon={UserCircle}>Profile</DropdownItem>
+          <DropdownItem onClick={() => {/* Handle settings click */}} icon={Settings}>Settings</DropdownItem>
+          <DropdownItem onClick={handleSignOut} icon={LogOut}>Logout</DropdownItem>
         </Dropdown>
       </div>
       {selectedChatType && (

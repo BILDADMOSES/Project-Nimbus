@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc, where, limit, startAfter, getDocs } from 'firebase/firestore'
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc, where, limit, startAfter, getDocs, arrayRemove, deleteDoc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '@/lib/firebaseClient'
 import Image from 'next/image'
 import MessageInput from '@/components/MessageInput'
 import UserDetailsSidebar from '@/components/UserDetailsSidebar'
 import { format, isToday, isYesterday } from 'date-fns'
+import { useRouter } from 'next/navigation'
 
 interface Message {
   id: string;
@@ -41,14 +42,16 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   const { data: session } = useSession()
   const [messages, setMessages] = useState<Message[]>([])
   const [chatData, setChatData] = useState<ChatData | null>(null)
-  const [otherUser, setOtherUser] = useState<UserData | null>(null)
+  const [participants, setParticipants] = useState<{[key: string]: UserData}>({})
   const [isUserDetailsSidebarOpen, setIsUserDetailsSidebarOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null)
   const [sharedFiles, setSharedFiles] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasMore, setHasMore] = useState(true)
   const lastMessageRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
 
   const loadMoreMessages = useCallback(async () => {
     if (!chatId || !session?.user?.id || !hasMore) return
@@ -81,16 +84,24 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
       const chatDoc = await getDoc(doc(db, 'chats', chatId))
       if (chatDoc.exists()) {
         const data = chatDoc.data() as ChatData
+        setChatData({ id: chatDoc.id, ...data })
+
+        // Fetch all participants' data
+        const participantsData: {[key: string]: UserData} = {}
+        for (const participantId of data.participants) {
+          const userDoc = await getDoc(doc(db, 'users', participantId))
+          if (userDoc.exists()) {
+            participantsData[participantId] = { id: participantId, ...userDoc.data() } as UserData
+          }
+        }
+        setParticipants(participantsData)
+
         if (data.type === 'private') {
           const otherParticipantId = data.participants.find(p => p !== session.user.id)
           if (otherParticipantId) {
-            const userDoc = await getDoc(doc(db, 'users', otherParticipantId))
-            const userData = userDoc.data() as UserData
-            setOtherUser({ id: otherParticipantId, ...userData })
-            data.name = userData?.username || "Unknown User"
+            setSelectedUser(participantsData[otherParticipantId])
           }
         }
-        setChatData({ id: chatDoc.id, ...data })
       }
     }
     fetchChatData()
@@ -219,6 +230,69 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
     return groups;
   };
 
+  const handleBlockUser = async (userId: string) => {
+    if (!session?.user?.id) return
+
+    try {
+      // Add the blocked user to the current user's blocked list
+      await updateDoc(doc(db, 'users', session.user.id), {
+        blockedUsers: arrayUnion(userId)
+      })
+
+      // Remove the blocked user from the chat participants
+      await updateDoc(doc(db, 'chats', chatId), {
+        participants: arrayRemove(userId)
+      })
+
+      // Close the sidebar and redirect to the chat list
+      setIsUserDetailsSidebarOpen(false)
+      router.push('/chat')
+    } catch (error) {
+      console.error('Error blocking user:', error)
+      // Handle error: show error message
+    }
+  }
+
+  const handleLeaveGroup = async () => {
+    if (!session?.user?.id) return
+
+    try {
+      // Remove the current user from the chat participants
+      await updateDoc(doc(db, 'chats', chatId), {
+        participants: arrayRemove(session.user.id)
+      })
+
+      // Close the sidebar and redirect to the chat list
+      setIsUserDetailsSidebarOpen(false)
+      router.push('/chat')
+    } catch (error) {
+      console.error('Error leaving group:', error)
+      // Handle error: show error message
+    }
+  }
+
+  const handleDeleteChat = async () => {
+    if (!session?.user?.id) return
+
+    try {
+      // Delete the chat document
+      await deleteDoc(doc(db, 'chats', chatId))
+
+      // Delete all messages in the chat
+      const messagesQuery = query(collection(db, `chats/${chatId}/messages`))
+      const messagesSnapshot = await getDocs(messagesQuery)
+      const deletePromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref))
+      await Promise.all(deletePromises)
+
+      // Close the sidebar and redirect to the chat list
+      setIsUserDetailsSidebarOpen(false)
+      router.push('/chat')
+    } catch (error) {
+      console.error('Error deleting chat:', error)
+      // Handle error: show error message
+    }
+  }
+
   const renderDateDivider = (date: Date) => {
     let dateString;
     if (isToday(date)) {
@@ -237,15 +311,18 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
     );
   };
 
-  const renderUserAvatar = (user: UserData) => {
+  const renderUserAvatar = (userId: string) => {
+    const user = participants[userId]
+    if (!user) return null
+
     if (user.image) {
       return (
         <Image src={user.image} alt={user.username} width={40} height={40} className="rounded-full" />
       )
     } else {
       return (
-        <div className="avatar placeholder ">
-          <div className="bg-neutral-focus text-neutral-content rounded-full w-10 bg-white">
+        <div className="avatar placeholder">
+          <div className="bg-neutral-focus text-neutral-content rounded-full w-10">
             <span className="text-xl">{user.username.charAt(0).toUpperCase()}</span>
           </div>
         </div>
@@ -253,7 +330,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
     }
   }
 
-  if (isLoading || !chatData || !otherUser) {
+  if (isLoading || !chatData) {
     return (
       <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
         <div className="loading loading-spinner loading-lg text-primary"></div>
@@ -267,12 +344,22 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
     <div className="flex h-screen">
       <div className="flex-1 flex flex-col bg-base-100">
         <header className="bg-base-200 text-base-content p-4 flex items-center space-x-4 border-b border-base-300">
-          <button onClick={() => setIsUserDetailsSidebarOpen(!isUserDetailsSidebarOpen)}>
-            {renderUserAvatar(otherUser)}
+          <button onClick={() => {
+            setSelectedUser(chatData.type === 'private' ? participants[chatData.participants.find(p => p !== session?.user?.id)!] : null)
+            setIsUserDetailsSidebarOpen(!isUserDetailsSidebarOpen)
+          }}>
+            {chatData.type === 'private' 
+              ? renderUserAvatar(chatData.participants.find(p => p !== session?.user?.id)!)
+              : <div className="avatar placeholder">
+                  <div className="bg-neutral-focus text-neutral-content rounded-full w-10">
+                    <span className="text-xl">G</span>
+                  </div>
+                </div>
+            }
           </button>
           <div>
-            <h1 className="text-xl font-bold">{otherUser.username}</h1>
-            <p className="text-sm text-base-content/70">{chatData.type === 'private' ? 'Private Chat' : 'Group'}</p>
+            <h1 className="text-xl font-bold">{chatData.name || (chatData.type === 'private' ? participants[chatData.participants.find(p => p !== session?.user?.id)!]?.username : 'Group Chat')}</h1>
+            <p className="text-sm text-base-content/70">{chatData.type === 'private' ? 'Private Chat' : `Group - ${chatData.participants.length} members`}</p>
           </div>
         </header>
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 scrollbar-hide">
@@ -291,12 +378,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
                 >
                   {chatData.type === 'group' && message.senderId !== session?.user?.id && (
                     <div className="chat-image avatar">
-                      {renderUserAvatar(otherUser)}
+                      {renderUserAvatar(message.senderId)}
                     </div>
                   )}
                   <div className="chat-header mb-1">
                     {chatData.type === 'group' && message.senderId !== session?.user?.id && (
-                      <span className="text-xs font-bold">{otherUser.username}</span>
+                      <span className="text-xs font-bold">{participants[message.senderId]?.username}</span>
                     )}
                   </div>
                   <div className={`chat-bubble ${message.senderId === session?.user?.id ? 'chat-bubble-primary' : 'chat-bubble-secondary'}`}>
@@ -322,12 +409,16 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
       </div>
       {isUserDetailsSidebarOpen && (
         <UserDetailsSidebar
-            user={otherUser}
-            chatType={chatData.type}
-            sharedFiles={sharedFiles}
-            onClose={() => setIsUserDetailsSidebarOpen(false)}
+          user={selectedUser}
+          chatType={chatData.type}
+          sharedFiles={sharedFiles}
+          onClose={() => setIsUserDetailsSidebarOpen(false)}
+          participants={chatData.type === 'group' ? Object.values(participants) : undefined}
+          onBlockUser={handleBlockUser}
+          onLeaveGroup={handleLeaveGroup}
+          onDeleteChat={handleDeleteChat}
         />
-        )}
+      )}
     </div>
   )
 }

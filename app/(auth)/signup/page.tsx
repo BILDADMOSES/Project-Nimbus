@@ -100,11 +100,16 @@ export default function SignupPage() {
         avatar: avatarUrl,
         createdAt: new Date().toISOString()
       })
-      const invitedChatId = searchParams.get('token')
-      const callbackUrl =  searchParams.get('callbackUrl')
-  
+
       setIsRedirecting(true)
-      if (callbackUrl && invitedChatId) {
+
+      const callbackUrl = searchParams.get('callbackUrl')
+      const invitedChatId = searchParams.get('token')
+
+      if (callbackUrl) {
+        const encodedCallbackUrl = encodeURIComponent(callbackUrl)
+        router.push(`/signin?callbackUrl=${encodedCallbackUrl}`)
+      } else if (invitedChatId) {
         router.push(`/accept-invite?token=${invitedChatId}`)
       } else {
         router.push('/signin')
@@ -443,8 +448,8 @@ export default function SignupPage() {
 
           <p className="text-sm md:text-base text-base-content/70 mt-4 text-center">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary underline">
-              Log In
+            <Link href="/signin" className="text-primary underline">
+              Sign In
             </Link>
           </p>
         </div>

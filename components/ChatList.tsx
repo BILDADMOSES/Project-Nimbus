@@ -17,7 +17,7 @@ import { db } from "@/lib/firebaseClient"
 import { formatDistanceToNow } from 'date-fns'
 import { useSession } from "next-auth/react"
 import Image from 'next/image'
-import { Search } from 'lucide-react'
+import { Search, User, Users, Bot } from 'lucide-react'
 
 interface Chat {
   id: string

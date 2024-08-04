@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -29,26 +29,41 @@ export default function AcceptInvitation() {
     setState('accepting')
 
     try {
-      const chatRef = doc(db, 'chats', chatId)
-      const chatSnap = await getDoc(chatRef)
+      await runTransaction(db, async (transaction) => {
+        const chatRef = doc(db, 'chats', chatId)
+        const chatSnap = await transaction.get(chatRef)
 
-      if (!chatSnap.exists()) {
-        throw new Error('Invalid invitation')
-      }
+        if (!chatSnap.exists()) {
+          throw new Error('Invalid invitation')
+        }
 
-      const chatData = chatSnap.data()
+        const chatData = chatSnap.data()
+        console.log('Chat data:', chatData) // Log chat data for debugging
 
-      if (chatData.type === 'private' && chatData.participants.length >= 2) {
-        throw new Error('This private chat already has two members')
-      }
+        if (chatData.type === 'ai') {
+          throw new Error('AI chats do not support invitations')
+        }
 
-      if (chatData.type === 'ai') {
-        throw new Error('AI chats do not support invitations')
-      }
+        if (chatData.participants.includes(session.user.id)) {
+          throw new Error('You are already a member of this chat')
+        }
 
-      // Add user to chat participants
-      await updateDoc(chatRef, {
-        participants: arrayUnion(session.user.id)
+        if (chatData.type === 'private') {
+          if (chatData.participants.length >= 2) {
+            throw new Error('This private chat already has two members')
+          }
+          // For private chats, we replace the participants array
+          transaction.update(chatRef, {
+            participants: [chatData.participants[0], session.user.id]
+          })
+        } else {
+          // For group chats, we add the user to the existing participants
+          transaction.update(chatRef, {
+            participants: arrayUnion(session.user.id)
+          })
+        }
+
+        console.log(`User ${session.user.id} added to ${chatData.type} chat ${chatId}`) // Log successful addition
       })
 
       setState('redirecting')
@@ -58,9 +73,9 @@ export default function AcceptInvitation() {
       }, 3000)
 
     } catch (error) {
+      console.error('Error in handleAcceptInvitation:', error) // Detailed error logging
       setError(error instanceof Error ? error.message : 'Failed to accept invitation')
       setState('error')
-      console.error(error)
     }
   }
 
@@ -91,7 +106,7 @@ export default function AcceptInvitation() {
           className="text-center"
         >
           <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
-          <div className="card bg-base-200 shadow-0 border-0">
+          <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
               <h2 className="card-title justify-center text-base-content">
                 {state === 'error' ? 'Error' : 'Invitation'}
