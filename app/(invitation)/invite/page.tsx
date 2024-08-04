@@ -83,11 +83,15 @@ export default function InvitationLandingPage() {
         </p>
         <div className="mt-8">
           <button
-            onClick={() => router.push(`/signin?callbackUrl=${encodeURIComponent(`/invite?token=${searchParams.get('token')}`)}`)}
+            onClick={() => router.push(`/signup?callbackUrl=${encodeURIComponent(`/invite?token=${searchParams.get('token')}`)}`)}
             className="btn btn-primary w-full mb-4"
           >
-            Sign In to Join
+            Sign Up to Join
           </button>
+          {/* If someone already has an account */}
+          <div className="my-3 font bold">
+            Already have an account? <a href={`/signin?callbackUrl=${encodeURIComponent(`/invite?token=${searchParams.get('token')}`)}`} className="text-primary">Sign In</a>
+          </div>
           <button
             onClick={() => router.push('/')}
             className="btn btn-outline w-full"
