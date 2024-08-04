@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, KeyboardEvent } from 'react'
 import EmojiPicker from '@/components/EmojiPicker'
 import { PaperAirplaneIcon, PaperClipIcon, MicrophoneIcon } from '@heroicons/react/24/solid'
 
@@ -9,18 +9,17 @@ interface MessageInputProps {
 const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
   const [message, setMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if ((!message.trim() && !fileInputRef.current?.files?.length) || isSending) return
 
     setIsSending(true)
-    setShowEmojiPicker(false)
     try {
       const file = fileInputRef.current?.files?.[0]
-      await onSendMessage(message, file)
+      await onSendMessage(message.trim(), file)
       setMessage('')
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (error) {
@@ -30,35 +29,33 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
     }
   }
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   const handleEmojiClick = (emoji: string) => {
     setMessage(prevMessage => prevMessage + emoji)
   }
 
-  const toggleEmojiPicker = () => {
-    setShowEmojiPicker(prev => !prev)
-  }
-
   return (
-    <form onSubmit={handleSendMessage} className="p-4 bg-white">
+    <form onSubmit={handleSendMessage} className="p-4 bg-base-200">
       <div className="flex items-center space-x-2">
-        <button
-          type="button"
-          onClick={toggleEmojiPicker}
-          className="btn btn-circle btn-sm btn-ghost"
-        >
-          😊
-        </button>
-        {showEmojiPicker && <EmojiPicker onEmojiClick={handleEmojiClick} />}
+        <EmojiPicker onEmojiClick={handleEmojiClick} />
         <div className="flex-1 relative">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={isSending ? "Sending..." : "Type a message..."}
             disabled={isSending}
-            className="input input-bordered w-full pr-20 bg-white"
+            className="textarea textarea-bordered w-full pr-20 bg-base-100 text-base-content min-h-[2.5rem] max-h-32 resize-none"
+            rows={1}
           />
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-2">
+          <div className="absolute right-2 bottom-2 flex space-x-2">
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()} 
@@ -80,18 +77,18 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
           type="file" 
           ref={fileInputRef} 
           className="hidden" 
-          onChange={() => {}} 
+          onChange={() => handleSendMessage()}
           disabled={isSending}
         />
         <button 
           type="submit" 
-          disabled={isSending || (!message && !fileInputRef.current?.files?.length)}
+          disabled={isSending || (!message.trim() && !fileInputRef.current?.files?.length)}
           className="btn btn-circle btn-primary"
         >
           {isSending ? (
             <span className="loading loading-spinner loading-sm"></span>
           ) : (
-            <PaperAirplaneIcon className="h-5 w-5 transform rotate-90" />
+            <PaperAirplaneIcon className="h-5 w-5 transform rotate-0" />
           )}
         </button>
       </div>

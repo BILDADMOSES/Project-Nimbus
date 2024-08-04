@@ -33,6 +33,7 @@ export default function SignupPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordsMatch, setPasswordsMatch] = useState(true)
@@ -102,6 +103,7 @@ export default function SignupPage() {
       const invitedChatId = searchParams.get('token')
       const callbackUrl =  searchParams.get('callbackUrl')
   
+      setIsRedirecting(true)
       if (callbackUrl && invitedChatId) {
         router.push(`/accept-invite?token=${invitedChatId}`)
       } else {
@@ -116,7 +118,12 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-base-200 flex flex-col md:flex-row">
+      {isRedirecting && (
+        <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -124,14 +131,14 @@ export default function SignupPage() {
         className="w-full md:w-1/2 p-4 md:p-8 flex flex-col justify-center items-center"
       >
         <div className="w-full max-w-md">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
             Create an Account
           </h1>
-          <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">
+          <p className="text-sm md:text-base text-base-content/70 mb-6 md:mb-8 text-center">
             Join us to start chatting across languages.
           </p>
 
-          <button className="card bg-base-100 shadow-sm mb-6 w-full cursor-pointer hover:bg-gray-100 transition-colors flex-row justify-center">
+          <button className="card bg-base-100 shadow-sm mb-6 w-full cursor-pointer hover:bg-base-200 transition-colors flex-row justify-center">
             <div className="card-body p-3 md:p-4 flex-row items-center justify-center text-center">
               <Image
                 src={gIcon}
@@ -146,14 +153,14 @@ export default function SignupPage() {
             </div>
           </button>
 
-          <p className="text-center text-gray-400 text-sm md:text-base mb-6">
+          <p className="text-center text-base-content/50 text-sm md:text-base mb-6">
             or
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label pl-0">
-                <span className="label-text text-sm md:text-base text-gray-600">
+                <span className="label-text text-sm md:text-base text-base-content/80">
                   Email address
                 </span>
               </label>
@@ -163,7 +170,7 @@ export default function SignupPage() {
                 value={form.email}
                 onChange={handleChange}
                 placeholder="example@mail.com"
-                className={`input input-bordered w-full bg-white text-sm md:text-base ${
+                className={`input input-bordered w-full bg-base-100 text-sm md:text-base ${
                   errors.email ? "input-error" : ""
                 }`}
               />
@@ -174,7 +181,7 @@ export default function SignupPage() {
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <label className="label pl-0">
-                  <span className="label-text text-sm md:text-base text-gray-600">
+                  <span className="label-text text-sm md:text-base text-base-content/80">
                     Username
                   </span>
                 </label>
@@ -184,7 +191,7 @@ export default function SignupPage() {
                   value={form.username}
                   onChange={handleChange}
                   placeholder="johndoe"
-                  className={`input input-bordered w-full bg-white text-sm md:text-base ${
+                  className={`input input-bordered w-full bg-base-100 text-sm md:text-base ${
                     errors.username ? "input-error" : ""
                   }`}
                 />
@@ -194,7 +201,7 @@ export default function SignupPage() {
               </div>
               <div className="flex-1">
                 <label className="label pl-0">
-                  <span className="label-text text-sm md:text-base text-gray-600">
+                  <span className="label-text text-sm md:text-base text-base-content/80">
                     Full Name
                   </span>
                 </label>
@@ -204,7 +211,7 @@ export default function SignupPage() {
                   value={form.fullName}
                   onChange={handleChange}
                   placeholder="John Doe"
-                  className={`input input-bordered w-full bg-white text-sm md:text-base ${
+                  className={`input input-bordered w-full bg-base-100 text-sm md:text-base ${
                     errors.fullName ? "input-error" : ""
                   }`}
                 />
@@ -215,7 +222,7 @@ export default function SignupPage() {
             </div>
             <div>
               <label className="label pl-0">
-                <span className="label-text text-sm md:text-base text-gray-600">
+                <span className="label-text text-sm md:text-base text-base-content/80">
                   Password
                 </span>
               </label>
@@ -226,7 +233,7 @@ export default function SignupPage() {
                   value={form.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className={`input input-bordered w-full bg-white pr-10 text-sm md:text-base ${
+                  className={`input input-bordered w-full bg-base-100 pr-10 text-sm md:text-base ${
                     errors.password ? "input-error" : ""
                   }`}
                 />
@@ -242,7 +249,7 @@ export default function SignupPage() {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-5 h-5 text-gray-400"
+                      className="w-5 h-5 text-base-content/50"
                     >
                       <path
                         strokeLinecap="round"
@@ -257,7 +264,7 @@ export default function SignupPage() {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-5 h-5 text-gray-400"
+                      className="w-5 h-5 text-base-content/50"
                     >
                       <path
                         strokeLinecap="round"
@@ -279,7 +286,7 @@ export default function SignupPage() {
             </div>
             <div>
               <label className="label pl-0">
-                <span className="label-text text-sm md:text-base text-gray-600">
+                <span className="label-text text-sm md:text-base text-base-content/80">
                   Confirm Password
                 </span>
               </label>
@@ -290,7 +297,7 @@ export default function SignupPage() {
                   value={form.confirmPassword}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className={`input input-bordered w-full bg-white pr-10 text-sm md:text-base ${
+                  className={`input input-bordered w-full bg-base-100 pr-10 text-sm md:text-base ${
                     !passwordsMatch ? "input-error" : ""
                   }`}
                 />
@@ -306,7 +313,7 @@ export default function SignupPage() {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-5 h-5 text-gray-400"
+                      className="w-5 h-5 text-base-content/50"
                     >
                       <path
                         strokeLinecap="round"
@@ -321,13 +328,8 @@ export default function SignupPage() {
                       viewBox="0 0 24 24"
                       strokeWidth={1.5}
                       stroke="currentColor"
-                      className="w-5 h-5 text-gray-400"
+                      className="w-5 h-5 text-base-content/50"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -346,7 +348,7 @@ export default function SignupPage() {
 
             <div>
               <label className="label pl-0">
-                <span className="label-text text-sm md:text-base text-gray-600">
+                <span className="label-text text-sm md:text-base text-base-content/80">
                   Preferred Language
                 </span>
               </label>
@@ -354,8 +356,8 @@ export default function SignupPage() {
                 name="preferredLang"
                 value={form.preferredLang}
                 onChange={handleChange}
-                className={`input input-bordered w-full bg-white text-sm md:text-base ${
-                  errors.preferredLang ? "input-error" : ""
+                className={`select select-bordered w-full bg-base-100 text-sm md:text-base ${
+                  errors.preferredLang ? "select-error" : ""
                 }`}
               >
                 <option value="">Select a language</option>
@@ -374,7 +376,7 @@ export default function SignupPage() {
 
             <div>
               <label className="label pl-0">
-                <span className="label-text text-sm md:text-base text-gray-600">
+                <span className="label-text text-sm md:text-base text-base-content/80">
                   Avatar (optional)
                 </span>
               </label>
@@ -382,16 +384,18 @@ export default function SignupPage() {
                 type="file"
                 name="avatar"
                 onChange={handleFileChange}
-                className={`input input-bordered w-full bg-white text-sm md:text-base ${
-                  errors.avatar ? "input-error" : ""
+                className={`file-input file-input-bordered w-full bg-base-100 text-sm md:text-base ${
+                  errors.avatar ? "file-input-error" : ""
                 }`}
               />
               {avatarPreview && (
-                <img
-                  src={avatarPreview}
-                  alt="Avatar Preview"
-                  className="mt-2 w-24 h-24 rounded-full object-cover"
-                />
+                <div className="mt-2 flex justify-center">
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar Preview"
+                    className="w-24 h-24 rounded-full object-cover"
+                  />
+                </div>
               )}
               {errors.avatar && (
                 <p className="text-error text-xs mt-1">{errors.avatar}</p>
@@ -406,32 +410,40 @@ export default function SignupPage() {
                 onChange={() => setTermsAccepted(!termsAccepted)}
                 className="checkbox checkbox-primary"
               />
-              <span className="ml-2 text-sm md:text-base text-gray-600">
+              <span className="ml-2 text-sm md:text-base text-base-content/80">
                 I accept the{" "}
-                <Link href="/terms" className="text-blue-500 underline">
+                <Link href="/terms" className="text-primary underline">
                   Terms and Conditions
                 </Link>
               </span>
             </div>
 
             {errors.general && (
-              <p className="text-error text-xs mt-1">{errors.general}</p>
+              <div className="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>{errors.general}</span>
+              </div>
             )}
 
             <button
               type="submit"
-              className={`btn btn-primary w-full mt-6 md:mt-8 ${
-                isLoading ? "loading" : ""
-              }`}
+              className="btn btn-primary w-full text-sm md:text-base"
               disabled={isLoading || !isFormValid()}
             >
-              {isLoading ? "Creating account..." : "Sign Up"}
+              {isLoading ? (
+                <>
+                  <span className="loading loading-spinner"></span>
+                  Creating account...
+                </>
+              ) : (
+                "Sign Up"
+              )}
             </button>
           </form>
 
-          <p className="text-sm md:text-base text-gray-500 mt-4 text-center">
+          <p className="text-sm md:text-base text-base-content/70 mt-4 text-center">
             Already have an account?{" "}
-            <Link href="/login" className="text-blue-500 underline">
+            <Link href="/login" className="text-primary underline">
               Log In
             </Link>
           </p>
@@ -442,7 +454,7 @@ export default function SignupPage() {
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full md:w-1/2 bg-indigo-100 p-8 hidden md:flex flex-col items-center justify-center"
+        className="w-full md:w-1/2 bg-base-300 p-8 hidden md:flex flex-col items-center justify-center"
       >
         <ChatIllustration />
       </motion.div>

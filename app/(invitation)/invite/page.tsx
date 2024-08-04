@@ -56,8 +56,8 @@ export default function InvitationLandingPage() {
     if (isLoading) {
       return (
         <div className="text-center">
-          <progress className="progress w-56"></progress>
-          <p className="mt-4 text-sm md:text-base text-gray-600">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+          <p className="mt-4 text-sm md:text-base text-base-content/70">
             Loading invitation details...
           </p>
         </div>
@@ -67,54 +67,18 @@ export default function InvitationLandingPage() {
     if (error) {
       return (
         <div className="alert alert-error">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="stroke-current shrink-0 h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M10 14l2-2m0 0l2-2m-2 2l2 2m2-2l-2-2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span>{error}</span>
-        </div>
-      )
-    }
-
-    if (isRedirecting) {
-      return (
-        <div className="alert flex flex-col alert-success">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="stroke-current shrink-0 h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>You've successfully joined the chat! Redirecting...</span>
-          <div className="flex justify-center mt-2">
-            <progress className="progress w-56"></progress>
-          </div>
         </div>
       )
     }
 
     return (
       <>
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
           You've been invited to join a chat
         </h1>
-        <p className="text-sm md:text-base text-gray-500 mb-6 md:mb-8 text-center">
+        <p className="text-sm md:text-base text-base-content/70 mb-6 md:mb-8 text-center">
           {chatDetails?.type === 'group' ? 'Group Chat' : 'Private Chat'}
         </p>
         <div className="mt-8">
@@ -123,12 +87,6 @@ export default function InvitationLandingPage() {
             className="btn btn-primary w-full mb-4"
           >
             Sign In to Join
-          </button>
-          <button
-            onClick={() => router.push(`/signup?callbackUrl=${encodeURIComponent(`/invite?token=${searchParams.get('token')}`)}`)}
-            className="btn btn-secondary w-full mb-4"
-          >
-            Sign Up to Join
           </button>
           <button
             onClick={() => router.push('/')}
@@ -142,27 +100,41 @@ export default function InvitationLandingPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen bg-gray-50 flex flex-col md:flex-row items-center justify-center py-12 sm:px-6 lg:px-8"
-    >
-      <div className="w-full max-w-md">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isLoading ? 'loading' : isRedirecting ? 'redirecting' : 'content'}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderContent()}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <ChatIllustration />
-    </motion.div>
+    <>
+      {isRedirecting && (
+        <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+        </div>
+      )}
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full min-h-screen flex flex-col md:flex-row items-center justify-center py-12 sm:px-6 lg:px-8"
+      >
+        <div className="w-full md:w-1/2 flex justify-center items-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={isLoading ? 'loading' : 'content'}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-md"
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full md:w-1/2 bg-base-300 p-8 hidden md:flex flex-col items-center justify-center"
+        >
+          <ChatIllustration />
+        </motion.div>
+      </motion.div>
+    </>
   )
 }

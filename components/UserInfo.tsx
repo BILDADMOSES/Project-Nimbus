@@ -3,9 +3,36 @@ import { useState, useRef, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { UserCircleIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { UserCircle, Plus, Settings, LogOut } from 'lucide-react'
 import CreateNewChat from "./CreateNewChat"
 import UserProfilePopup from "./UserProfile"
+
+const Dropdown = ({ isOpen, onClose, title, children }) => {
+  return (
+    <>
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-2 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
+          <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+            <div className="px-4 py-2 text-sm font-medium text-base-content border-b border-base-300">{title}</div>
+            {children}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+const DropdownItem = ({ onClick, children }) => {
+  return (
+    <button
+      onClick={onClick}
+      className="block w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 transition-colors duration-150"
+      role="menuitem"
+    >
+      {children}
+    </button>
+  )
+}
 
 export default function UserInfo() {
   const { data: session, status } = useSession()
@@ -24,13 +51,8 @@ export default function UserInfo() {
     router.push('/')
   }
 
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen)
-  }
-
-  const toggleChatMenu = () => {
-    setIsChatMenuOpen(!isChatMenuOpen)
-  }
+  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen)
+  const toggleChatMenu = () => setIsChatMenuOpen(!isChatMenuOpen)
 
   const handleChatTypeSelect = (type: 'private' | 'group' | 'ai') => {
     setSelectedChatType(type)
@@ -66,7 +88,11 @@ export default function UserInfo() {
   }, [])
 
   if (status === 'loading') {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-16 bg-base-200">
+        <div className="loading loading-spinner loading-md"></div>
+      </div>
+    )
   }
 
   if (!session?.user) {
@@ -74,91 +100,52 @@ export default function UserInfo() {
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-gray-100 border-b">
+    <div className="flex items-center justify-between px-4 py-2 bg-base-200 border-b border-base-300">
       <div className="flex items-center space-x-4">
         <div className="relative" ref={dropdownRef}>
-          <div onClick={toggleDropdown} className="cursor-pointer">
-            {session.user.image ? (
-              <Image
-                src={session.user.image}
-                alt="User avatar"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-            ) : (
-              <UserCircleIcon className="h-10 w-10 text-gray-400" />
-            )}
-          </div>
-          {isDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-              <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                <button
-                  ref={profileButtonRef}
-                  onClick={handleProfileClick}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  role="menuitem"
-                >
-                  Profile
-                </button>
-                <button
-                  onClick={() => {
-                    // Handle settings click
-                    setIsDropdownOpen(false)
-                  }}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  role="menuitem"
-                >
-                  Settings
-                </button>
-                <button
-                  onClick={handleSignOut}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  role="menuitem"
-                >
-                  Logout
-                </button>
-              </div>
+          <button 
+            onClick={toggleDropdown}
+            className="btn btn-ghost btn-circle avatar"
+          >
+            <div className="w-10 rounded-full">
+              {session.user.image ? (
+                <Image
+                  src={session.user.image}
+                  alt="User avatar"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-base-300">
+                  <UserCircle className="h-8 w-8 text-base-content/50" />
+                </div>
+              )}
             </div>
-          )}
+          </button>
+          <Dropdown isOpen={isDropdownOpen} onClose={() => setIsDropdownOpen(false)} title="User Options">
+            <DropdownItem onClick={handleProfileClick}>Profile</DropdownItem>
+            <DropdownItem onClick={() => { /* Handle settings click */ }}>Settings</DropdownItem>
+            <DropdownItem onClick={handleSignOut}>Logout</DropdownItem>
+          </Dropdown>
         </div>
         <div>
-          <p className="text-lg font-semibold">{session.user.name}</p>
-          <p className="text-sm text-gray-500">{session.user.email}</p>
+          <p className="text-lg font-semibold text-base-content">{session.user.name}</p>
+          <p className="text-sm text-base-content/70">{session.user.email}</p>
         </div>
       </div>
       <div className="flex items-center space-x-6 relative" ref={chatMenuRef}>
-        <PlusIcon 
-          className="h-6 w-6 text-gray-500 hover:text-gray-900 cursor-pointer" 
+        <button 
+          className="btn btn-circle btn-ghost"
           onClick={toggleChatMenu}
-        />
-        {isChatMenuOpen && (
-          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 top-full z-50">
-            <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-              <button
-                onClick={() => handleChatTypeSelect('private')}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                role="menuitem"
-              >
-                Private Chat
-              </button>
-              <button
-                onClick={() => handleChatTypeSelect('group')}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                role="menuitem"
-              >
-                Group Chat
-              </button>
-              <button
-                onClick={() => handleChatTypeSelect('ai')}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                role="menuitem"
-              >
-                AI Chat
-              </button>
-            </div>
-          </div>
-        )}
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+        <Dropdown isOpen={isChatMenuOpen} onClose={() => setIsChatMenuOpen(false)} title="New Chat">
+          <DropdownItem onClick={() => handleChatTypeSelect('private')}>Private Chat</DropdownItem>
+          <DropdownItem onClick={() => handleChatTypeSelect('group')}>Group Chat</DropdownItem>
+          <DropdownItem onClick={() => handleChatTypeSelect('ai')}>AI Chat</DropdownItem>
+        </Dropdown>
       </div>
       {selectedChatType && (
         <CreateNewChat 

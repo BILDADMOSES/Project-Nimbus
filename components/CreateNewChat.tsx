@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, updateDoc, arrayUnion } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
-import { User, Users, X, Bot, Link, Mail, Check, Copy } from 'lucide-react'
+import { User, Users, X, Bot, Link2, Mail, Check, Copy } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface User {
@@ -129,14 +129,17 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
       const docRef = await addDoc(collection(db, 'chats'), chatData)
       const chatId = docRef.id
   
-      const invitationLink = `${window.location.origin}/invite?token=${chatId}`
-  
-      if (chatType === 'private' && selectedUsers.length === 1 && !createWithoutUsers) {
+      if (chatType === 'ai') {
+        setSuccessMessage('AI chat created successfully!')
+        //TODO: redirect to the new AI chat here
+        // router.push(`/chat/${chatId}`)
+      } else if (chatType === 'private' && selectedUsers.length === 1 && !createWithoutUsers) {
         await updateDoc(doc(db, 'chats', chatId), {
           participants: arrayUnion(selectedUsers[0].id)
         })
         setChatLink(`${window.location.origin}/chat/${chatId}`)
       } else {
+        const invitationLink = `${window.location.origin}/invite?token=${chatId}`
         setChatLink(invitationLink)
         
         if (!createWithoutUsers) {
@@ -167,36 +170,36 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-lg p-8 w-full max-w-2xl shadow-xl"
+          className="bg-base-100 rounded-lg p-8 w-full max-w-2xl shadow-xl"
         >
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-800">
+            <h2 className="text-3xl font-bold text-base-content">
               {chatType === 'private' && 'Create Private Chat'}
               {chatType === 'group' && 'Create Group Chat'}
               {chatType === 'ai' && 'Create AI Chat'}
             </h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">
+            <button onClick={onClose} className="btn btn-ghost btn-circle">
               <X size={24} />
             </button>
           </div>
 
           {chatType === 'group' && (
-            <div className="mb-6">
-              <label htmlFor="groupName" className="block text-sm font-medium text-gray-700 mb-2">
-                Group Name
+            <div className="form-control mb-6">
+              <label htmlFor="groupName" className="label">
+                <span className="label-text">Group Name</span>
               </label>
               <input
                 type="text"
                 id="groupName"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="input input-bordered w-full bg-white text-base"
+                className="input input-bordered w-full"
                 placeholder="Enter group name"
               />
             </div>
@@ -204,9 +207,9 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
 
           {chatType !== 'ai' && (
             <>
-              <div className="mb-6">
-                <label htmlFor="searchUsers" className="block text-sm font-medium text-gray-700 mb-2">
-                  Add User
+              <div className="form-control mb-6">
+                <label htmlFor="searchUsers" className="label">
+                  <span className="label-text">Add User</span>
                 </label>
                 <div className="flex mb-2">
                   <select
@@ -241,9 +244,8 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
                   className="mb-6"
                 >
                   <div className="alert alert-info">
-                    <div>
-                      <span>User not found. Send an invitation?</span>
-                    </div>
+                    <Mail className="flex-shrink-0 mr-2" />
+                    <span>User not found. Send an invitation?</span>
                   </div>
                   <div className="flex mt-2">
                     <input
@@ -265,7 +267,7 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
 
               {selectedUsers.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Users</h3>
+                  <h3 className="text-sm font-medium text-base-content/70 mb-2">Selected Users</h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedUsers.map(user => (
                       <motion.div
@@ -273,13 +275,13 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
-                        className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm flex items-center"
+                        className="badge badge-primary badge-outline gap-2"
                       >
-                        <User size={14} className="mr-1" />
+                        <User size={14} />
                         {user.username}
                         <button
                           onClick={() => handleRemoveUser(user.id)}
-                          className="ml-2 text-indigo-600 hover:text-indigo-800 transition-colors"
+                          className="btn btn-ghost btn-xs btn-circle"
                         >
                           <X size={14} />
                         </button>
@@ -289,75 +291,66 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
                 </div>
               )}
 
-              <div className="mb-6">
-                <label className="flex items-center">
-                  <input
+              <div className="form-control mb-6">
+                <label className="label cursor-pointer">
+                <input
                     type="checkbox"
                     checked={createWithoutUsers}
                     onChange={(e) => setCreateWithoutUsers(e.target.checked)}
-                    className="form-checkbox h-5 w-5 text-indigo-600"
+                    className="checkbox checkbox-primary"
                   />
-                  <span className="ml-2 text-sm text-gray-700">
-                    Create chat without adding users (generate invitation link)
-                  </span>
+                  <span className="label-text">Create chat without adding users (generate invitation link)</span>
                 </label>
               </div>
             </>
           )}
 
-          {chatType === 'ai' && (
-            <div className="mb-6">
-              <div className="alert alert-info">
-                <div>
-                  <span>You're creating an AI chat. This will start a conversation with our AI assistant.</span>
-                </div>
-              </div>
+        {chatType === 'ai' && (
+            <div className="alert alert-info mb-6">
+              <Bot className="flex-shrink-0 mr-2" />
+              <span>You're creating an AI chat. This will start a private conversation with our AI assistant.</span>
             </div>
           )}
 
           {error && (
             <div className="alert alert-error mb-4">
-              <div>
-                <span>{error}</span>
-              </div>
+              <X className="flex-shrink-0 mr-2" />
+              <span>{error}</span>
             </div>
           )}
           
           {successMessage && (
             <div className="alert alert-success mb-4">
-              <div>
-                <span>{successMessage}</span>
-              </div>
+              <Check className="flex-shrink-0 mr-2" />
+              <span>{successMessage}</span>
             </div>
           )}
 
-          {!chatLink && (
-            <button
-              onClick={handleCreateChat}
-              disabled={isLoading}
-              className="btn btn-primary w-full text-lg"
-            >
-              {isLoading ? 'Creating...' : 'Create Chat'}
-            </button>
-          )}
+          <button
+            onClick={handleCreateChat}
+            disabled={isLoading}
+            className={`btn btn-primary w-full text-sm md:text-base ${isLoading ? 'loading' : ''}`}
+          >
+            {isLoading ? 'Creating...' : 'Create Chat'}
+          </button>
 
-          {chatLink && (
+          {chatLink && chatType !== 'ai' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="mt-6"
             >
-              <h3 className="text-xl font-medium text-gray-700 mb-3">Invitation Link</h3>
-              <div className="flex items-center bg-gray-100 p-4 rounded-lg">
+              <h3 className="text-xl font-medium text-base-content mb-3">Invitation Link</h3>
+              <div className="flex items-center bg-base-200 p-4 rounded-lg">
                 <input
                   type="text"
                   value={chatLink}
                   readOnly
-                  className="bg-transparent flex-1 outline-none text-base mr-2"
+                  className="bg-transparent flex-1 outline-none text-base-content mr-2"
                 />
                 <button
                   onClick={handleCopyLink}
-                  className="btn btn-secondary"
+                  className={`btn ${linkCopied ? 'btn-success' : 'btn-primary'}`}
                 >
                   {linkCopied ? (
                     <>
@@ -372,18 +365,24 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
                   )}
                 </button>
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-base-content/70 mt-2">
                 Share this link to invite others to the chat.
               </p>
-              <div className="mt-6 flex justify-end">
-                <button onClick={onClose} className="btn btn-secondary">
-                  Close
-                </button>
-              </div>
             </motion.div>
           )}
+
+          <div className="mt-6 flex justify-end">
+            <button onClick={onClose} className="btn btn-ghost">
+              Close
+            </button>
+          </div>
         </motion.div>
       </motion.div>
+      {isLoading && (
+        <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="loading loading-spinner loading-lg text-primary"></div>
+        </div>
+      )}
     </AnimatePresence>
   )
 }
