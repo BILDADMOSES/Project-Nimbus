@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
@@ -28,6 +28,7 @@ export default function SignupPage() {
     fullName: '',
     preferredLang: '',
   })
+  const searchParams = useSearchParams();
   const [avatar, setAvatar] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -98,8 +99,8 @@ export default function SignupPage() {
         avatar: avatarUrl,
         createdAt: new Date().toISOString()
       })
-  
-      const { callbackUrl, invitedChatId } = router.query
+      const invitedChatId = searchParams.get('token')
+      const callbackUrl =  searchParams.get('callbackUrl')
   
       if (callbackUrl && invitedChatId) {
         router.push(`/accept-invite?token=${invitedChatId}`)

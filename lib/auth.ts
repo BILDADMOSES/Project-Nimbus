@@ -1,4 +1,3 @@
-// app/api/auth/[...nextauth]/route.ts
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { signInWithEmailAndPassword } from 'firebase/auth'
