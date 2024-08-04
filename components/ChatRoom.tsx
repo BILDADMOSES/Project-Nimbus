@@ -36,7 +36,7 @@ interface ChatRoomProps {
   chatId: string;
 }
 
-const MESSAGES_PER_PAGE = 20
+const MESSAGES_PER_PAGE = 30
 
 const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   const { data: session } = useSession()
