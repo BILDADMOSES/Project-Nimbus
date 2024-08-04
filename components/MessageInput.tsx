@@ -9,6 +9,7 @@ interface MessageInputProps {
 const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
   const [message, setMessage] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -16,6 +17,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
     if ((!message.trim() && !fileInputRef.current?.files?.length) || isSending) return
 
     setIsSending(true)
+    setShowEmojiPicker(false)
     try {
       const file = fileInputRef.current?.files?.[0]
       await onSendMessage(message, file)
@@ -32,10 +34,21 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
     setMessage(prevMessage => prevMessage + emoji)
   }
 
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(prev => !prev)
+  }
+
   return (
     <form onSubmit={handleSendMessage} className="p-4 bg-white">
       <div className="flex items-center space-x-2">
-        <EmojiPicker onEmojiClick={handleEmojiClick} />
+        <button
+          type="button"
+          onClick={toggleEmojiPicker}
+          className="btn btn-circle btn-sm btn-ghost"
+        >
+          😊
+        </button>
+        {showEmojiPicker && <EmojiPicker onEmojiClick={handleEmojiClick} />}
         <div className="flex-1 relative">
           <input
             type="text"
@@ -78,7 +91,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
           {isSending ? (
             <span className="loading loading-spinner loading-sm"></span>
           ) : (
-            <PaperAirplaneIcon className="h-5 w-5 transform rotate-10" />
+            <PaperAirplaneIcon className="h-5 w-5 transform rotate-90" />
           )}
         </button>
       </div>

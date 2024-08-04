@@ -3,9 +3,9 @@ import { useState, useRef, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import Link from 'next/link'
 import { UserCircleIcon, PlusIcon } from '@heroicons/react/24/outline'
 import CreateNewChat from "./CreateNewChat"
+import UserProfilePopup from "./UserProfile"
 
 export default function UserInfo() {
   const { data: session, status } = useSession()
@@ -13,8 +13,11 @@ export default function UserInfo() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isChatMenuOpen, setIsChatMenuOpen] = useState(false)
   const [selectedChatType, setSelectedChatType] = useState<'private' | 'group' | 'ai' | null>(null)
+  const [showProfilePopup, setShowProfilePopup] = useState(false)
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
   const chatMenuRef = useRef<HTMLDivElement>(null)
+  const profileButtonRef = useRef<HTMLButtonElement>(null)
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
@@ -32,6 +35,18 @@ export default function UserInfo() {
   const handleChatTypeSelect = (type: 'private' | 'group' | 'ai') => {
     setSelectedChatType(type)
     setIsChatMenuOpen(false)
+  }
+
+  const handleProfileClick = () => {
+    if (profileButtonRef.current) {
+      const rect = profileButtonRef.current.getBoundingClientRect()
+      setPopupPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      })
+    }
+    setShowProfilePopup(true)
+    setIsDropdownOpen(false)
   }
 
   useEffect(() => {
@@ -76,14 +91,26 @@ export default function UserInfo() {
             )}
           </div>
           {isDropdownOpen && (
-            <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-index: 50">
+            <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
               <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                <button
+                  ref={profileButtonRef}
+                  onClick={handleProfileClick}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  role="menuitem"
+                >
                   Profile
-                </Link>
-                <Link href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                </button>
+                <button
+                  onClick={() => {
+                    // Handle settings click
+                    setIsDropdownOpen(false)
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  role="menuitem"
+                >
                   Settings
-                </Link>
+                </button>
                 <button
                   onClick={handleSignOut}
                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -106,7 +133,7 @@ export default function UserInfo() {
           onClick={toggleChatMenu}
         />
         {isChatMenuOpen && (
-          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 top-full z-index: 50">
+          <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 top-full z-50">
             <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
               <button
                 onClick={() => handleChatTypeSelect('private')}
@@ -137,6 +164,12 @@ export default function UserInfo() {
         <CreateNewChat 
           chatType={selectedChatType} 
           onClose={() => setSelectedChatType(null)} 
+        />
+      )}
+      {showProfilePopup && (
+        <UserProfilePopup 
+          onClose={() => setShowProfilePopup(false)} 
+          position={popupPosition}
         />
       )}
     </div>

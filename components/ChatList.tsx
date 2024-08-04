@@ -22,7 +22,7 @@ import { Search } from 'lucide-react'
 interface Chat {
   id: string
   name: string
-  type: 'private' | 'group'
+  type: 'private' | 'group' | 'ai'
   lastMessage: string
   lastMessageTime: Date
   participants: string[]
@@ -61,6 +61,7 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
 
         let chatName = chatData.name || ""
         let avatar = ''
+
         if (chatData.type === 'private') {
           const otherParticipantId = chatData.participants.find(p => p !== userId)
           if (otherParticipantId) {
@@ -72,6 +73,12 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
               avatar = userData?.avatar || ''
             }
           }
+        } else if (chatData.type === 'group') {
+          chatName = chatData.name || "Unnamed Group"
+          // You might want to set a default group avatar here
+        } else if (chatData.type === 'ai') {
+          chatName = "AI Chat"
+          avatar = '/ai-avatar.png' // Set a default AI avatar image
         }
 
         return {
@@ -118,7 +125,7 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
   }
 
   return (
-    <div className="w-full p-4 flex-1 overflow-y-auto z-index: 0">
+    <div className="w-full p-4 flex-1 overflow-y-auto z-0">
       <div className="relative mb-4">
         <input
           type="text"
@@ -150,7 +157,9 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
                   <div className="flex-1">
                     <div className="flex justify-between items-baseline">
                       <span className="font-semibold text-gray-900">
-                        {chat.name || 'Unnamed Chat'} {chat.type === 'group' && <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full ml-2">Group</span>}
+                        {chat.name || 'Unnamed Chat'} 
+                        {chat.type === 'group' && <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full ml-2">Group</span>}
+                        {chat.type === 'ai' && <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">AI</span>}
                       </span>
                       <span className="text-xs text-gray-500">
                         {formatDistanceToNow(chat.lastMessageTime, { addSuffix: true })}
