@@ -1,12 +1,14 @@
+"use client"
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
 
 export default function AcceptInvitation() {
   const router = useRouter()
-  const { chatId } = router.query
+  const searchParams = useSearchParams()
+  const chatId = searchParams.get('token')
   const { data: session, status } = useSession()
   const [error, setError] = useState('')
 
