@@ -17,12 +17,12 @@
 /* Add this in your global CSS or a relevant CSS module */
 
 .chat-start .chat-bubble {
-  background-color: #E5E7EB; /* light gray */
+  background-color: #00e4e3; /* light gray */
   color: #000;
 }
 
 .chat-end .chat-bubble {
-  background-color: #A7F3D0; /* light green */
+  background-color: #a060ff; /* light green */
   color: #000;
 }
 

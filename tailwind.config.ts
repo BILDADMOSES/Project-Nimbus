@@ -10,9 +10,10 @@ const config: Config = {
   ],
   plugins: [
     daisyui,
+    require('tailwind-scrollbar-hide')
   ],
   daisyui: {
-    themes: ["light", "dark", "cupcake"],
+    themes: ["light"],
   },
 };
 export default config;
