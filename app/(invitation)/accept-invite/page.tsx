@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 
 export default function AcceptInvitation() {
   const router = useRouter()
@@ -12,14 +13,19 @@ export default function AcceptInvitation() {
   const chatId = searchParams.get('token')
   const { data: session, status } = useSession()
   const [error, setError] = useState('')
-  const [state, setState] = useState('loading') // 'loading', 'accepting', 'redirecting', 'error'
+  const [state, setState] = useState('loading') // 'loading', 'accepting', 'redirecting', 'error', 'unauthenticated'
 
   useEffect(() => {
-    if (status === 'authenticated' && chatId) {
+    if (!chatId) {
+      setError('Invalid invitation link')
+      setState('error')
+      return
+    }
+
+    if (status === 'authenticated') {
       handleAcceptInvitation()
     } else if (status === 'unauthenticated') {
-      setError('You must be signed in to accept an invitation')
-      setState('error')
+      setState('unauthenticated')
     }
   }, [status, chatId])
 
@@ -87,6 +93,8 @@ export default function AcceptInvitation() {
         return 'Accepting invitation...'
       case 'redirecting':
         return 'Invitation accepted! Redirecting to chat...'
+      case 'unauthenticated':
+        return 'Please sign in to accept the invitation'
       case 'error':
         return error
       default:
@@ -119,6 +127,13 @@ export default function AcceptInvitation() {
                   <button className="btn btn-primary" onClick={() => router.push('/')}>
                     Go to Home
                   </button>
+                </div>
+              )}
+              {state === 'unauthenticated' && (
+                <div className="card-actions justify-center mt-4">
+                  <Link href={`/signin?callbackUrl=${encodeURIComponent(`/accept-invite?token=${chatId}`)}`} className="btn btn-primary">
+                    Sign In
+                  </Link>
                 </div>
               )}
             </div>
