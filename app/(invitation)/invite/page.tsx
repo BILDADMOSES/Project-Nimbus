@@ -6,6 +6,10 @@ import ChatIllustration from '@/components/common/ChatIllustration'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
+import InvitationCard from '@/components/InvitationCard'
+import LoadingSpinner from '@/components/LoadingSpinner'
+import ActionButton from '@/components/ActionButton'
+import ErrorAlert from '@/components/ErrorAlert'
 
 export default function InvitationLandingPage() {
   const router = useRouter()
@@ -52,93 +56,84 @@ export default function InvitationLandingPage() {
     }
   }
 
+ 
   const renderContent = () => {
     if (isLoading) {
-      return (
-        <div className="text-center">
-          <div className="loading loading-spinner loading-lg text-primary"></div>
-          <p className="mt-4 text-sm md:text-base text-base-content/70">
-            Loading invitation details...
-          </p>
-        </div>
-      )
+      return <LoadingSpinner message="Loading invitation details..." />
     }
 
     if (error) {
-      return (
-        <div className="alert alert-error">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span>{error}</span>
-        </div>
-      )
+      return <ErrorAlert message={error} />
     }
 
     return (
-      <>
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
-          You've been invited to join a chat
-        </h1>
-        <p className="text-sm md:text-base text-base-content/70 mb-6 md:mb-8 text-center">
-          {chatDetails?.type === 'group' ? 'Group Chat' : 'Private Chat'}
-        </p>
-        <div className="mt-8">
-          <button
-            onClick={() => router.push(`/signup?callbackUrl=${encodeURIComponent(`/invite?token=${searchParams.get('token')}`)}`)}
-            className="btn btn-primary w-full mb-4"
-          >
-            Sign Up to Join
-          </button>
-          {/* If someone already has an account */}
-          <div className="my-3 font bold">
-            Already have an account? <a href={`/signin?callbackUrl=${encodeURIComponent(`/invite?token=${searchParams.get('token')}`)}`} className="text-primary">Sign In</a>
-          </div>
-          <button
-            onClick={() => router.push('/')}
-            className="btn btn-outline w-full"
-          >
-            Go to Home
-          </button>
-        </div>
-      </>
+      <InvitationContent 
+        chatType={chatDetails?.type} 
+        token={searchParams.get('token') || ''}
+      />
     )
   }
 
   return (
-    <>
-      {isRedirecting && (
-        <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="loading loading-spinner loading-lg text-primary"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-base-200">
+      {isRedirecting && <LoadingOverlay />}
+      <InvitationCard>
+        <div className="flex flex-col md:flex-row">
+          <div className="w-full md:w-1/2 p-6 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isLoading ? 'loading' : 'content'}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <div className="w-full md:w-1/2 hidden md:flex items-center justify-center bg-base-200 rounded-r-lg">
+            <ChatIllustration />
+          </div>
         </div>
-      )}
-      <motion.div
-        initial={{ opacity: 0, y: -50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full min-h-screen flex flex-col md:flex-row items-center justify-center py-12 sm:px-6 lg:px-8"
-      >
-        <div className="w-full md:w-1/2 flex justify-center items-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={isLoading ? 'loading' : 'content'}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full max-w-md"
-            >
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full md:w-1/2 bg-base-300 p-8 hidden md:flex flex-col items-center justify-center"
-        >
-          <ChatIllustration />
-        </motion.div>
-      </motion.div>
-    </>
+      </InvitationCard>
+    </div>
   )
 }
+
+const InvitationContent: React.FC<{ chatType?: string; token: string }> = ({ chatType, token }) => (
+  <>
+    <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
+      You've been invited to join a chat
+    </h1>
+    <p className="text-sm md:text-base text-base-content/70 mb-6 md:mb-8 text-center">
+      {chatType === 'group' ? 'Group Chat' : 'Private Chat'}
+    </p>
+    <div className="mt-8 space-y-4">
+      <ActionButton
+        label="Sign Up to Join"
+        href={`/signup?callbackUrl=${encodeURIComponent(`/invite?token=${token}`)}`}
+        className="w-full"
+      />
+      <div className="text-center">
+        Already have an account? <ActionButton
+          label="Sign In"
+          href={`/signin?callbackUrl=${encodeURIComponent(`/invite?token=${token}`)}`}
+          className="btn-link"
+        />
+      </div>
+      <ActionButton
+        label="Go to Home"
+        onClick={() => router.push('/')}
+        className="w-full btn-outline"
+      />
+    </div>
+  </>
+)
+
+const LoadingOverlay: React.FC = () => (
+  <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="loading loading-spinner loading-lg text-primary"></div>
+  </div>
+)

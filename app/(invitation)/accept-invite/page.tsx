@@ -2,10 +2,12 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore'
+import { doc, arrayUnion, runTransaction } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
 import { motion, AnimatePresence } from 'framer-motion'
-import Link from 'next/link'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
+import StatusMessage from '@/components/StatusMessage'
+import ActionButton from '@/components/ActionButton'
 
 export default function AcceptInvitation() {
   const router = useRouter()
@@ -44,7 +46,7 @@ export default function AcceptInvitation() {
         }
 
         const chatData = chatSnap.data()
-        console.log('Chat data:', chatData) // Log chat data for debugging
+        console.log('Chat data:', chatData)
 
         if (chatData.type === 'ai') {
           throw new Error('AI chats do not support invitations')
@@ -69,7 +71,7 @@ export default function AcceptInvitation() {
           })
         }
 
-        console.log(`User ${session.user.id} added to ${chatData.type} chat ${chatId}`) // Log successful addition
+        console.log(`User ${session.user.id} added to ${chatData.type} chat ${chatId}`)
       })
 
       setState('redirecting')
@@ -79,31 +81,14 @@ export default function AcceptInvitation() {
       }, 3000)
 
     } catch (error) {
-      console.error('Error in handleAcceptInvitation:', error) // Detailed error logging
+      console.error('Error in handleAcceptInvitation:', error)
       setError(error instanceof Error ? error.message : 'Failed to accept invitation')
       setState('error')
     }
   }
 
-  const renderContent = () => {
-    switch (state) {
-      case 'loading':
-        return 'Loading...'
-      case 'accepting':
-        return 'Accepting invitation...'
-      case 'redirecting':
-        return 'Invitation accepted! Redirecting to chat...'
-      case 'unauthenticated':
-        return 'Please sign in to accept the invitation'
-      case 'error':
-        return error
-      default:
-        return ''
-    }
-  }
-
   return (
-    <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+    <div className="fixed inset-0 bg-base-200 bg-opacity-80 backdrop-blur-md flex items-center justify-center">
       <AnimatePresence mode="wait">
         <motion.div
           key={state}
@@ -113,31 +98,30 @@ export default function AcceptInvitation() {
           transition={{ duration: 0.3 }}
           className="text-center"
         >
-          <div className="loading loading-spinner loading-lg text-primary mb-4"></div>
-          <div className="card bg-base-100 shadow-xl">
-            <div className="card-body">
-              <h2 className="card-title justify-center text-base-content">
-                {state === 'error' ? 'Error' : 'Invitation'}
-              </h2>
-              <p className={`text-lg ${state === 'error' ? 'text-error' : 'text-base-content'}`}>
-                {renderContent()}
-              </p>
-              {state === 'error' && (
-                <div className="card-actions justify-center mt-4">
-                  <button className="btn btn-primary" onClick={() => router.push('/')}>
-                    Go to Home
-                  </button>
-                </div>
-              )}
-              {state === 'unauthenticated' && (
-                <div className="card-actions justify-center mt-4">
-                  <Link href={`/signin?callbackUrl=${encodeURIComponent(`/accept-invite?token=${chatId}`)}`} className="btn btn-primary">
-                    Sign In
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
+          <LoadingSpinner isVisible={['loading', 'accepting', 'redirecting'].includes(state)} />
+          <StatusMessage 
+            state={state} 
+            error={error} 
+            content={{
+              loading: 'Loading...',
+              accepting: 'Accepting invitation...',
+              redirecting: 'Invitation accepted! Redirecting to chat...',
+              unauthenticated: 'Please sign in to accept the invitation',
+              error: error
+            }}
+          />
+          {state === 'error' && (
+            <ActionButton
+              label="Go to Home"
+              onClick={() => router.push('/')}
+            />
+          )}
+          {state === 'unauthenticated' && (
+            <ActionButton
+              label="Sign In"
+              href={`/signin?callbackUrl=${encodeURIComponent(`/accept-invite?token=${chatId}`)}`}
+            />
+          )}
         </motion.div>
       </AnimatePresence>
     </div>
