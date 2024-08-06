@@ -204,9 +204,35 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
     message: string,
     targetLang: string
   ): Promise<string> => {
+    const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
+    const API_URL = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL;
+
+    const translateText = async (text: string, targetLanguage: string) => {
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          q: text,
+          target: targetLanguage,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const data = await response.json();
+      return data.data.translations[0].translatedText;
+    };
+
+    const translatedMessage = await translateText(message, targetLang);
+
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 100));
-    return `Translated to ${targetLang}: ${message}`;
+
+    return translatedMessage;
   };
 
   const sendMessage = async (content: string, file?: File) => {
