@@ -1,35 +1,61 @@
-"use client"
+"use client";
 
-import dynamic from 'next/dynamic'
-import { useState, useRef, useEffect } from 'react'
-import { Smile } from 'lucide-react'
+import dynamic from "next/dynamic";
+import { useState, useRef, useEffect } from "react";
+import { Smile } from "lucide-react";
 
-const Picker = dynamic(() => import('emoji-picker-react'), { ssr: false })
+const Picker = dynamic(() => import("emoji-picker-react"), { ssr: false });
 
-export default function EmojiPicker({ onEmojiClick }: { onEmojiClick: (emoji: string) => void }) {
-  const [showPicker, setShowPicker] = useState(false)
-  const pickerRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
+export default function EmojiPicker({
+  onEmojiClick,
+}: {
+  onEmojiClick: (emoji: string) => void;
+}) {
+  const [showPicker, setShowPicker] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<"light" | "dark">("light");
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node) &&
-          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
-        setShowPicker(false)
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowPicker(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener("mousedown", handleClickOutside);
+
+    const detectTheme = () => {
+      const htmlElement = document.documentElement;
+      const theme = htmlElement.getAttribute("data-theme");
+      setCurrentTheme(theme === "dark" ? "dark" : "light");
+    };
+
+    detectTheme();
+
+    // Set up a MutationObserver to watch for theme changes
+    const observer = new MutationObserver(detectTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
+      document.removeEventListener("mousedown", handleClickOutside);
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <div className="relative">
-      <button 
+      <button
         ref={buttonRef}
-        onClick={() => setShowPicker(!showPicker)} 
+        onClick={() => setShowPicker(!showPicker)}
         className="btn btn-circle btn-sm btn-ghost"
         type="button"
         aria-label="Open emoji picker"
@@ -37,16 +63,16 @@ export default function EmojiPicker({ onEmojiClick }: { onEmojiClick: (emoji: st
         <Smile className="w-5 h-5" />
       </button>
       {showPicker && (
-        <div 
+        <div
           ref={pickerRef}
           className="absolute bottom-12 left-0 z-50 shadow-xl rounded-lg overflow-hidden"
         >
           <Picker
             onEmojiClick={(emojiObject) => {
-              onEmojiClick(emojiObject.emoji)
-              setShowPicker(false)
+              onEmojiClick(emojiObject.emoji);
+              setShowPicker(false);
             }}
-            theme="light"
+            theme={currentTheme}
             preload={true}
             skinTonesDisabled
             searchDisabled={false}
@@ -56,5 +82,5 @@ export default function EmojiPicker({ onEmojiClick }: { onEmojiClick: (emoji: st
         </div>
       )}
     </div>
-  )
+  );
 }
