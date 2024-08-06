@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
 import InvitationCard from '@/components/InvitationCard'
-import LoadingSpinner from '@/components/LoadingSpinner'
+import { LoadingSpinner } from '@/components/LoadingSpinner'
 import ActionButton from '@/components/ActionButton'
 import ErrorAlert from '@/components/ErrorAlert'
 
