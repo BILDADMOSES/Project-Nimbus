@@ -1,7 +1,8 @@
-'use client';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
-import Logo from '@/components/common/Logo';
+"use client";
+import { motion } from "framer-motion";
+import Link from "next/link";
+import Logo from "@/components/common/Logo";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 const Home = () => {
   return (
@@ -25,6 +26,7 @@ const Home = () => {
               Sign in
             </motion.button>
           </Link>
+          <ThemeSwitcher />
         </nav>
       </header>
 

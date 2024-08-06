@@ -13,7 +13,7 @@ const config: Config = {
     require('tailwind-scrollbar-hide')
   ],
   daisyui: {
-    themes: ["light"],
+    themes: ["light", "dark"],
   },
 };
 export default config;
