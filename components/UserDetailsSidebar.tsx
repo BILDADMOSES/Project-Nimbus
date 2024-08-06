@@ -1,7 +1,18 @@
-import React from 'react'
-import Image from 'next/image'
-import { X, FileIcon, ImageIcon, FileText, Music, Video, Archive, UserMinus, LogOut, Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
+import React from "react";
+import Image from "next/image";
+import {
+  X,
+  FileIcon,
+  ImageIcon,
+  FileText,
+  Music,
+  Video,
+  Archive,
+  UserMinus,
+  LogOut,
+  Trash2,
+} from "lucide-react";
+import { format } from "date-fns";
 
 interface UserData {
   id: string;
@@ -17,14 +28,14 @@ interface UserData {
 interface SharedFile {
   id: string;
   content: string;
-  type: 'image' | 'file';
+  type: "image" | "file";
   fileUrl?: string;
   timestamp: any;
 }
 
 interface UserDetailsSidebarProps {
   user?: UserData;
-  chatType: 'private' | 'group' | 'ai';
+  chatType: "private" | "group" | "ai";
   sharedFiles: SharedFile[];
   onClose: () => void;
   participants?: UserData[];
@@ -33,38 +44,38 @@ interface UserDetailsSidebarProps {
   onDeleteChat?: () => void;
 }
 
-const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({ 
-  user, 
-  chatType, 
-  sharedFiles, 
-  onClose, 
+const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
+  user,
+  chatType,
+  sharedFiles,
+  onClose,
   participants,
   onBlockUser,
   onLeaveGroup,
-  onDeleteChat
+  onDeleteChat,
 }) => {
   const formatDate = (timestamp: any) => {
-    if (timestamp && typeof timestamp.toDate === 'function') {
-      return format(timestamp.toDate(), 'MMM d, yyyy HH:mm')
+    if (timestamp && typeof timestamp.toDate === "function") {
+      return format(timestamp.toDate(), "MMM d, yyyy HH:mm");
     } else if (timestamp instanceof Date) {
-      return format(timestamp, 'MMM d, yyyy HH:mm')
+      return format(timestamp, "MMM d, yyyy HH:mm");
     } else if (timestamp && !isNaN(new Date(timestamp).getTime())) {
-      return format(new Date(timestamp), 'MMM d, yyyy HH:mm')
+      return format(new Date(timestamp), "MMM d, yyyy HH:mm");
     }
-    return 'Invalid date'
-  }
-  
+    return "Invalid date";
+  };
+
   const getFileIcon = (fileType: string) => {
     switch (fileType) {
-      case 'image':
+      case "image":
         return <ImageIcon size={24} className="text-primary" />;
-      case 'pdf':
+      case "pdf":
         return <FileText size={24} className="text-red-500" />;
-      case 'audio':
+      case "audio":
         return <Music size={24} className="text-yellow-500" />;
-      case 'video':
+      case "video":
         return <Video size={24} className="text-purple-500" />;
-      case 'archive':
+      case "archive":
         return <Archive size={24} className="text-orange-500" />;
       default:
         return <FileIcon size={24} className="text-secondary" />;
@@ -76,44 +87,59 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
       <div className="avatar mb-4">
         <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
           <Image
-            src={userData.image || '/default-avatar.png'}
+            src={userData.image || "/default-avatar.png"}
             alt={userData.username}
             width={96}
             height={96}
           />
         </div>
       </div>
-      <h3 className="text-lg font-semibold">{userData.fullName || userData.username}</h3>
+      <h3 className="text-lg font-semibold">
+        {userData.fullName || userData.username}
+      </h3>
       <p className="text-sm text-base-content/70">{userData.email}</p>
-      {userData.location && <p className="text-sm text-base-content/70">{userData.location}</p>}
-      {userData.language && <p className="text-sm text-base-content/70">Language: {userData.language}</p>}
-      {userData.joinDate && <p className="text-sm text-base-content/70">Joined: {formatDate(userData.joinDate)}</p>}
+      {userData.location && (
+        <p className="text-sm text-base-content/70">{userData.location}</p>
+      )}
+      {userData.language && (
+        <p className="text-sm text-base-content/70">
+          Language: {userData.language}
+        </p>
+      )}
+      {userData.joinDate && (
+        <p className="text-sm text-base-content/70">
+          Joined: {formatDate(userData.joinDate)}
+        </p>
+      )}
     </div>
-  )
+  );
 
   return (
     <div className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-base-200 shadow-lg flex flex-col">
       <div className="flex justify-between items-center p-4 border-b border-base-300">
         <h2 className="text-xl font-bold">
-          {chatType === 'private' ? 'User Details' : 
-           chatType === 'group' ? 'Group Details' : 'AI Chat Details'}
+          {chatType === "private"
+            ? "User Details"
+            : chatType === "group"
+            ? "Group Details"
+            : "AI Chat Details"}
         </h2>
         <button onClick={onClose} className="btn btn-ghost btn-circle">
           <X size={24} />
         </button>
       </div>
-      
+
       <div className="flex-grow overflow-y-auto">
-        {chatType === 'private' && user && renderUserInfo(user)}
-        {chatType === 'group' && participants && (
+        {chatType === "private" && user && renderUserInfo(user)}
+        {chatType === "group" && participants && (
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">Group Members</h3>
-            {participants.map(participant => (
+            {participants.map((participant) => (
               <div key={participant.id} className="flex items-center mb-4">
                 <div className="avatar mr-4">
                   <div className="w-10 rounded-full">
                     <Image
-                      src={participant.image || '/default-avatar.png'}
+                      src={participant.image || "/default-avatar.png"}
                       alt={participant.username}
                       width={40}
                       height={40}
@@ -121,34 +147,43 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
                   </div>
                 </div>
                 <div>
-                  <p className="font-semibold">{participant.fullName || participant.username}</p>
-                  <p className="text-sm text-base-content/70">{participant.email}</p>
+                  <p className="font-semibold">
+                    {participant.fullName || participant.username}
+                  </p>
+                  <p className="text-sm text-base-content/70">
+                    {participant.email}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         )}
-        {chatType === 'ai' && (
+        {chatType === "ai" && (
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">AI Assistant</h3>
-            <p className="text-base-content/70">This is an AI-powered chat assistant.</p>
+            <p className="text-base-content/70">
+              This is an AI-powered chat assistant.
+            </p>
           </div>
         )}
-        
+
         <div className="divider"></div>
-        
+
         <div className="p-4">
           <h4 className="text-lg font-semibold mb-4">Shared Files</h4>
           <div className="space-y-4">
             {sharedFiles.map((file) => (
-              <div key={file.id} className="card bg-base-100 shadow-sm rounded-md">
+              <div
+                key={file.id}
+                className="card bg-base-100 shadow-sm rounded-md"
+              >
                 <div className="card-body p-2">
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0">
-                      {file.type === 'image' ? (
+                      {file.type === "image" ? (
                         <div className="w-16 h-16 relative">
                           <Image
-                            src={file.fileUrl || '/placeholder-image.jpg'}
+                            src={file.fileUrl || "/placeholder-image.jpg"}
                             alt={file.content}
                             layout="fill"
                             objectFit="cover"
@@ -169,13 +204,13 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
                     </div>
                   </div>
                   <div className="card-actions justify-end mt-2">
-                    <a 
-                      href={file.fileUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <a
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-primary"
                     >
-                      {file.type === 'image' ? 'View' : 'Download'}
+                      {file.type === "image" ? "View" : "Download"}
                     </a>
                   </div>
                 </div>
@@ -184,35 +219,29 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
           </div>
         </div>
       </div>
-      
+
       <div className="p-4 border-t border-base-300">
-        {chatType === 'private' && onBlockUser && user && (
-          <button 
-            className="btn btn-error btn-block" 
+        {chatType === "private" && onBlockUser && user && (
+          <button
+            className="btn btn-error btn-block"
             onClick={() => onBlockUser(user.id)}
           >
             <UserMinus size={20} className="mr-2" /> Block User
           </button>
         )}
-        {chatType === 'group' && onLeaveGroup && (
-          <button 
-            className="btn btn-warning btn-block" 
-            onClick={onLeaveGroup}
-          >
+        {chatType === "group" && onLeaveGroup && (
+          <button className="btn btn-warning btn-block" onClick={onLeaveGroup}>
             <LogOut size={20} className="mr-2" /> Leave Group
           </button>
         )}
-        {chatType === 'ai' && onDeleteChat && (
-          <button 
-            className="btn btn-error btn-block" 
-            onClick={onDeleteChat}
-          >
+        {chatType === "ai" && onDeleteChat && (
+          <button className="btn btn-error btn-block" onClick={onDeleteChat}>
             <Trash2 size={20} className="mr-2" /> Delete Chat
           </button>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default UserDetailsSidebar
+export default UserDetailsSidebar;

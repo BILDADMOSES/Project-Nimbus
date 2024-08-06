@@ -63,28 +63,28 @@ const ChatIllustration: React.FC = () => {
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full md:w-1/2 bg-indigo-100 p-4 md:p-8 flex justify-center items-center rounded-r-2xl"
+      className="w-full p-4 md:p-8 flex justify-center items-center rounded-r-2xl"
     >
       <div className="w-full max-w-md flex flex-col items-center">
-        <div className="w-full bg-white rounded-lg shadow-xl overflow-hidden mb-6 md:mb-8">
+        <div className="w-full bg-base-100 rounded-lg shadow-xl overflow-hidden mb-6 md:mb-8">
           {/* Chat app header */}
-          <div className="bg-indigo-600 text-white p-3 md:p-4 text-center">
+          <div className="bg-primary text-primary-content p-3 md:p-4 text-center">
             <h3 className="font-semibold text-sm md:text-base">
               Multilingual Chat
             </h3>
           </div>
 
           {/* Chat messages */}
-          <div className="p-3 md:p-4 bg-gray-100 space-y-3 md:space-y-4 h-64 md:h-80 overflow-y-auto">
+          <div className="p-3 md:p-4 bg-base-200 space-y-3 md:space-y-4 h-64 md:h-80 overflow-y-auto">
             {currentMessages.map((message, index) => (
               <React.Fragment key={index}>
-                <div className="flex justify-end">
-                  <div className="bg-indigo-500 text-white rounded-lg py-2 px-3 max-w-[70%] text-sm md:text-base">
+                <div className="chat chat-end">
+                  <div className="chat-bubble chat-bubble-primary">
                     {message.sender}
                   </div>
                 </div>
-                <div className="flex justify-start">
-                  <div className="bg-white text-gray-800 rounded-lg py-2 px-3 max-w-[70%] shadow text-sm md:text-base">
+                <div className="chat chat-start">
+                  <div className="chat-bubble chat-bubble-secondary">
                     {message.receiver}
                   </div>
                 </div>
@@ -93,20 +93,20 @@ const ChatIllustration: React.FC = () => {
           </div>
 
           {/* Chat input */}
-          <div className="p-3 md:p-4 border-t">
-            <div className="flex rounded-full bg-gray-100 p-2">
+          <div className="p-3 md:p-4 border-t border-base-300">
+            <div className="flex rounded-full bg-base-200 p-2">
               <input
                 type="text"
                 placeholder="Type in any language..."
                 className="flex-grow bg-transparent outline-none px-2 text-sm md:text-base"
               />
-              <button className="bg-indigo-500 text-white rounded-full p-2">
+              <button className="btn btn-circle btn-primary btn-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
-                  className="w-4 h-4 md:w-5 md:h-5"
+                  className="w-4 h-4 md:w-5 md:h-5 translate-180"
                 >
                   <path
                     strokeLinecap="round"
@@ -120,10 +120,10 @@ const ChatIllustration: React.FC = () => {
           </div>
         </div>
 
-        <h2 className="text-xl md:text-2xl font-semibold mb-2 text-center">
+        <h2 className="text-xl md:text-2xl font-semibold mb-2 text-center text-base-content">
           Break language barriers effortlessly
         </h2>
-        <p className="text-gray-600 text-center text-sm md:text-base">
+        <p className="text-base-content/70 text-center text-sm md:text-base">
           Connect with anyone, regardless of language.
         </p>
       </div>

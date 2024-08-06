@@ -1,9 +1,23 @@
 "use client"
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from './ThemeProvider';
 import Image from 'next/image'
-import { UserCircle, Camera, MoreVertical, Settings, LogOut, MessageSquarePlus, UserPlus, Users, Bot } from 'lucide-react'
+import { 
+  MessageSquarePlus, 
+  UserCircle, 
+  Settings, 
+  LogOut, 
+  UserPlus, 
+  Users, 
+  Bot, 
+  Camera,
+  MoreVertical,
+  Monitor,
+  Moon,
+  Sun,
+} from 'lucide-react'
 import CreateNewChat from "./CreateNewChat"
 import UserProfilePopup from "./UserProfile"
 import { doc, updateDoc } from 'firebase/firestore'
@@ -12,21 +26,22 @@ import upload from '@/lib/upload'
 import { Dropdown, DropdownItem } from './common/Dropdown'
 import Logo from '@/components/common/Logo'
 
-
-
-
 export default function UserInfo() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false)
   const [selectedChatType, setSelectedChatType] = useState<'private' | 'group' | 'ai' | null>(null)
   const [showProfilePopup, setShowProfilePopup] = useState(false)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const [isLoading, setIsLoading] = useState(false)
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isThemeOpen, setIsThemeOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
   const [error, setError] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
@@ -145,22 +160,55 @@ export default function UserInfo() {
         >
           <MoreVertical className="h-6 w-6" />
         </button>
-        <Dropdown isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} title="Menu">
-          <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={MessageSquarePlus}>
-            New Chat
+        <Dropdown isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} title="Menu" className="origin-top-right right-0 mt-2">
+          <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={<MessageSquarePlus size={16} />}>
+            Start New Conversation
             {isNewChatOpen && (
-              <div className="absolute left-full top-0 mt-0 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+              <div className="absolute left-full top-0 ml-2 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
                 <div className="py-1">
-                  <DropdownItem onClick={() => handleChatTypeSelect('private')} icon={UserPlus}>Private Chat</DropdownItem>
-                  <DropdownItem onClick={() => handleChatTypeSelect('group')} icon={Users}>Group Chat</DropdownItem>
-                  <DropdownItem onClick={() => handleChatTypeSelect('ai')} icon={Bot}>AI Chat</DropdownItem>
+                  <DropdownItem onClick={() => handleChatTypeSelect('private')} icon={<UserPlus size={16} />}>
+                    One-on-One Chat
+                  </DropdownItem>
+                  <DropdownItem onClick={() => handleChatTypeSelect('group')} icon={<Users size={16} />}>
+                    Group Discussion
+                  </DropdownItem>
+                  <DropdownItem onClick={() => handleChatTypeSelect('ai')} icon={<Bot size={16} />}>
+                    AI Assistant
+                  </DropdownItem>
                 </div>
               </div>
             )}
           </DropdownItem>
-          <DropdownItem onClick={handleProfileClick} icon={UserCircle}>Profile</DropdownItem>
-          <DropdownItem onClick={() => {/* Handle settings click */}} icon={Settings}>Settings</DropdownItem>
-          <DropdownItem onClick={handleSignOut} icon={LogOut}>Logout</DropdownItem>
+          <DropdownItem onClick={handleProfileClick} icon={<UserCircle size={16} />}>Profile</DropdownItem>
+          <DropdownItem onClick={() => setIsSettingsOpen(!isSettingsOpen)} icon={<Settings size={16} />}>
+            Settings
+            {isSettingsOpen && (
+              <div className="absolute left-full top-0 ml-2 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+                <div className="py-1">
+                  <DropdownItem onClick={() => setIsThemeOpen(!isThemeOpen)} icon={<Sun size={16} />}>
+                    Themes
+                    {isThemeOpen && (
+                      <div className="absolute left-full top-0 ml-2 w-56 rounded-lg shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+                        <div className="py-1">
+                          <DropdownItem onClick={() => setTheme('light')} icon={<Sun size={16} />}>
+                            Light Theme
+                          </DropdownItem>
+                          <DropdownItem onClick={() => setTheme('dark')} icon={<Moon size={16} />}>
+                            Dark Theme
+                          </DropdownItem>
+                          <DropdownItem onClick={() => setTheme('system')} icon={<Monitor size={16} />}>
+                            System Theme
+                          </DropdownItem>
+                        </div>
+                      </div>
+                    )}
+                  </DropdownItem>
+                  {/* ... other settings */}
+                </div>
+              </div>
+            )}
+          </DropdownItem>
+          <DropdownItem onClick={handleSignOut} icon={<LogOut size={16} />}>Logout</DropdownItem>
         </Dropdown>
       </div>
       {selectedChatType && (
