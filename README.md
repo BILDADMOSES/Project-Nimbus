@@ -7,139 +7,134 @@ Welcome to **chatEasy**, the instant messaging application designed to break dow
 The purpose of chatEasy is to allow users from different nations to communicate effortlessly. By abstracting the translation process, users can send messages and interact with the application in their native language while receiving responses in a language they understand. This fosters genuine connections and friendships across diverse linguistic backgrounds.
 
 # 🏗️ Structure
-The project follows a standard Next.js application structure with additional directories for organization:
+The project follows a standard Next.js application structure with additional directories for firebase integration and organization:
 ```bash
 /project-nimbus
-    │
-    ├── app/
-    │   ├── (auth)/
-    │   │   ├── signin/
-    │   │   │   └── page.tsx
-    │   │   ├── signup/
-    │   │   │   └── page.tsx
-    │   ├── api/
-    │   │   ├── auth/
-    │   │   │   └── [...nextauth]/
-    │   │   │       └── route.ts
-    │   │   ├── chat/
-    │   │   │   ├── create/
-    │   │   │   │   └── route.ts
-    │   │   │   ├── group/
-    │   │   │   │   └── route.ts
-    │   │   │   ├── invite/
-    │   │   │   │   └── route.ts
-    │   │   │   └── join/
-    │   │   │       └── route.ts
-    │   │   ├── user/
-    │   │   │   ├── language/
-    │   │   │   │   └── route.ts
-    │   │   │   └── profile/
-    │   │   │       └── route.ts
-    │   ├── chat/
-    │   │   ├── ai/
-    │   │   │   └── [sessionId]/
-    │   │   │       └── page.tsx
-    │   │   ├── group/
-    │   │   │   └── [groupId]/
-    │   │   │       └── page.tsx
-    │   │   ├── one-on-one/
-    │   │   │   └── [conversationId]/
-    │   │   │       └── page.tsx
-    │   ├── create-chat/
-    │   │   └── page.tsx
-    │   ├── join-chat/
-    │   │   └── page.tsx
-    │   ├── language-selection/
-    │   │   ├── layout.tsx
-    │   │   └── page.tsx
-    │   ├── profile/
-    │   │   └── page.tsx
-    │   ├── favicon.ico
-    │   ├── globals.css
-    │   ├── layout.tsx
-    │   └── page.tsx
-    │
-    ├── components/
-    │   ├── chat/
-    │   │   ├── Chat.tsx
-    │   │   ├── InvitationForm.tsx
-    │   │   ├── MessageInput.tsx
-    │   │   ├── MessageList.tsx
-    │   │   └── RoomInfoDisplay.tsx
-    │   ├── ChatroomCreator.tsx
-    │   ├── common/
-    │   │   ├── Footer.tsx
-    │   │   ├── Header.tsx
-    │   │   └── LoadingSpinner.tsx
-    │   ├── language/
-    │   │   └── LanguageSelector.tsx
-    │   └── user/
-    │       └── UserProfileForm.tsx
-    │
-    ├── hooks/
-    │   ├── useAIChat.ts
-    │   ├── useAuth.ts
-    │   ├── useTranslation.ts
-    │   └── useWebsocket.ts
-    │
-    ├── lib/
-    │   ├── storage/
-    │   │   ├── firebase.config.ts
-    │   │   └── firebase.ts
-    │   ├── utils/
-    │   │   ├── aiChat.ts
-    │   │   ├── invitationToken.ts
-    │   │   ├── password.ts
-    │   │   ├── translation.ts
-    │   │   └── validation.ts
-    │
-    ├── prisma/
-    │   ├── index.ts
-    │   ├── middleware.ts
-    │   └── schema.prisma
-    │
-    ├── public/
-    │   ├── next.svg
-    │   └── vercel.svg
-    │
-    ├── .env
-    ├── .eslintrc.json
-    ├── .gitignore
-    ├── next-env.d.ts
-    ├── next.config.mjs
-    ├── package-lock.json
-    ├── package.json
-    ├── postcss.config.mjs
-    ├── README.md
-    ├── server.ts
-    ├── server/
-    │   └── websocket.ts
-    ├── tailwind.config.ts
-    ├── tsconfig.json
-    ├── tsconfig.server.json
-    └── types/
-        ├── chat.ts
-        ├── index.ts
-        └── language.ts
+├── app
+│   ├── android-chrome-192x192.png
+│   ├── android-chrome-512x512.png
+│   ├── api
+│   │   ├── auth
+│   │   │   └── [...nextauth]
+│   │   │       └── route.ts
+│   │   └── search-users
+│   │       └── route.ts
+│   ├── apple-touch-icon.png
+│   ├── assets
+│   │   └── img
+│   │       ├── g-icon.png
+│   │       ├── icon.svg
+│   │       ├── jane.png
+│   │       ├── john.png
+│   │       ├── logo-dark.png
+│   │       ├── logo-light.png
+│   │       ├── phone-chat.png
+│   │       ├── wallpaper-dark.svg
+│   │       └── wallpaper-light.svg
+│   ├── (auth)
+│   │   ├── signin
+│   │   │   └── page.tsx
+│   │   └── signup
+│   │       └── page.tsx
+│   ├── chat
+│   │   └── page.tsx
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── (invitation)
+│   │   ├── accept-invite
+│   │   │   └── page.tsx
+│   │   └── invite
+│   │       └── page.tsx
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── site.webmanifest
+├── components
+│   ├── ActionButton.tsx
+│   ├── AuthCard.tsx
+│   ├── AvatarUpload.tsx
+│   ├── BlockButton.tsx
+│   ├── ChatHeader.tsx
+│   ├── ChatItem.tsx
+│   ├── ChatList.tsx
+│   ├── ChatRoom.tsx
+│   ├── CombinedChatPage.tsx
+│   ├── common
+│   │   ├── ChatIllustration.tsx
+│   │   ├── Dropdown.tsx
+│   │   └── Logo.tsx
+│   ├── CreateNewChat.tsx
+│   ├── EmojiPicker.tsx
+│   ├── ErrorAlert.tsx
+│   ├── InputField.tsx
+│   ├── InvitationCard.tsx
+│   ├── LoadingSpinner.tsx
+│   ├── MessageInput.tsx
+│   ├── MessageList.tsx
+│   ├── PasswordField.tsx
+│   ├── PreferredLanguageSelect.tsx
+│   ├── SearchBar.tsx
+│   ├── SessionProvider.tsx
+│   ├── StatusMessage.tsx
+│   ├── ThemeProvider.tsx
+│   ├── ThemeSwitcher.tsx
+│   ├── TranslucentCard.tsx
+│   ├── UserDetailsSidebar.tsx
+│   ├── UserInfo.tsx
+│   └── UserProfile.tsx
+├── constants
+│   └── index.ts
+├── lib
+│   ├── auth.ts
+│   ├── email.ts
+│   ├── firebaseAdmin.ts
+│   ├── firebaseClient.ts
+│   ├── firebaseStorage.ts
+│   └── upload.ts
+├── next.config.js
+├── next.config.mjs
+├── package.json
+├── package-lock.json
+├── postcss.config.mjs
+├── README.md
+├── store
+│   ├── useChatStore.ts
+│   └── useUserStore.ts
+├── tailwind.config.ts
+├── tsconfig.json
+└── types
+    ├── index.ts
+    └── next-auth.d.ts
 ```
 
-- `.env`, `.eslintrc.json`, `.gitignore`: Configuration files
-- `app/`: Next.js app directory
-  - `(auth)/`: Authentication pages (sign-in and sign-up)
-  - `api/`: API routes for authentication, chat, and user management
-  - `chat/`: Chat pages for one-on-one, group, and AI chats
-  - `create-chat/`, `join-chat/`: Pages for creating and joining chats
-  - `language-selection/`: Language selection page and layout
-  - `profile/`: User profile page
-  - `layout.tsx`, `page.tsx`: App-level layout and homepage
-- `components/`: Reusable components for chat, common UI elements, language selection, and user profile
-- `hooks/`: Custom hooks for AI chat, authentication, translation, and websockets
-- `lib/`: Utility functions and Firebase configuration
-- `prisma/`: Prisma schema and middleware
-- `public/`: Public assets (icons and images)
-- `server/`: Server-side code for websockets
-- `types/`: TypeScript type definitions for chat, language, and index
-- `tailwind.config.ts`, `tsconfig.json`, `tsconfig.server.json`: Tailwind CSS and TypeScript configuration files
+- **app**
+Main application directory with source code.
+
+- **api**: Contains server-side routes, including authentication and user search APIs utilizing Firebase.
+(auth): Pages for sign-in and sign-up.
+chat/page.tsx: Chat interface for real-time messaging with Firebase.
+
+- **components**
+Reusable UI components for the application, such as ChatHeader, MessageList, and EmojiPicker, all designed to interact with Firebase for data handling.
+
+- **lib**
+Utility functions and Firebase configurations:
+
+- **firebaseAdmin.ts, firebaseClient.ts**: 
+Manage server and client-side Firebase interactions.
+
+- **store**
+State management for chat and user data, leveraging Firebase for real-time updates.
+
+- **types**
+Type definitions for TypeScript, including those for Firebase and authentication.
+
+- **Root Files**
+Configuration files for Next.js and Firebase setup, including package.json and tailwind.config.ts for styling.
+
+We are currently utilizing Firebase for real-time chat functionality and user authentication, ensuring a clean and scalable codebase.
+
 
 Please note that the project structure may change as development is ongoing. Always refer to the most recent version of the project for the accurate structure.
 
@@ -155,20 +150,44 @@ chatEasy tackles the language barrier challenge with these innovative solutions:
    
 By leveraging cutting-edge AI and machine learning technologies, chatEasy provides an experience where users can interact as if they are speaking the same language, regardless of their geographical and linguistic differences.
 
+
+## How it Works
+![concept illustration](./resources/concept.png)
+
+A sample of out tentative user interface:
+
+![ui screenshot](./resources/ui1.png)
+![ui screenshot](./resources/ui2.png)
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
 
-First, run the development server:
+To run the chateasy application locally:
 
+1. Install dependencies
+```bash
+npm install
+```
+2. create a .env file and populate it with your firebase credentials as follows
+```bash
+#From Firebase Console
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+
+
+#For Google Translate API
+NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY=<GET AN API KEY FROM GOOGLE CLOUD CONSOLE>
+NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL=https://translation.googleapis.com/language/translate/v2
+
+```
+3. Run the development server
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
