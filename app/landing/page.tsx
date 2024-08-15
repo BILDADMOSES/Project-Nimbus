@@ -6,7 +6,7 @@ import Logo from "@/components/common/Logo";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import mandela from "./assets/img/mandela.jpeg"
+import mandela from "../assets/img/mandela.jpeg"
 
 
 const messages = [

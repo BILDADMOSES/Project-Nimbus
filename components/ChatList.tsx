@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import {
   collection,
   query,
@@ -17,16 +15,7 @@ import { db } from "@/lib/firebaseClient";
 import { useSession } from "next-auth/react";
 import SearchBar from "@/components/SearchBar";
 import ChatItem from "@/components/ChatItem";
-
-interface Chat {
-  id: string;
-  name: string;
-  type: "private" | "group" | "ai";
-  lastMessage: string;
-  lastMessageTime: Date;
-  participants: string[];
-  avatar?: string;
-}
+import useChatStore from "@/store/useChatStore"; 
 
 interface ChatListProps {
   userId: string;
@@ -34,10 +23,18 @@ interface ChatListProps {
 }
 
 export default function ChatList({ userId, onChatSelect }: ChatListProps) {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const {
+    chats,
+    filteredChats,
+    isLoading,
+    searchTerm,
+    setChats,
+    setFilteredChats,
+    setLoading,
+    setSearchTerm,
+    setSelectedChatId,
+  } = useChatStore();
+
   const { data: session } = useSession();
 
   useEffect(() => {
@@ -49,7 +46,7 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
     );
     const unsubscribe = onSnapshot(q, async (querySnapshot) => {
       const chatsPromises = querySnapshot.docs.map(async (docSnapshot) => {
-        const chatData = docSnapshot.data() as Chat;
+        const chatData = docSnapshot.data();
         const messagesQuery = query(
           collection(db as Firestore, `chats/${docSnapshot.id}/messages`),
           orderBy("timestamp", "desc"),
@@ -87,11 +84,9 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
         let lastMessageContent = "No messages yet";
         if (lastMessage) {
           if (lastMessage.senderId === userId) {
-            // If the last message is from the current user, show  original message
             lastMessageContent = lastMessage.originalContent || "Empty message";
           } else {
-            // For messages from other users, show translated version if available
-            const userLanguage = session?.user?.preferredLang || 'en'; // 'en' as default
+            const userLanguage = session?.user?.preferredLang || 'en';
             lastMessageContent = lastMessage.content?.[userLanguage] || lastMessage.originalContent || "Empty message";
           }
         }
@@ -112,12 +107,11 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
         (a, b) => b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
       );
       setChats(sortedChats);
-      setFilteredChats(sortedChats);
-      setIsLoading(false);
+      setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [userId, session]);
+  }, [userId, session, setChats, setLoading]);
 
   useEffect(() => {
     if (searchTerm.trim() === "") {
@@ -131,7 +125,12 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
       });
       setFilteredChats(filtered);
     }
-  }, [searchTerm, chats]);
+  }, [searchTerm, chats, setFilteredChats]);
+
+  const handleChatSelect = (chatId: string) => {
+    setSelectedChatId(chatId);
+    onChatSelect(chatId);
+  };
 
   if (isLoading) {
     return (
@@ -142,7 +141,7 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
   }
 
   return (
-    <div className="flex flex-col h-[60vh]">
+    <div className="flex flex-col h-full">
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
       <div className="flex-1 overflow-y-auto">
         {filteredChats.length === 0 ? (
@@ -152,7 +151,11 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
         ) : (
           <ul className="space-y-2 p-4">
             {filteredChats.map((chat) => (
-              <ChatItem key={chat.id} chat={chat} onChatSelect={onChatSelect} />
+              <ChatItem
+                key={chat.id}
+                chat={chat}
+                onChatSelect={handleChatSelect} 
+              />
             ))}
           </ul>
         )}

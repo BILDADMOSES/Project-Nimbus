@@ -18,7 +18,7 @@ export default async function RootLayout({
       <body className={`${inter.className}`}>
         <div className="bg-wallpaper"></div>
         <SessionProvider session={session}>
-          <main>{children}</main>
+          <div>{children}</div>
         </SessionProvider>
       </body>
     </html>

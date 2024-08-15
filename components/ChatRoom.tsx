@@ -222,15 +222,10 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-
       const data = await response.json();
       return data.data.translations[0].translatedText;
     };
-
     const translatedMessage = await translateText(message, targetLang);
-
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
 
     return translatedMessage;
   };
@@ -459,7 +454,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex max-h-[90vh] ">
       <div className="flex-1 flex flex-col bg-base-100 bg-opacity-0 backdrop-blur-md rounded-lg shadow-lg overflow-hidden">
         <ChatHeader
           chatData={chatData}
@@ -476,7 +471,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
             setIsUserDetailsSidebarOpen(true);
           }}
         />
-        <div className="flex-1 overflow-hidden">
+        
           <MessageList
             messages={messages}
             participants={participants}
@@ -487,7 +482,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
             chatContainerRef={chatContainerRef}
             renderMessage={renderMessage}
           />
-        </div>
+        
         <MessageInput onSendMessage={sendMessage} />
       </div>
       {isUserDetailsSidebarOpen && (

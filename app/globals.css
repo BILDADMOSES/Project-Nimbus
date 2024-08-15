@@ -76,3 +76,7 @@ main {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+.bg-image {
+  background-image: url('./assets/img/chat.jpg');
+}

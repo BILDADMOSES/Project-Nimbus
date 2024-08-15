@@ -87,7 +87,7 @@ const MessageList: React.FC<MessageListProps> = ({
   const groupedMessages = groupMessagesByDay(messages)
 
   return (
-    <div ref={chatContainerRef} className="h-[60vh] overflow-y-auto p-4 scrollbar-hide">
+    <div ref={chatContainerRef} className="h-screen overflow-y-auto p-4 scrollbar-hide">
       {hasMore && (
         <div ref={lastMessageRef} className="text-center my-4">
           <span className="loading loading-dots loading-sm"></span>
