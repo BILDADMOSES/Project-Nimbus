@@ -33,7 +33,7 @@ function ChatIllustration() {
 
   return (
     <motion.div
-      className="md:w-1/2 h-[400px]  p-6 px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
+      className="md:w-1/2 bg-gradient-to-br from-primary/20 to-black/50 h-[400px]  p-6 px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
       initial={{ opacity: 0, x: 100 }}
       whileInView={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.8 }}
