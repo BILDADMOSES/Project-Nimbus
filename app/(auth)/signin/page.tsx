@@ -50,6 +50,7 @@ export default function SignIn() {
         password: form.password,
       });
       if (result?.error) {
+        console.log("Sign in error:", result);
         setError(result.error);
       } else {
         setIsRedirecting(true);
@@ -146,7 +147,7 @@ export default function SignIn() {
                     d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span>{error}</span>
+                <span>{error === "CredentialsSignin" && "Invalid Credentials: Please Check Email/Username or Password"}</span>
               </div>
             )}
             <button

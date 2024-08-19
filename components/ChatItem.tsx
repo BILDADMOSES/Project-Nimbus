@@ -27,7 +27,7 @@ export default function ChatItem({ chat, onChatSelect }: ChatItemProps) {
     <li className=' border-red-500'>
       <button 
         onClick={() => onChatSelect(chat.id)} 
-        className="w-full text-left p-3 hover:bg-base-200 transition-colors duration-200 ease-in-out rounded-lg"
+        className="w-full text-left px-3 py-1 hover:bg-base-200 transition-colors duration-200 ease-in-out rounded-lg"
       >
         <div className="flex h-20 border-green-500 items-center">
           {chat.avatar ? (
@@ -44,17 +44,17 @@ export default function ChatItem({ chat, onChatSelect }: ChatItemProps) {
             </div>
           )}
           <div className="flex-1">
-            <div className="flex  justify-between items-baseline">
+            <div className="flex justify-between items-center ">
+              <span className=''>{chat.name || 'Unnamed Chat'} </span>
               <span className="font-semibold text-base-content">
-                {chat.name || 'Unnamed Chat'} 
                 {chat.type === 'group' && <span className="badge badge-sm badge-outline ml-2">Group</span>}
                 {chat.type === 'ai' && <span className="badge badge-sm badge-primary ml-2">AI</span>}
               </span>
-              <span className="text-xs text-base-content/70">
+              <span className="text-xs text-base-content/70 ml-5">
                 {formatDistanceToNow(chat.lastMessageTime, { addSuffix: true })}
               </span>
             </div>
-            <p className="text-sm text-base-content/70 truncate">{chat.lastMessage.length < 25 ? chat.lastMessage : chat.lastMessage.slice(0,25) + '...' || 'No messages'}</p>
+            <p className="text-sm mt-2 text-base-content/70 truncate">{chat.lastMessage.length < 25 ? chat.lastMessage : chat.lastMessage.slice(0,25) + '...' || 'No messages'}</p>
           </div>
         </div>
       </button>

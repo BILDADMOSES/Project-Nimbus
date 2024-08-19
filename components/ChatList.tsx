@@ -141,15 +141,15 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col  ">
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1  \">
         {filteredChats.length === 0 ? (
           <p className="text-base-content/70 text-center p-4">
             No chats found.
           </p>
         ) : (
-          <ul className="space-y-2 p-4">
+          <ul className="space-y-1 max-h-[410px] scrollbar-hide overflow-y-scroll p-4">
             {filteredChats.map((chat) => (
               <ChatItem
                 key={chat.id}

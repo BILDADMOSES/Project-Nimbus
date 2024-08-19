@@ -112,7 +112,8 @@ const MessageList: React.FC<MessageListProps> = ({
                 )}
               </div>
               <div className={`chat-bubble ${message.senderId === currentUserId ? 'chat-bubble-primary' : 'chat-bubble-secondary'}`}>
-                {message.type === 'text' && renderMessage(message)}
+                {/* {message.type === 'text' && renderMessage(message)} */}
+                { message.type === 'text' && <p dangerouslySetInnerHTML={{ __html: renderMessage(message) }} />}
                 {message.type === 'image' && (
                   <Image src={message.fileUrl!} alt="Uploaded image" width={200} height={200} />
                 )}

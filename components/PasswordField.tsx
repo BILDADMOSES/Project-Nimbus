@@ -34,7 +34,7 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({ label, name, value
           {showPassword ? <EyeOff size={20} className="text-base-content/50" /> : <Eye size={20} className="text-base-content/50" />}
         </button>
       </div>
-      {error && <p className="text-error text-xs mt-1">{error}</p>}
+      {/* {error && <p className="text-error text-xs mt-1">{error}</p>} */}
     </div>
   );
 };

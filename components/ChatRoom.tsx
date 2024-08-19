@@ -285,7 +285,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
           messageData.content = content;
         }
       }
-
+      console.log("ADDING MESSAGE", messageData);
       await addDoc(collection(db, `chats/${chatId}/messages`), messageData);
     } catch (error) {
       console.error("Error sending message:", error);

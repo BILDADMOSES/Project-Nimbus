@@ -37,6 +37,6 @@ export const InputField: React.FC<InputFieldProps> = ({
         error ? "input-error" : ""
       } ${className || ""}`}
     />
-    {error && <p className="text-error text-xs mt-1">{error}</p>}
+    {/* {error && <p className="text-error text-xs mt-1">{error}</p>} */}
   </div>
 );
