@@ -75,7 +75,7 @@ const ChatIllustration: React.FC = () => {
           </div>
 
           {/* Chat messages */}
-          <div className="p-3 md:p-4 bg-base-200 space-y-3 md:space-y-4 h-64 md:h-80 overflow-y-auto">
+          <div className="p-3 md:p-4 bg-base-200 space-y-3 md:space-y-4 h-64 md:h-80 scrollbar-hide overflow-y-auto">
             {currentMessages.map((message, index) => (
               <React.Fragment key={index}>
                 <div className="chat chat-end">

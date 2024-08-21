@@ -11,7 +11,7 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { InputField } from "@/components/InputField";
 import { PasswordField } from "@/components/PasswordField";
 import ChatIllustration from "@/components/common/ChatIllustration";
-import { languages } from "@/constants";
+import { language_facts, languages } from "@/constants";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -31,6 +31,7 @@ export default function SignupPage() {
   const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const router = useRouter();
+  const [showFact, setShowFact] = useState(false)
 
   useEffect(() => {
     setPasswordsMatch(form.password === form.confirmPassword);
@@ -50,6 +51,13 @@ export default function SignupPage() {
     }
   };
 
+  const genLanguageFact = (preferredLangCode: string): string => {
+    const facts = language_facts[preferredLangCode as keyof typeof language_facts];
+    const randomIndex = Math.floor(Math.random() * facts.length);
+    return facts[randomIndex];
+  };
+  
+
   const isFormValid = () => {
     return (
       form.email &&
@@ -61,6 +69,7 @@ export default function SignupPage() {
       termsAccepted
     );
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +119,11 @@ export default function SignupPage() {
       } else if (invitedChatId) {
         router.push(`/accept-invite?token=${invitedChatId}`);
       } else {
-        router.push("/signin");
+        setShowFact(true);
+        setTimeout(() => {
+          setShowFact(false);
+          router.push("/signin");
+        }, 5000); 
       }
     } catch (error) {
       setErrors({ general: "Failed to create an account. Please try again." });
@@ -123,6 +136,12 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <AuthCard className="w-[70%]">
+        {showFact ? <div className="flex p-20 flex-col w-full items-center justify-center">
+      <h2 className="text-4xl md:text-7xl my-5">Did You Know?</h2>
+      <p className="text-2xl text-gray-400 mt-20 text-center">
+          {genLanguageFact(form.preferredLang)}
+      </p>
+    </div> : <>
         <div className="w-full md:w-1/2 p-4">
           <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
             Create an Account
@@ -277,6 +296,7 @@ export default function SignupPage() {
         <div className="w-full md:w-1/2 hidden md:flex flex-col items-center justify-center">
           <ChatIllustration />
         </div>
+        </>}
       </AuthCard>
     </div>
   );
