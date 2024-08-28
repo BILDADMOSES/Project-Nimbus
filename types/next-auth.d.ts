@@ -1,4 +1,5 @@
 import NextAuth from "next-auth"
+import { UsageLimits } from "@/lib/usageTracking"
 
 declare module "next-auth" {
   interface Session {
@@ -9,6 +10,9 @@ declare module "next-auth" {
       name?: string | null;
       email?: string | null;
       image?: string | null;
+      usageStatus?: UsageLimits;
+      tier?: string;
+      limits?: UsageLimits;
     }
   }
 
@@ -19,6 +23,8 @@ declare module "next-auth" {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    usageStatus?: UsageLimits;
+    tier?: string;
   }
 }
 
@@ -30,5 +36,7 @@ declare module "next-auth/jwt" {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    usageStatus?: UsageLimits;
+    tier?: string;
   }
 }
