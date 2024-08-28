@@ -80,30 +80,31 @@ export async function incrementFileStorage(
 }
 
 export async function getUsageStatus(userId: string): Promise<UsageLimits> {
-  const usageRef = doc(db, "usage", userId);
-  const usageDoc = await getDoc(usageRef);
-
-  if (!usageDoc.exists()) {
-    await initializeUsageDocument(userId);
+    const usageRef = doc(db, "usage", userId);
+    const usageDoc = await getDoc(usageRef);
+  
+    if (!usageDoc.exists()) {
+      const defaultUsage = {
+        messages: 0,
+        translations: 0,
+        aiInteractions: 0,
+        fileStorage: 0,
+        groupChats: 0,
+      };
+      await setDoc(usageRef, defaultUsage);
+      return defaultUsage;
+    }
+  
+    const usage = usageDoc.data() as Partial<UsageLimits>;
+  
     return {
-      messages: 0,
-      translations: 0,
-      aiInteractions: 0,
-      fileStorage: 0,
-      groupChats: 0,
+      messages: usage.messages || 0,
+      translations: usage.translations || 0,
+      aiInteractions: usage.aiInteractions || 0,
+      fileStorage: usage.fileStorage || 0,
+      groupChats: usage.groupChats || 0,
     };
   }
-
-  const usage = usageDoc.data() as Partial<UsageLimits>;
-
-  return {
-    messages: usage.messages || 0,
-    translations: usage.translations || 0,
-    aiInteractions: usage.aiInteractions || 0,
-    fileStorage: usage.fileStorage || 0,
-    groupChats: usage.groupChats || 0,
-  };
-}
 
 export async function checkGroupMemberLimit(chatId: string): Promise<boolean> {
   const chatRef = doc(db, "chats", chatId);

@@ -11,7 +11,7 @@ import {
   getDoc,
   setDoc,
 } from "firebase/firestore";
-import { getUsageStatus, FREE_TIER_LIMITS, initializeUsageDocument } from "@/lib/usageTracking";
+import { getUsageStatus, FREE_TIER_LIMITS } from "@/lib/usageTracking";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -53,30 +53,35 @@ export const authOptions: NextAuthOptions = {
           const userDoc = await getDoc(userDocRef);
           let userData = userDoc.data();
 
-          // Check if the user has a tier, if not, assign them to the free tier
-          if (!userData?.tier) {
+          // If user data doesn't exist, initialize it
+          if (!userData) {
             userData = {
-              ...userData,
-              tier: "free",
+              uid: userCredential.user.uid,
+              email: userCredential.user.email,
+              username: userCredential.user.displayName,
+              fullName: userCredential.user.displayName,
+              preferredLang: "en", // Default language
+              avatar: userCredential.user.photoURL,
+              tier: "free", // Default tier
+              createdAt: new Date().toISOString(),
             };
-            // Update the user document with the new tier
-            await setDoc(userDocRef, userData, { merge: true });
+            await setDoc(userDocRef, userData);
+          } else if (!userData.tier) {
+            userData.tier = "free";
+            await setDoc(userDocRef, { tier: "free" }, { merge: true });
           }
-
-          // Initialize usage document if it doesn't exist
-          await initializeUsageDocument(userCredential.user.uid);
 
           const usageStatus = await getUsageStatus(userCredential.user.uid);
 
           return {
             id: userCredential.user.uid,
             email: userCredential.user.email,
-            name: userData?.fullName || userCredential.user.displayName,
-            username: userData?.username,
-            preferredLang: userData?.preferredLang,
-            image: userData?.avatar,
+            name: userData.fullName || userCredential.user.displayName,
+            username: userData.username,
+            preferredLang: userData.preferredLang,
+            image: userData.avatar,
             usageStatus,
-            tier: userData?.tier,
+            tier: userData.tier,
           };
         } catch (error) {
           console.error("Error in authorize:", error);
