@@ -17,6 +17,7 @@ export interface Message {
   export interface UserData {
     id: string;
     username: string;
+    preferredLang?: string | null;
     email: string;
     image?: string;
   }

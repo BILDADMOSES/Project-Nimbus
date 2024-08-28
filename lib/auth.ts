@@ -9,7 +9,9 @@ import {
   getDocs,
   doc,
   getDoc,
+  setDoc,
 } from "firebase/firestore";
+import { getUsageStatus, FREE_TIER_LIMITS, initializeUsageDocument } from "@/lib/usageTracking";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -47,10 +49,24 @@ export const authOptions: NextAuthOptions = {
             email,
             credentials.password
           );
-          const userDoc = await getDoc(
-            doc(db, "users", userCredential.user.uid)
-          );
-          const userData = userDoc.data();
+          const userDocRef = doc(db, "users", userCredential.user.uid);
+          const userDoc = await getDoc(userDocRef);
+          let userData = userDoc.data();
+
+          // Check if the user has a tier, if not, assign them to the free tier
+          if (!userData?.tier) {
+            userData = {
+              ...userData,
+              tier: "free",
+            };
+            // Update the user document with the new tier
+            await setDoc(userDocRef, userData, { merge: true });
+          }
+
+          // Initialize usage document if it doesn't exist
+          await initializeUsageDocument(userCredential.user.uid);
+
+          const usageStatus = await getUsageStatus(userCredential.user.uid);
 
           return {
             id: userCredential.user.uid,
@@ -59,6 +75,8 @@ export const authOptions: NextAuthOptions = {
             username: userData?.username,
             preferredLang: userData?.preferredLang,
             image: userData?.avatar,
+            usageStatus,
+            tier: userData?.tier,
           };
         } catch (error) {
           console.error("Error in authorize:", error);
@@ -79,6 +97,8 @@ export const authOptions: NextAuthOptions = {
         token.username = user.username;
         token.preferredLang = user.preferredLang;
         token.image = user.image;
+        token.usageStatus = user.usageStatus;
+        token.tier = user.tier;
       }
       return token;
     },
@@ -90,6 +110,9 @@ export const authOptions: NextAuthOptions = {
         session.user.username = token.username;
         session.user.preferredLang = token.preferredLang;
         session.user.image = token.image;
+        session.user.usageStatus = token.usageStatus;
+        session.user.tier = token.tier;
+        session.user.limits = FREE_TIER_LIMITS;
       }
       return session;
     },

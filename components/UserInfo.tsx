@@ -17,6 +17,8 @@ import {
   Monitor,
   Moon,
   Sun,
+  BarChart2
+
 } from 'lucide-react'
 import CreateNewChat from "./CreateNewChat"
 import UserProfilePopup from "./UserProfile"
@@ -25,6 +27,9 @@ import { db } from '@/lib/firebaseClient'
 import upload from '@/lib/upload'
 import { Dropdown, DropdownItem } from './common/Dropdown'
 import Logo from '@/components/common/Logo'
+import { getUsageStatus, FREE_TIER_LIMITS, UsageLimits } from '@/lib/usageTracking'
+
+
 
 export default function UserInfo() {
   const { data: session, status, update } = useSession()
@@ -41,6 +46,8 @@ export default function UserInfo() {
   const [error, setError] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
+  const [usageData, setUsageData] = useState<UsageLimits | null>(null);
 
 
   const handleSignOut = async () => {
@@ -87,6 +94,19 @@ export default function UserInfo() {
       }
     }
   }
+
+  const fetchUsageStatus = async () => {
+    if (session?.user?.id) {
+      const usage = await getUsageStatus(session.user.id);
+      setUsageData(usage);
+    }
+  };
+
+  const handleUsageClick = () => {
+    fetchUsageStatus();
+    setIsUsageModalOpen(true);
+    setIsMenuOpen(false);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -208,6 +228,7 @@ export default function UserInfo() {
               </div>
             )}
           </DropdownItem>
+          <DropdownItem onClick={handleUsageClick} icon={<BarChart2 size={16} />}>Usage Status</DropdownItem>
           <DropdownItem onClick={handleSignOut} icon={<LogOut size={16} />}>Logout</DropdownItem>
         </Dropdown>
       </div>
@@ -223,6 +244,28 @@ export default function UserInfo() {
           position={popupPosition}
         />
       )}
+      {isUsageModalOpen && usageData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-100 p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Usage Status</h3>
+            <ul className="space-y-2">
+              <li>Messages: {usageData.messages} / {FREE_TIER_LIMITS.messages}</li>
+              <li>Translations: {usageData.translations} / {FREE_TIER_LIMITS.translations}</li>
+              <li>AI Interactions: {usageData.aiInteractions} / {FREE_TIER_LIMITS.aiInteractions}</li>
+              <li>File Storage: {(usageData.fileStorage / (1024 * 1024)).toFixed(2)}MB / {FREE_TIER_LIMITS.fileStorage / (1024 * 1024)}MB</li>
+              <li>Group Chats: {usageData.groupChats} / {FREE_TIER_LIMITS.groupChats}</li>
+            </ul>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsUsageModalOpen(false)}
+                className="btn btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }

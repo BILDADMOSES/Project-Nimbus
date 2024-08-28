@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
@@ -12,6 +13,7 @@ import { InputField } from "@/components/InputField";
 import { PasswordField } from "@/components/PasswordField";
 import ChatIllustration from "@/components/common/ChatIllustration";
 import { language_facts, languages } from "@/constants";
+import { FREE_TIER_LIMITS } from "@/lib/usageTracking";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -28,10 +30,11 @@ export default function SignupPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showFreeplanModal, setShowFreeplanModal] = useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const router = useRouter();
-  const [showFact, setShowFact] = useState(false)
+  const [showFact, setShowFact] = useState(false);
 
   useEffect(() => {
     setPasswordsMatch(form.password === form.confirmPassword);
@@ -52,11 +55,11 @@ export default function SignupPage() {
   };
 
   const genLanguageFact = (preferredLangCode: string): string => {
-    const facts = language_facts[preferredLangCode as keyof typeof language_facts];
+    const facts =
+      language_facts[preferredLangCode as keyof typeof language_facts];
     const randomIndex = Math.floor(Math.random() * facts.length);
     return facts[randomIndex];
   };
-  
 
   const isFormValid = () => {
     return (
@@ -69,7 +72,6 @@ export default function SignupPage() {
       termsAccepted
     );
   };
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,6 +100,7 @@ export default function SignupPage() {
         photoURL: avatarUrl,
       });
 
+      // Create user document
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: form.email,
@@ -106,6 +109,16 @@ export default function SignupPage() {
         preferredLang: form.preferredLang,
         avatar: avatarUrl,
         createdAt: new Date().toISOString(),
+        tier: "free", // initial tier to free
+      });
+
+      // Initialize usage tracking
+      await setDoc(doc(db, "usage", user.uid), {
+        messages: 0,
+        translations: 0,
+        aiInteractions: 0,
+        fileStorage: 0,
+        groupChats: 0,
       });
 
       setIsRedirecting(true);
@@ -123,7 +136,7 @@ export default function SignupPage() {
         setTimeout(() => {
           setShowFact(false);
           router.push("/signin");
-        }, 5000); 
+        }, 5000);
       }
     } catch (error) {
       setErrors({ general: "Failed to create an account. Please try again." });
@@ -136,168 +149,214 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <AuthCard className="w-[70%]">
-        {showFact ? <div className="flex p-20 flex-col w-full items-center justify-center">
-      <h2 className="text-4xl md:text-7xl my-5">Did You Know?</h2>
-      <p className="text-2xl text-gray-400 mt-20 text-center">
-          {genLanguageFact(form.preferredLang)}
-      </p>
-    </div> : <>
-        <div className="w-full md:w-1/2 p-4">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
-            Create an Account
-          </h1>
-          <p className="text-sm md:text-base text-base-content/70 mb-6 text-center">
-            Join us to start chatting across languages.
-          </p>
+        {showFact ? (
+          <div className="flex p-20 flex-col w-full items-center justify-center">
+            <h2 className="text-4xl md:text-7xl my-5">Did You Know?</h2>
+            <p className="text-2xl text-gray-400 mt-20 text-center">
+              {genLanguageFact(form.preferredLang)}
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="w-full md:w-1/2 p-4">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
+                Create an Account
+              </h1>
+              <p className="text-sm md:text-base text-base-content/70 mb-6 text-center">
+                Join us to start chatting across languages.
+              </p>
 
-          <AvatarUpload
-            avatarPreview={avatarPreview}
-            handleFileChange={handleFileChange}
-          />
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex md:flex-row justify-between">
-              <InputField
-                className="flex-1"
-                label="Email address"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="example@mail.com"
-                error={errors.email}
-              />
-              <InputField
-                className="flex-1"
-                label="Username"
-                name="username"
-                type="text"
-                value={form.username}
-                onChange={handleChange}
-                placeholder="johndoe"
-                error={errors.username}
-              />
-            </div>
-            <InputField
-              label="Full Name"
-              name="fullName"
-              type="text"
-              value={form.fullName}
-              onChange={handleChange}
-              placeholder="John Doe"
-              error={errors.fullName}
-            />
-            <div className="flex md:flex-row justify-between">
-              <PasswordField
-                label="Password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                error={errors.password}
-              />
-              <PasswordField
-                label="Confirm Password"
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                error={!passwordsMatch ? "Passwords do not match" : undefined}
-              />
-            </div>
-
-            {/* Preferred Language dropdown */}
-            <div>
-              <label className="label pl-0">
-                <span className="label-text text-sm md:text-base text-base-content/80">
-                  Preferred Language
-                </span>
-              </label>
-              <select
-                name="preferredLang"
-                value={form.preferredLang}
-                onChange={handleChange}
-                className={`select select-bordered w-full bg-base-100 text-sm md:text-base ${
-                  errors.preferredLang ? "select-error" : ""
-                }`}
-              >
-                <option value="">Select a language</option>
-                {languages.map((lang) => (
-                  <option key={lang.code} value={lang.code}>
-                    {lang.name}
-                  </option>
-                ))}
-              </select>
-              {errors.preferredLang && (
-                <p className="text-error text-xs mt-1">
-                  {errors.preferredLang}
-                </p>
-              )}
-            </div>
-
-            {/* Terms and conditions checkbox */}
-            <div className="flex items-center mt-4">
-              <input
-                type="checkbox"
-                name="terms"
-                checked={termsAccepted}
-                onChange={() => setTermsAccepted(!termsAccepted)}
-                className="checkbox checkbox-primary"
-              />
-              <span className="ml-2 text-sm md:text-base text-base-content/80">
-                I accept the{" "}
-                <Link href="/terms" className="text-primary underline">
-                  Terms and Conditions
-                </Link>
-              </span>
-            </div>
-
-            {errors.general && (
-              <div className="alert alert-error">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="stroke-current shrink-0 h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
+              <div className="mb-4 flex justify-center">
+                <button
+                  onClick={() => setShowFreeplanModal(true)}
+                  className="btn btn-outline btn-primary btn-sm"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <span>{errors.general}</span>
+                  Free Plan
+                </button>
               </div>
-            )}
 
-            <button
-              type="submit"
-              className="btn btn-primary w-full text-sm md:text-base"
-              disabled={isLoading || !isFormValid()}
-            >
-              {isLoading ? (
-                <>
-                  <span className="loading loading-spinner"></span>
-                  Creating account...
-                </>
-              ) : (
-                "Sign Up"
-              )}
-            </button>
-          </form>
+              <AvatarUpload
+                avatarPreview={avatarPreview}
+                handleFileChange={handleFileChange}
+              />
 
-          <p className="text-sm md:text-base text-base-content/70 mt-4 text-center">
-            Already have an account?{" "}
-            <Link href="/signin" className="text-primary underline">
-              Sign In
-            </Link>
-          </p>
-        </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex md:flex-row justify-between">
+                  <InputField
+                    className="flex-1"
+                    label="Email address"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    placeholder="example@mail.com"
+                    error={errors.email}
+                  />
+                  <InputField
+                    className="flex-1"
+                    label="Username"
+                    name="username"
+                    type="text"
+                    value={form.username}
+                    onChange={handleChange}
+                    placeholder="johndoe"
+                    error={errors.username}
+                  />
+                </div>
+                <InputField
+                  label="Full Name"
+                  name="fullName"
+                  type="text"
+                  value={form.fullName}
+                  onChange={handleChange}
+                  placeholder="John Doe"
+                  error={errors.fullName}
+                />
+                <div className="flex md:flex-row justify-between">
+                  <PasswordField
+                    label="Password"
+                    name="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    error={errors.password}
+                  />
+                  <PasswordField
+                    label="Confirm Password"
+                    name="confirmPassword"
+                    value={form.confirmPassword}
+                    onChange={handleChange}
+                    error={
+                      !passwordsMatch ? "Passwords do not match" : undefined
+                    }
+                  />
+                </div>
 
-        <div className="w-full md:w-1/2 hidden md:flex flex-col items-center justify-center">
-          <ChatIllustration />
-        </div>
-        </>}
+                {/* Preferred Language dropdown */}
+                <div>
+                  <label className="label pl-0">
+                    <span className="label-text text-sm md:text-base text-base-content/80">
+                      Preferred Language
+                    </span>
+                  </label>
+                  <select
+                    name="preferredLang"
+                    value={form.preferredLang}
+                    onChange={handleChange}
+                    className={`select select-bordered w-full bg-base-100 text-sm md:text-base ${
+                      errors.preferredLang ? "select-error" : ""
+                    }`}
+                  >
+                    <option value="">Select a language</option>
+                    {languages.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.preferredLang && (
+                    <p className="text-error text-xs mt-1">
+                      {errors.preferredLang}
+                    </p>
+                  )}
+                </div>
+
+                {/* Terms and conditions checkbox */}
+                <div className="flex items-center mt-4">
+                  <input
+                    type="checkbox"
+                    name="terms"
+                    checked={termsAccepted}
+                    onChange={() => setTermsAccepted(!termsAccepted)}
+                    className="checkbox checkbox-primary"
+                  />
+                  <span className="ml-2 text-sm md:text-base text-base-content/80">
+                    I accept the{" "}
+                    <Link href="/terms" className="text-primary underline">
+                      Terms and Conditions
+                    </Link>
+                  </span>
+                </div>
+
+                {errors.general && (
+                  <div className="alert alert-error">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="stroke-current shrink-0 h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>{errors.general}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary w-full text-sm md:text-base"
+                  disabled={isLoading || !isFormValid()}
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="loading loading-spinner"></span>
+                      Creating account...
+                    </>
+                  ) : (
+                    "Sign Up"
+                  )}
+                </button>
+              </form>
+
+              <p className="text-sm md:text-base text-base-content/70 mt-4 text-center">
+                Already have an account?{" "}
+                <Link href="/signin" className="text-primary underline">
+                  Sign In
+                </Link>
+              </p>
+            </div>
+
+            <div className="w-full md:w-1/2 hidden md:flex flex-col items-center justify-center">
+              <ChatIllustration />
+            </div>
+          </>
+        )}
       </AuthCard>
+
+      {/* Free Plan Modal */}
+      {showFreeplanModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-100 p-6 rounded-lg shadow-xl max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Free Plan Features</h3>
+            <ul className="list-disc list-inside space-y-2">
+              <li>{FREE_TIER_LIMITS.messages} messages per month</li>
+              <li>{FREE_TIER_LIMITS.translations} translations per month</li>
+              <li>
+                {FREE_TIER_LIMITS.aiInteractions} AI interactions per month
+              </li>
+              <li>
+                {FREE_TIER_LIMITS.fileStorage / (1024 * 1024)}MB file storage
+              </li>
+              <li>{FREE_TIER_LIMITS.groupChats} group chats</li>
+              <li>
+                Up to {FREE_TIER_LIMITS.maxGroupMembers} members per group
+              </li>
+            </ul>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowFreeplanModal(false)}
+                className="btn btn-primary"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

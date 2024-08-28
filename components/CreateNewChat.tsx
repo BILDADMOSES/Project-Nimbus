@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { useSession } from "next-auth/react";
 import {
   collection,
   addDoc,
   serverTimestamp,
   getDocs,
+  getDoc,
   query,
   where,
   doc,
@@ -15,6 +16,7 @@ import {
 import { db } from "@/lib/firebaseClient";
 import { User, X, Bot, Mail, Check, Copy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { checkAndIncrementUsage, FREE_TIER_LIMITS } from "@/lib/usageTracking";
 
 interface User {
   id: string;
@@ -46,6 +48,26 @@ export default function CreateNewChat({
   const [createWithoutUsers, setCreateWithoutUsers] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [groupChatCount, setGroupChatCount] = useState(0);
+  const [isFreeTier, setIsFreeTier] = useState(true);
+
+  useEffect(() => {
+    const fetchUserTierAndGroupChatCount = async () => {
+      if (session?.user?.id) {
+        // Fetch user's tier
+        const userDoc = await getDoc(doc(db, "users", session.user.id));
+        const userData = userDoc.data();
+        setIsFreeTier(userData?.tier === "free" || !userData?.tier);
+
+        // Fetch user's group chat count
+        const usageDoc = await getDoc(doc(db, "usage", session.user.id));
+        const usageData = usageDoc.data();
+        setGroupChatCount(usageData?.groupChats || 0);
+      }
+    };
+
+    fetchUserTierAndGroupChatCount();
+  }, [session]);
 
   const handleSearch = async () => {
     if (!searchTerm) return;
@@ -140,10 +162,26 @@ export default function CreateNewChat({
       );
       return;
     }
-
+  
     setIsLoading(true);
     setError(null);
     try {
+      if (chatType === "group" && isFreeTier) {
+        // Check group chat limit
+        if (groupChatCount >= FREE_TIER_LIMITS.groupChats) {
+          setError("You've reached the maximum number of group chats for the free tier. Please upgrade to create more.");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Check group member limit
+        if (selectedUsers.length + 1 > FREE_TIER_LIMITS.maxGroupMembers!) {
+          setError(`Free tier is limited to ${FREE_TIER_LIMITS.maxGroupMembers} members per group chat. Please upgrade to add more members.`);
+          setIsLoading(false);
+          return;
+        }
+      }
+  
       const chatData = {
         type: chatType,
         participants: [session.user.id],
@@ -152,10 +190,10 @@ export default function CreateNewChat({
         ...(chatType === "group" && { name: groupName || "New Group Chat" }),
         ...(chatType === "ai" && { aiModel: "gpt-3.5-turbo" }),
       };
-
+  
       const docRef = await addDoc(collection(db, "chats"), chatData);
       const chatId = docRef.id;
-
+  
       if (chatType === "ai") {
         setSuccessMessage("AI chat created successfully!");
         // TODO: Redirect to the new AI chat here
@@ -191,8 +229,14 @@ export default function CreateNewChat({
             "Group chat created. Share the invitation link to add users."
           );
         }
+  
+        // Increment group chat count for free tier users
+        if (isFreeTier) {
+          await checkAndIncrementUsage(session.user.id, "groupChats");
+          setGroupChatCount(prevCount => prevCount + 1);
+        }
       }
-
+  
       // Reset state after successful creation
       setSelectedUsers([]);
       setGroupName("");
@@ -210,6 +254,8 @@ export default function CreateNewChat({
     setLinkCopied(true);
     setTimeout(() => setLinkCopied(false), 2000);
   };
+
+
 
   return (
     <AnimatePresence>

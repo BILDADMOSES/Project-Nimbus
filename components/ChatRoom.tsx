@@ -26,7 +26,14 @@ import MessageList from "@/components/MessageList";
 import MessageInput from "@/components/MessageInput";
 import UserDetailsSidebar from "@/components/UserDetailsSidebar";
 import { Message, ChatData, UserData } from "@/types";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import Image from "next/image";
+import {
+  checkAndIncrementUsage,
+  checkFileStorageLimit,
+  incrementFileStorage,
+} from "@/lib/usageTracking";
+
 
 const MESSAGES_PER_PAGE = 30;
 
@@ -50,6 +57,8 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [participantLanguages, setParticipantLanguages] = useState<string[]>(
     []
   );
@@ -234,6 +243,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
     if ((!content.trim() && !file) || !session?.user?.id) return;
 
     try {
+      // Check message count limit
+      const canSendMessage = await checkAndIncrementUsage(session.user.id, "messages");
+      if (!canSendMessage) {
+        throw new Error("You've reached your message limit for the free tier. Please upgrade to send more messages.");
+      }
+
       let messageData: Partial<Message> = {
         senderId: session.user.id,
         timestamp: serverTimestamp(),
@@ -241,6 +256,16 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
       };
 
       if (file) {
+        // Check file storage limit
+        const canUploadFile = await checkFileStorageLimit(session.user.id, file.size);
+        if (!canUploadFile) {
+          throw new Error("You've reached your file storage limit for the free tier. Please upgrade to upload more files.");
+        }
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error("File size exceeds the maximum limit of 5MB.");
+        }
+
         const storageRef = ref(storage, `chats/${chatId}/${file.name}`);
         await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(storageRef);
@@ -251,6 +276,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
           content: file.name,
           fileUrl: downloadURL,
         };
+
+        // Increment file storage usage
+        await incrementFileStorage(session.user.id, file.size);
       } else {
         messageData = {
           ...messageData,
@@ -265,26 +293,46 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
             const userDoc = await getDoc(doc(db, "users", otherParticipantId));
             if (userDoc.exists()) {
               const userData = userDoc.data() as UserData;
-              const translatedContent = await translateMessage(
-                content,
-                userData.preferredLang || "en"
-              );
-              messageData.content = translatedContent;
+              // Check translation usage
+              const canTranslate = await checkAndIncrementUsage(session.user.id, "translations");
+              if (canTranslate) {
+                const translatedContent = await translateMessage(
+                  content,
+                  userData.preferredLang || "en"
+                );
+                messageData.content = translatedContent;
+              } else {
+                messageData.content = content;
+                // message wasn't translated due to usage limits
+              }
             }
           }
         } else if (chatData?.type === "group") {
           const translations: { [key: string]: string } = {};
           await Promise.all(
             participantLanguages.map(async (lang) => {
-              translations[lang] = await translateMessage(content, lang);
+              // Check translation usage for each language
+              const canTranslate = await checkAndIncrementUsage(session.user.id, "translations");
+              if (canTranslate) {
+                translations[lang] = await translateMessage(content, lang);
+              } else {
+                translations[lang] = content;
+                // message wasn't translated due to usage limits
+              }
             })
           );
           messageData.content = translations;
         } else if (chatData?.type === "ai") {
           // For AI chat, we don't translate the message
           messageData.content = content;
+          // Check AI interaction usage
+          const canUseAI = await checkAndIncrementUsage(session.user.id, "aiInteractions");
+          if (!canUseAI) {
+            throw new Error("You've reached your AI interaction limit for the free tier. Please upgrade to continue using AI chat.");
+          }
         }
       }
+
       console.log("ADDING MESSAGE", messageData);
       await addDoc(collection(db, `chats/${chatId}/messages`), messageData);
     } catch (error) {
@@ -454,7 +502,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   }
 
   return (
-    <div className="flex max-h-[90vh] ">
+    <div className="flex max-h-[90vh]">
       <div className="flex-1 flex flex-col bg-base-100 bg-opacity-0 backdrop-blur-md rounded-lg shadow-lg overflow-hidden">
         <ChatHeader
           chatData={chatData}
@@ -472,34 +520,58 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
           }}
         />
         
-          <MessageList
-            messages={messages}
-            participants={participants}
-            currentUserId={session?.user?.id}
-            chatType={chatData.type}
-            hasMore={hasMore}
-            lastMessageRef={lastMessageRef}
-            chatContainerRef={chatContainerRef}
-            renderMessage={renderMessage}
-          />
+        {error && (
+          <div className="alert alert-error">
+            <AlertCircle className="stroke-current shrink-0 h-6 w-6" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <MessageList
+          messages={messages}
+          participants={participants}
+          currentUserId={session?.user?.id}
+          chatType={chatData.type}
+          hasMore={hasMore}
+          lastMessageRef={lastMessageRef}
+          chatContainerRef={chatContainerRef}
+          renderMessage={renderMessage}
+        />
         
         <MessageInput onSendMessage={sendMessage} />
       </div>
+
+      {showUpgradePrompt && (
+        <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-base-100 p-6 rounded-lg shadow-xl max-w-md">
+            <h3 className="text-lg font-bold mb-4">Upgrade to Premium</h3>
+            <AlertTriangle className="text-warning mx-auto mb-4" size={48} />
+            <p className="mb-4">You've reached the limit of your free tier. Upgrade to Premium to enjoy:</p>
+            <ul className="list-disc list-inside mb-4">
+              <li>Unlimited messages</li>
+              <li>Unlimited translations</li>
+              <li>Increased file storage</li>
+              <li>Unlimited AI interactions</li>
+            </ul>
+            <div className="flex justify-end">
+              <button className="btn btn-primary mr-2" onClick={() => {/* Implement upgrade logic */}}>
+                Upgrade Now
+              </button>
+              <button className="btn btn-ghost" onClick={() => setShowUpgradePrompt(false)}>
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isUserDetailsSidebarOpen && (
         <UserDetailsSidebar
-          user={
-            selectedUser ||
-            participants[
-              chatData.participants.find((p) => p !== session?.user?.id)!
-            ] ||
-            undefiined
-          }
+          user={selectedUser || participants[chatData.participants.find((p) => p !== session?.user?.id)!]}
           chatType={chatData.type}
           sharedFiles={sharedFiles}
           onClose={() => setIsUserDetailsSidebarOpen(false)}
-          participants={
-            chatData.type === "group" ? Object.values(participants) : undefined
-          }
+          participants={chatData.type === "group" ? Object.values(participants) : undefined}
           onBlockUser={handleBlockUser}
           onLeaveGroup={handleLeaveGroup}
           onDeleteChat={handleDeleteChat}
