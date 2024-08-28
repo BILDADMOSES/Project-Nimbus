@@ -3,6 +3,8 @@
 ## Overview
 This repository documents the process of fine-tuning and training a Swahili-English translation model. The model was fine-tuned and trained four times on a Google Cloud Platform (GCP) notebook instance, utilizing a Virtual Machine (VM) with 8 vCPUs and 32 GB of RAM. After completing the training, the model was successfully deployed on Hugging Face for public use.
 
+<img src = "Screenshot 2024-08-28 170619.png">
+
 ## Training Environment
 - **Platform:** Google Cloud Platform (GCP)
 - **Instance Type:** Compute Engine VM
@@ -16,19 +18,21 @@ This repository documents the process of fine-tuning and training a Swahili-Engl
 - Collected and preprocessed a dataset of Swahili-English text pairs for training.
 - Used standard text preprocessing techniques such as tokenization, padding, and cleaning of the dataset to ensure high-quality input.
 
+<img src ="Screenshot 2024-08-28 172113.png">
+
+<img src ="Screenshot 2024-08-28 172151.png">
+
 ### Model Selection
 - Chose a pre-trained transformer-based model suitable for translation tasks.
 - The base model was selected for its effectiveness in low-resource language pairs.
+
+<img src ="Screenshot 2024-08-28 171825.png">
 
 ### Fine-Tuning
 - Fine-tuned the model on the Swahili-English dataset in four iterations.
 - Adjusted hyperparameters such as learning rate, batch size, and epochs to optimize performance.
 - Utilized the GCP VM with 8 vCPUs and 32 GB RAM for efficient processing during training.
 
-### Evaluation
-- After each iteration, the model was evaluated on a validation set.
-- Metrics such as BLEU score were used to assess translation quality.
-- Iterative improvements were made based on evaluation results.
 
 ### Deployment
 - Once the final iteration was completed, the model was exported and prepared for deployment.
@@ -36,6 +40,8 @@ This repository documents the process of fine-tuning and training a Swahili-Engl
 
 ## Deployment Link
 The fine-tuned Swahili-English translation model is publicly available on Hugging Face and can be accessed through the following link:
+
+<img src = "Screenshot 2024-08-28 171557.png">
 
 [Swahili-English Translation Model on Hugging Face](https://huggingface.co/Bildad/Swahili-English_Translation)
 
