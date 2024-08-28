@@ -1,13 +1,13 @@
 # Swahili-English Translation Model Fine-Tuning and Deployment
 
 ## Overview
-This repository documents the process of fine-tuning and training a Swahili-English translation model. The model was fine-tuned and trained four times on a Google Cloud Platform (GCP) notebook instance, utilizing a Virtual Machine (VM) with 16 vCPUs and 64 GB of RAM. After completing the training, the model was successfully deployed on Hugging Face for public use.
+This repository documents the process of fine-tuning and training a Swahili-English translation model. The model was fine-tuned and trained four times on a Google Cloud Platform (GCP) notebook instance, utilizing a Virtual Machine (VM) with 8 vCPUs and 32 GB of RAM. After completing the training, the model was successfully deployed on Hugging Face for public use.
 
 ## Training Environment
 - **Platform:** Google Cloud Platform (GCP)
 - **Instance Type:** Compute Engine VM
-- **vCPUs:** 16
-- **RAM:** 64 GB
+- **vCPUs:** 8
+- **RAM:** 32 GB
 - **Notebook Instance:** GCP AI Platform Notebooks
 
 ## Training Process
@@ -23,7 +23,7 @@ This repository documents the process of fine-tuning and training a Swahili-Engl
 ### Fine-Tuning
 - Fine-tuned the model on the Swahili-English dataset in four iterations.
 - Adjusted hyperparameters such as learning rate, batch size, and epochs to optimize performance.
-- Utilized the GCP VM with 16 vCPUs and 64 GB RAM for efficient processing during training.
+- Utilized the GCP VM with 8 vCPUs and 32 GB RAM for efficient processing during training.
 
 ### Evaluation
 - After each iteration, the model was evaluated on a validation set.
