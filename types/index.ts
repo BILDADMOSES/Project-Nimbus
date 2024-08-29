@@ -1,3 +1,5 @@
+import { UsageLimits } from "@/lib/usageTracking"
+
 export interface Message {
     id: string;
     content: string | { [key: string]: string }; 
@@ -6,6 +8,7 @@ export interface Message {
     timestamp: any;
     type: 'text' | 'image' | 'file';
     fileUrl?: string;
+    chatId: string;
   }
   export interface ChatData {
     id: string;
@@ -20,4 +23,15 @@ export interface Message {
     preferredLang?: string | null;
     email: string;
     image?: string;
+  }
+
+  export interface User {
+    id: string;
+    username?: string | null;
+    preferredLang?: string | null;
+    name?: string | null;
+    email?: string | null;
+    image?: string | null;
+    usageStatus?: UsageLimits;
+    tier?: string;
   }

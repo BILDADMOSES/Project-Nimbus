@@ -12,6 +12,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { getUsageStatus, FREE_TIER_LIMITS } from "@/lib/usageTracking";
+import { User } from "@/types";
+
 
 export const authOptions: NextAuthOptions = {
   providers: [
