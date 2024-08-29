@@ -18,7 +18,7 @@ const CombinedChatPage: React.FC<CombinedChatPageProps> = ({ userId }) => {
   };
 
   return (
-    <div className="max-h-screen flex items-center justify-center p-2">
+    <div className="max-h-screen flex justify-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

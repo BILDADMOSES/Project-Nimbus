@@ -8,16 +8,15 @@ import {
   reauthenticateWithCredential,
 } from "firebase/auth";
 import upload from "@/lib/upload";
-import { X, Camera, Edit, Key, Save } from "lucide-react";
-import Image from "next/image";
-import { languages } from "@/constants";
+import { X } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import ActionButton from "@/components/ActionButton";
-import { InputField } from "@/components/InputField";
 import ErrorAlert from "@/components/ErrorAlert";
 import TranslucentCard from "@/components/TranslucentCard";
-import { PasswordField } from "@/components/PasswordField";
-import { PreferredLanguageSelect } from "@/components/PreferredLanguageSelect";
+import UserAvatar from "./userProfile/UserAvatar";
+import EditProfileForm from "./userProfile/EditProfileForm";
+import ChangePasswordForm from "./userProfile/ChangePasswordForm";
+import UserInfo from "./userProfile/UserInfo";
 
 interface UserProfilePopupProps {
   onClose: () => void;
@@ -225,166 +224,3 @@ export default function UserProfilePopup({
     </TranslucentCard>
   );
 }
-
-const UserAvatar: React.FC<{
-  avatar: string;
-  username: string;
-  onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ avatar, username, onAvatarChange }) => (
-  <div className="flex flex-col items-center mb-4">
-    <div className="relative mb-4">
-      {avatar ? (
-        <Image
-          src={avatar}
-          alt="User avatar"
-          width={100}
-          height={100}
-          className="rounded-full border-4 border-base-300"
-        />
-      ) : (
-        <div className="w-24 h-24 rounded-full bg-base-300 flex items-center justify-center border-4 border-base-200">
-          <span className="text-3xl text-base-content">
-            {username.charAt(0).toUpperCase()}
-          </span>
-        </div>
-      )}
-      <label
-        htmlFor="avatar-upload"
-        className="btn btn-circle btn-sm btn-primary absolute bottom-0 right-0"
-      >
-        <Camera size={16} />
-      </label>
-      <input
-        type="file"
-        id="avatar-upload"
-        onChange={onAvatarChange}
-        className="hidden"
-      />
-    </div>
-    <h2 className="text-2xl font-bold text-base-content">{username}</h2>
-  </div>
-);
-
-const EditProfileForm: React.FC<{
-  userData: any;
-  onFieldChange: any;
-  onSubmit: any;
-  onCancel: any;
-}> = ({ userData, onFieldChange, onSubmit, onCancel }) => (
-  <form onSubmit={onSubmit} className="space-y-4">
-    {Object.entries(userData).map(([key, value]) => {
-      if (key === "avatar") return null;
-      if (key === "preferredLang") {
-        return (
-          <PreferredLanguageSelect
-            key={key}
-            value={value as string}
-            onChange={onFieldChange}
-            error={""}
-          />
-        );
-      }
-      return (
-        <InputField
-          placeholder={`Enter ${key}`}
-          key={key}
-          label={key.charAt(0).toUpperCase() + key.slice(1)}
-          name={key}
-          value={value as string}
-          onChange={onFieldChange}
-          type="text"
-        />
-      );
-    })}
-    <div className="flex justify-end space-x-2">
-      <ActionButton label="Cancel" onClick={onCancel} className="btn-ghost" />
-      <ActionButton
-        label={
-          <>
-            <Save size={16} className="mr-2" /> Save Changes
-          </>
-        }
-        type="submit"
-        className="btn-primary"
-      />
-    </div>
-  </form>
-);
-
-const ChangePasswordForm: React.FC<{
-  passwordData: any;
-  onFieldChange: any;
-  onSubmit: any;
-  onCancel: any;
-}> = ({ passwordData, onFieldChange, onSubmit, onCancel }) => (
-  <form onSubmit={onSubmit} className="space-y-4">
-    {["currentPassword", "newPassword", "confirmNewPassword"].map((field) => (
-      <PasswordField
-        key={field}
-        label={
-          field.charAt(0).toUpperCase() +
-          field.slice(1).replace(/([A-Z])/g, " $1")
-        }
-        name={field}
-        value={passwordData[field]}
-        onChange={onFieldChange}
-      />
-    ))}
-    <div className="flex justify-end space-x-2">
-      <ActionButton label="Cancel" onClick={onCancel} className="btn-ghost" />
-      <ActionButton
-        label={
-          <>
-            <Key size={16} className="mr-2" /> Change Password
-          </>
-        }
-        type="submit"
-        className="btn-primary"
-      />
-    </div>
-  </form>
-);
-
-const UserInfo: React.FC<{
-  userData: any;
-  onEditProfile: any;
-  onChangePassword: any;
-}> = ({ userData, onEditProfile, onChangePassword }) => (
-  <>
-    {Object.entries(userData).map(([key, value]) => {
-      if (key === "avatar" || !value) return null;
-      return (
-        <div key={key} className="mb-2">
-          <span className="text-sm text-base-content/70">
-            {key.charAt(0).toUpperCase() + key.slice(1)}:
-          </span>
-          <span className="ml-2 text-base-content">
-            {key === "preferredLang"
-              ? languages.find((lang) => lang.code === value)?.name || value
-              : value}
-          </span>
-        </div>
-      );
-    })}
-    <div className="flex justify-between mt-6">
-      <ActionButton
-        label={
-          <>
-            <Edit size={16} className="mr-2" /> Edit Profile
-          </>
-        }
-        onClick={onEditProfile}
-        className="btn-outline btn-primary btn-sm"
-      />
-      <ActionButton
-        label={
-          <>
-            <Key size={16} className="mr-2" /> Change Password
-          </>
-        }
-        onClick={onChangePassword}
-        className="btn-outline btn-sm"
-      />
-    </div>
-  </>
-);
