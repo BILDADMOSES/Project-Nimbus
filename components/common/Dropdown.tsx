@@ -31,24 +31,19 @@ export const Dropdown: React.FC<DropdownProps> = ({
 };
 
 interface DropdownItemProps {
-  onClick?: () => void;
-  icon?: React.ReactNode;
+  onClick: () => void;
+  icon: React.ReactNode;
   children: React.ReactNode;
 }
 
-export const DropdownItem: React.FC<DropdownItemProps> = ({
-  onClick,
-  icon,
-  children,
-}) => {
+export const DropdownItem: React.FC<DropdownItemProps> = ({ onClick, icon, children }) => {
   return (
     <button
+      className="flex items-center w-full px-4 py-2 text-sm text-base-content hover:bg-base-200 focus:outline-none focus:bg-base-200"
       onClick={onClick}
-      className="flex items-center w-full text-left px-4 py-2 text-sm text-base-content hover:bg-base-200 transition-colors duration-150"
-      role="menuitem"
     >
       {icon && <span className="mr-2">{icon}</span>}
-      {children}
+      <span>{children}</span>
     </button>
   );
 };

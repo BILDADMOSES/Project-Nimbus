@@ -1,11 +1,10 @@
-"use client";
-
+"use client"
 import React from "react";
 import ChatList from "@/components/ChatList";
 import ChatRoom from "@/components/ChatRoom";
 import UserInfo from "@/components/UserInfo";
 import { motion } from "framer-motion";
-import useChatStore from "@/store/useChatStore"; 
+import useChatStore from "@/store/useChatStore";
 
 interface CombinedChatPageProps {
   userId: string;
@@ -24,12 +23,14 @@ const CombinedChatPage: React.FC<CombinedChatPageProps> = ({ userId }) => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="card w-[96%]  h-[90vh]  bg-base-100 shadow-xl backdrop-blur-md bg-opacity-80"
+        className="card w-[96%] h-[90vh] bg-base-100 shadow-xl backdrop-blur-md bg-opacity-80"
       >
         <div className="card-body p-0 flex flex-row">
-          <div className="min-w-[250px] border-r border-base-300 flex flex-col">
+          <div className="w-96 border-r border-base-300 flex flex-col">
             <UserInfo />
-            <ChatList userId={userId} onChatSelect={handleChatSelect} />
+            <div className="flex-1 overflow-hidden">
+              <ChatList userId={userId} onChatSelect={handleChatSelect} />
+            </div>
           </div>
           <div className="flex-1 flex flex-col">
             {selectedChatId ? (

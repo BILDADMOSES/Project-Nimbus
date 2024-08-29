@@ -1,3 +1,4 @@
+"use client"
 import { useEffect } from "react";
 import {
   collection,
@@ -140,21 +141,26 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
     );
   }
 
+
   return (
-    <div className="flex flex-col  ">
+    <div className="flex flex-col h-full">
       <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-      <div className="flex-1  \">
-        {filteredChats.length === 0 ? (
+      <div className="flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="loading loading-spinner loading-lg text-primary"></div>
+          </div>
+        ) : filteredChats.length === 0 ? (
           <p className="text-base-content/70 text-center p-4">
             No chats found.
           </p>
         ) : (
-          <ul className="space-y-1 max-h-[410px] scrollbar-hide overflow-y-scroll p-4">
+          <ul className="space-y-1 p-4">
             {filteredChats.map((chat) => (
               <ChatItem
                 key={chat.id}
                 chat={chat}
-                onChatSelect={handleChatSelect} 
+                onChatSelect={handleChatSelect}
               />
             ))}
           </ul>

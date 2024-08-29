@@ -1,4 +1,3 @@
-// components/ChatItem.tsx
 import Image from 'next/image'
 import { formatDistanceToNow } from 'date-fns'
 import { User, Users, Bot } from 'lucide-react'
@@ -24,37 +23,37 @@ export default function ChatItem({ chat, onChatSelect }: ChatItemProps) {
   }
 
   return (
-    <li className=' border-red-500'>
+    <li className="w-full">
       <button 
         onClick={() => onChatSelect(chat.id)} 
-        className="w-full text-left px-3 py-1 hover:bg-base-200 transition-colors duration-200 ease-in-out rounded-lg"
+        className="w-full text-left px-3 py-2 hover:bg-base-200 transition-colors duration-200 ease-in-out rounded-lg"
       >
-        <div className="flex h-20 border-green-500 items-center">
-          {chat.avatar ? (
-            <Image
-              src={chat.avatar}
-              alt={chat.name || 'Chat'}
-              width={48}
-              height={48}
-              className="rounded-full mr-4"
-            />
-          ) : (
-            <div className="mr-4">
-              {getAvatarSVG(chat.type)}
+        <div className="flex items-center h-16">
+          <div className="flex-shrink-0 mr-3">
+            {chat.avatar ? (
+              <Image
+                src={chat.avatar}
+                alt={chat.name || 'Chat'}
+                width={48}
+                height={48}
+                className="rounded-full"
+              />
+            ) : (
+              getAvatarSVG(chat.type)
+            )}
+          </div>
+          <div className="flex-grow min-w-0">
+            <div className="flex justify-between items-center mb-1">
+              <span className="font-medium truncate mr-2">{chat.name || 'Unnamed Chat'}</span>
+              <div className="flex-shrink-0 flex items-center">
+                {chat.type === 'group' && <span className="badge badge-sm badge-outline mr-2">Group</span>}
+                {chat.type === 'ai' && <span className="badge badge-sm badge-primary mr-2">AI</span>}
+                <span className="text-xs text-base-content/70">
+                  {formatDistanceToNow(chat.lastMessageTime, { addSuffix: true })}
+                </span>
+              </div>
             </div>
-          )}
-          <div className="flex-1">
-            <div className="flex justify-between items-center ">
-              <span className=''>{chat.name || 'Unnamed Chat'} </span>
-              <span className="font-semibold text-base-content">
-                {chat.type === 'group' && <span className="badge badge-sm badge-outline ml-2">Group</span>}
-                {chat.type === 'ai' && <span className="badge badge-sm badge-primary ml-2">AI</span>}
-              </span>
-              <span className="text-xs text-base-content/70 ml-5">
-                {formatDistanceToNow(chat.lastMessageTime, { addSuffix: true })}
-              </span>
-            </div>
-            <p className="text-sm mt-2 text-base-content/70 truncate">{chat.lastMessage.length < 25 ? chat.lastMessage : chat.lastMessage.slice(0,25) + '...' || 'No messages'}</p>
+            <p className="text-sm text-base-content/70 truncate">{chat.lastMessage || 'No messages'}</p>
           </div>
         </div>
       </button>
