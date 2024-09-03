@@ -162,25 +162,28 @@ const translateMessage = async (
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
   const API_URL = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL;
 
-  const translateText = async (text: string, targetLanguage: string) => {
+  try {
     const response = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        q: text,
-        target: targetLanguage,
+        q: message,
+        target: targetLang,
       }),
     });
 
     if (!response.ok) {
-      throw new Error("Network response was not ok");
+      const errorBody = await response.text();
+      console.error('Translation API error:', response.status, errorBody);
+      throw new Error(`Translation API error: ${response.status}`);
     }
+
     const data = await response.json();
     return data.data.translations[0].translatedText;
-  };
-  const translatedMessage = await translateText(message, targetLang);
-
-  return translatedMessage;
+  } catch (error) {
+    console.error('Error in translation:', error);
+    return message; // Return original message if translation fails
+  }
 };
