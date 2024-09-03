@@ -72,24 +72,24 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   }
 
   return (
-    <div className="flex max-h-[90vh]">
-      <div className="flex-1 flex flex-col bg-base-100 bg-opacity-0 backdrop-blur-md rounded-lg shadow-lg overflow-hidden">
-        <ChatHeader
-          chatData={chatData}
-          participants={participants}
-          currentUserId={session?.user?.id}
-          onOpenSidebar={() => {
-            setSelectedUser(
-              chatData.type === "private"
-                ? participants[
-                    chatData.participants.find((p) => p !== session?.user?.id)!
-                  ]
-                : null
-            );
-            setIsUserDetailsSidebarOpen(true);
-          }}
-        />
-        
+    <div className="flex flex-col h-[90vh]">
+      <ChatHeader
+        chatData={chatData}
+        participants={participants}
+        currentUserId={session?.user?.id}
+        onOpenSidebar={() => {
+          setSelectedUser(
+            chatData.type === "private"
+              ? participants[
+                  chatData.participants.find((p) => p !== session?.user?.id)!
+                ]
+              : null
+          );
+          setIsUserDetailsSidebarOpen(true);
+        }}
+      />
+      
+      <div className="flex-grow overflow-hidden flex flex-col bg-base-100 bg-opacity-0 backdrop-blur-md rounded-lg shadow-lg">
         {error && (
           <div className="alert alert-error">
             <AlertCircle className="stroke-current shrink-0 h-6 w-6" />
@@ -106,6 +106,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
           lastMessageRef={lastMessageRef}
           chatContainerRef={chatContainerRef}
           renderMessage={renderMessage}
+          onLoadMore={loadMoreMessages}
         />
         
         <MessageInput onSendMessage={handleSendMessage} chatId={chatId} />
