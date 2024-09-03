@@ -33,7 +33,7 @@ function ChatIllustration() {
 
   return (
     <motion.div
-      className="md:w-1/2 bg-gradient-to-br from-primary/20 to-black/50 h-[400px]  p-6 px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
+      className="w-full mt-24 my-10 md:w-1/2 bg-gradient-to-br from-primary/20 to-black/50 h-[400px]  p-6 md:px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
       initial={{ opacity: 0, x: 100 }}
       whileInView={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.8 }}
@@ -107,22 +107,14 @@ export default function Landing() {
           >
             Break the language barrier with real-time translation of instant messages. Chat effortlessly across languages.
           </motion.p>
-          <div className="flex mt-5 gap-2">
+          <div className="flex justify-center md:justify-start mt-5 gap-2">
             <Link href="/signup">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="btn btn-primary btn-lg text-white rounded-md"
+                className="btn btn-primary btn-md text-black rounded-md"
               >
-                Let's get started
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6 ml-2"
-                  viewBox="0 0 512 512"
-                  fill="currentColor"
-                >
-                  <path d="M505.941 239.029L419.882 152.97c-15.119-15.119-40.971-4.411-40.971 16.971V216H35.059c-13.255 0-24 10.745-24 24v32c0 13.255 10.745 24 24 24H378.91v46.059c0 21.382 25.851 32.09 40.971 16.971l86.059-86.059c9.373-9.373 9.373-24.569 0-33.941z" />
-                </svg>
+                Get started
               </motion.button>
             </Link>
           </div>

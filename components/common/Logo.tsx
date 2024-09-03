@@ -10,10 +10,10 @@ type LogoProps = {
 const Logo: React.FC<LogoProps> = ({ width, height, fontSize }) => {
   return (
     <div className="flex space-x-5 justify-center  items-center mx-auto">
+      <Image src={logosrc} width={width} height={height} alt="Logo" />
       <h1 style={{ fontSize }} className="font-black">
         chatEasy
       </h1>
-      <Image src={logosrc} width={width} height={height} alt="Logo" />
     </div>
   );
 };
