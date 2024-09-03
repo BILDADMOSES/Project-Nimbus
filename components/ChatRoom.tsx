@@ -12,6 +12,7 @@ import { useSharedFiles } from '@/hooks/useSharedFiles';
 import { sendMessage } from '@/utils/sendMessage';
 import { handleBlockUser, handleLeaveGroup, handleDeleteChat } from '@/utils/chatActions';
 import { Message } from '@/types';
+import { speechToText } from '@/utils/speechUtils';
 
 interface ChatRoomProps {
   chatId: string;
@@ -31,9 +32,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleSendMessage = async (content: string, file?: File) => {
+  const handleSendMessage = async (content: string, file?: File, audioBlob?: Blob) => {
     try {
-      await sendMessage(content, file, chatId, session?.user?.id!, chatData!, participantLanguages);
+      if (audioBlob) {
+        // Handle voice message
+        const transcribedText = await speechToText(audioBlob);
+        await sendMessage(transcribedText, undefined, audioBlob, chatId, session?.user?.id!, chatData!, participantLanguages);
+      } else {
+        await sendMessage(content, file, undefined, chatId, session?.user?.id!, chatData!, participantLanguages);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       setError((error as Error).message);
@@ -101,7 +108,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
           renderMessage={renderMessage}
         />
         
-        <MessageInput onSendMessage={handleSendMessage} />
+        <MessageInput onSendMessage={handleSendMessage} chatId={chatId} />
       </div>
 
       {showUpgradePrompt && (

@@ -1,30 +1,35 @@
 import React, { useState, useRef, KeyboardEvent } from "react";
 import EmojiPicker from "@/components/EmojiPicker";
+import VoiceRecorder from "@/components/VoiceRecorder";
 import {
   PaperAirplaneIcon,
   PaperClipIcon,
-  MicrophoneIcon,
 } from "@heroicons/react/24/solid";
+import axios from 'axios';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, file?: File) => Promise<void>;
+  onSendMessage: (content: string, file?: File, audioBlob?: Blob) => Promise<void>;
+  chatId: string;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) => {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if ((!message.trim() && !fileInputRef.current?.files?.length) || isSending)
-      return;
-
+    if ((!message.trim() && !fileInputRef.current?.files?.length) || isSending) return;
     setIsSending(true);
     try {
       const file = fileInputRef.current?.files?.[0];
-      await onSendMessage(message.trim(), file);
+      if (file) {
+        await onSendMessage("", file);
+      } else {
+        await onSendMessage(message.trim());
+      }
       setMessage("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
@@ -45,52 +50,69 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
     setMessage((prevMessage) => prevMessage + emoji);
   };
 
+  const handleRecordingComplete = async (blob: Blob) => {
+    setIsSending(true);
+    try {
+      // Convert blob to File
+      const file = new File([blob], "audio.webm", { type: "audio/webm" });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('audio', file);
+
+      // Send to STT endpoint
+      const response = await axios.post('/api/service?endpoint=stt', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Get transcribed text
+      const transcribedText = response.data.text;
+
+      // Send audio message
+      await onSendMessage(transcribedText, undefined, blob);
+    } catch (error) {
+      console.error("Error processing voice note:", error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSendMessage} className="p-4 bg-base-200">
-      <div className="flex items-center space-x-2">
-        <EmojiPicker onEmojiClick={handleEmojiClick} />
-        <div className="flex-1 relative">
-          <textarea
-            ref={textareaRef}
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isSending ? "Sending..." : "Type a message..."}
-            disabled={isSending}
-            className="textarea textarea-bordered w-full pr-20 bg-base-100 text-base-content min-h-[2.5rem] max-h-32 resize-none"
-            rows={1}
-          />
-          <div className="absolute right-2 bottom-2 flex space-x-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isSending}
-              className="btn btn-circle btn-sm btn-ghost"
-            >
-              <PaperClipIcon className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              disabled={isSending}
-              className="btn btn-circle btn-sm btn-ghost"
-            >
-              <MicrophoneIcon className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={() => handleSendMessage()}
-          disabled={isSending}
+    <form onSubmit={handleSendMessage} className="p-2 bg-base-200 flex items-center space-x-2">
+      <EmojiPicker onEmojiClick={handleEmojiClick} />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isSending || isRecording}
+        className="btn btn-circle btn-sm btn-ghost"
+      >
+        <PaperClipIcon className="h-5 w-5" />
+      </button>
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        onChange={() => handleSendMessage()}
+        disabled={isSending || isRecording}
+      />
+      <div className="flex-1 relative">
+        <textarea
+          ref={textareaRef}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={isSending ? "Sending..." : "Type a message..."}
+          disabled={isSending || isRecording}
+          className="textarea textarea-bordered w-full pr-10 bg-base-100 text-base-content min-h-[2.5rem] max-h-32 resize-none"
+          rows={1}
         />
+      </div>
+      {message.trim() || fileInputRef.current?.files?.length ? (
         <button
           type="submit"
-          disabled={
-            isSending ||
-            (!message.trim() && !fileInputRef.current?.files?.length)
-          }
+          disabled={isSending}
           className="btn btn-circle btn-primary"
         >
           {isSending ? (
@@ -99,7 +121,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
             <PaperAirplaneIcon className="h-5 w-5 transform rotate-0" />
           )}
         </button>
-      </div>
+      ) : (
+        <VoiceRecorder
+          onRecordingComplete={handleRecordingComplete}
+          onRecordingStateChange={setIsRecording}
+        />
+      )}
     </form>
   );
 };

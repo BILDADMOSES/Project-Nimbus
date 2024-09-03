@@ -7,8 +7,154 @@ import {
   checkFileStorageLimit,
   incrementFileStorage,
 } from "@/lib/usageTracking";
+import axios from 'axios';
 
-// Dummy translation function (replace with actual translation service)
+export const sendMessage = async (
+  content: string,
+  file: File | undefined,
+  audioBlob: Blob | undefined,
+  chatId: string,
+  userId: string,
+  chatData: ChatData,
+  participantLanguages: string[]
+) => {
+  if ((!content.trim() && !file && !audioBlob) || !userId) return;
+
+  try {
+    // Check message count limit
+    const canSendMessage = await checkAndIncrementUsage(userId, "messages");
+    if (!canSendMessage) {
+      throw new Error("You've reached your message limit for the free tier. Please upgrade to send more messages.");
+    }
+
+    let messageData: Partial<Message> = {
+      senderId: userId,
+      timestamp: serverTimestamp(),
+      chatId: chatId,
+    };
+
+    if (audioBlob) {
+      // Handle voice note
+      const fileName = `voice_${Date.now()}.webm`;
+      const storageRef = ref(storage, `chats/${chatId}/${fileName}`);
+      await uploadBytes(storageRef, audioBlob);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      messageData = {
+        ...messageData,
+        type: "audio",
+        content: fileName,
+        fileUrl: downloadURL,
+      };
+
+      // Increment file storage usage
+      await incrementFileStorage(userId, audioBlob.size);
+
+      // Transcribe the audio
+      try {
+        const transcriptionResponse = await axios.post('/api/service?endpoint=stt', audioBlob, {
+          headers: {
+            'Content-Type': 'audio/webm',
+          },
+        });
+        messageData.originalContent = transcriptionResponse.data.text;
+      } catch (error) {
+        console.error("Error transcribing audio:", error);
+        messageData.originalContent = "Transcription failed";
+      }
+    } else if (file) {
+      // Handle file upload (image or other file)
+      const canUploadFile = await checkFileStorageLimit(userId, file.size);
+      if (!canUploadFile) {
+        throw new Error("You've reached your file storage limit for the free tier. Please upgrade to upload more files.");
+      }
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error("File size exceeds the maximum limit of 10MB.");
+      }
+
+      const storageRef = ref(storage, `chats/${chatId}/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      messageData = {
+        ...messageData,
+        type: file.type.startsWith("image/") ? "image" : "file",
+        content: file.name,
+        fileUrl: downloadURL,
+      };
+
+      // Increment file storage usage
+      await incrementFileStorage(userId, file.size);
+    } else {
+      // Handle text message
+      messageData = {
+        ...messageData,
+        type: "text",
+        content: content,
+      };
+    }
+
+    // Handle translation for text messages and transcribed audio
+    if (messageData.type === "text" || messageData.type === "audio") {
+      const textToTranslate = messageData.type === "audio" ? messageData.originalContent! : content;
+
+      if (chatData?.type === "private") {
+        const otherParticipantId = chatData.participants.find(
+          (p) => p !== userId
+        );
+        if (otherParticipantId) {
+          const userDoc = await getDoc(doc(db, "users", otherParticipantId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as UserData;
+            // Check translation usage
+            const canTranslate = await checkAndIncrementUsage(userId, "translations");
+            if (canTranslate) {
+              const translatedContent = await translateMessage(
+                textToTranslate,
+                userData.preferredLang || "en"
+              );
+              messageData.content = translatedContent;
+            } else {
+              messageData.content = textToTranslate;
+              // message wasn't translated due to usage limits
+            }
+          }
+        }
+      } else if (chatData?.type === "group") {
+        const translations: { [key: string]: string } = {};
+        await Promise.all(
+          participantLanguages.map(async (lang) => {
+            // Check translation usage for each language
+            const canTranslate = await checkAndIncrementUsage(userId, "translations");
+            if (canTranslate) {
+              translations[lang] = await translateMessage(textToTranslate, lang);
+            } else {
+              translations[lang] = textToTranslate;
+              // message wasn't translated due to usage limits
+            }
+          })
+        );
+        messageData.content = translations;
+      } else if (chatData?.type === "ai") {
+        // For AI chat, we don't translate the message
+        messageData.content = textToTranslate;
+        // Check AI interaction usage
+        const canUseAI = await checkAndIncrementUsage(userId, "aiInteractions");
+        if (!canUseAI) {
+          throw new Error("You've reached your AI interaction limit for the free tier. Please upgrade to continue using AI chat.");
+        }
+      }
+    }
+
+    console.log("ADDING MESSAGE", messageData);
+    await addDoc(collection(db, `chats/${chatId}/messages`), messageData);
+  } catch (error) {
+    console.error("Error sending message:", error);
+    throw error;
+  }
+};
+
 const translateMessage = async (
   message: string,
   targetLang: string
@@ -37,113 +183,4 @@ const translateMessage = async (
   const translatedMessage = await translateText(message, targetLang);
 
   return translatedMessage;
-};
-
-export const sendMessage = async (
-  content: string,
-  file: File | undefined,
-  chatId: string,
-  userId: string,
-  chatData: ChatData,
-  participantLanguages: string[]
-) => {
-  if ((!content.trim() && !file) || !userId) return;
-
-  try {
-    // Check message count limit
-    const canSendMessage = await checkAndIncrementUsage(userId, "messages");
-    if (!canSendMessage) {
-      throw new Error("You've reached your message limit for the free tier. Please upgrade to send more messages.");
-    }
-
-    let messageData: Partial<Message> = {
-      senderId: userId,
-      timestamp: serverTimestamp(),
-      originalContent: content, // Store the original message
-    };
-
-    if (file) {
-      // Check file storage limit
-      const canUploadFile = await checkFileStorageLimit(userId, file.size);
-      if (!canUploadFile) {
-        throw new Error("You've reached your file storage limit for the free tier. Please upgrade to upload more files.");
-      }
-      const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error("File size exceeds the maximum limit of 5MB.");
-      }
-
-      const storageRef = ref(storage, `chats/${chatId}/${file.name}`);
-      await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      messageData = {
-        ...messageData,
-        type: file.type.startsWith("image/") ? "image" : "file",
-        content: file.name,
-        fileUrl: downloadURL,
-      };
-
-      // Increment file storage usage
-      await incrementFileStorage(userId, file.size);
-    } else {
-      messageData = {
-        ...messageData,
-        type: "text",
-      };
-
-      if (chatData?.type === "private") {
-        const otherParticipantId = chatData.participants.find(
-          (p) => p !== userId
-        );
-        if (otherParticipantId) {
-          const userDoc = await getDoc(doc(db, "users", otherParticipantId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as UserData;
-            // Check translation usage
-            const canTranslate = await checkAndIncrementUsage(userId, "translations");
-            if (canTranslate) {
-              const translatedContent = await translateMessage(
-                content,
-                userData.preferredLang || "en"
-              );
-              messageData.content = translatedContent;
-            } else {
-              messageData.content = content;
-              // message wasn't translated due to usage limits
-            }
-          }
-        }
-      } else if (chatData?.type === "group") {
-        const translations: { [key: string]: string } = {};
-        await Promise.all(
-          participantLanguages.map(async (lang) => {
-            // Check translation usage for each language
-            const canTranslate = await checkAndIncrementUsage(userId, "translations");
-            if (canTranslate) {
-              translations[lang] = await translateMessage(content, lang);
-            } else {
-              translations[lang] = content;
-              // message wasn't translated due to usage limits
-            }
-          })
-        );
-        messageData.content = translations;
-      } else if (chatData?.type === "ai") {
-        // For AI chat, we don't translate the message
-        messageData.content = content;
-        // Check AI interaction usage
-        const canUseAI = await checkAndIncrementUsage(userId, "aiInteractions");
-        if (!canUseAI) {
-          throw new Error("You've reached your AI interaction limit for the free tier. Please upgrade to continue using AI chat.");
-        }
-      }
-    }
-
-    console.log("ADDING MESSAGE", messageData);
-    await addDoc(collection(db, `chats/${chatId}/messages`), messageData);
-  } catch (error) {
-    console.error("Error sending message:", error);
-    throw error;
-  }
 };

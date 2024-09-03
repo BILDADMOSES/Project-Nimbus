@@ -86,6 +86,45 @@ const MessageList: React.FC<MessageListProps> = ({
 
   const groupedMessages = groupMessagesByDay(messages)
 
+  const renderMessageContent = (message: Message) => {
+    switch (message.type) {
+      case 'text':
+        return <p dangerouslySetInnerHTML={{ __html: renderMessage(message) }} />;
+      case 'image':
+        return <Image src={message.fileUrl!} alt="Uploaded image" width={200} height={200} />;
+      case 'file':
+        return (
+          <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="link">
+            {typeof message.content === 'string' ? message.content : 'File'}
+          </a>
+        );
+      case 'audio':
+        return (
+          <div className="space-y-2">
+            <audio controls src={message.fileUrl} className="w-full" />
+            {message.originalContent && (
+              <div className="text-sm italic">
+                <strong>Transcription:</strong> {message.originalContent}
+              </div>
+            )}
+            {message.content && (
+              <div className="text-sm">
+                <strong>Translated:</strong> 
+                {typeof message.content === 'string' 
+                  ? message.content 
+                  : Object.entries(message.content).map(([lang, text]) => (
+                      <div key={lang}>{lang}: {text}</div>
+                    ))
+                }
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div ref={chatContainerRef} className="h-screen overflow-y-auto p-4 scrollbar-hide">
       {hasMore && (
@@ -112,16 +151,7 @@ const MessageList: React.FC<MessageListProps> = ({
                 )}
               </div>
               <div className={`chat-bubble ${message.senderId === currentUserId ? 'chat-bubble-primary' : 'chat-bubble-secondary'}`}>
-                {/* {message.type === 'text' && renderMessage(message)} */}
-                { message.type === 'text' && <p dangerouslySetInnerHTML={{ __html: renderMessage(message) }} />}
-                {message.type === 'image' && (
-                  <Image src={message.fileUrl!} alt="Uploaded image" width={200} height={200} />
-                )}
-                {message.type === 'file' && (
-                  <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="link">
-                    {typeof message.content === 'string' ? message.content : 'File'}
-                  </a>
-                )}
+                {renderMessageContent(message)}
               </div>
               <div className="chat-footer opacity-50 text-xs">
                 {format(new Date(message.timestamp?.toDate()), 'h:mm a')}
