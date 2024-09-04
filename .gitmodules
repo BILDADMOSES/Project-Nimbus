@@ -1,0 +1,3 @@
+[submodule "stt-tts"]
+	path = stt-tts
+	url = git@github.com:wekesa360/stt-tts.git
