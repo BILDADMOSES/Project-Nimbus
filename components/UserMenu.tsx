@@ -1,16 +1,34 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { MoreVertical, MessageSquarePlus, UserCircle, Settings, LogOut, UserPlus, Users, Bot, Sun, Moon, Monitor, BarChart2 } from 'lucide-react';
-import { Dropdown, DropdownItem } from './common/Dropdown';
-import { useTheme } from './ThemeProvider';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  MoreVertical,
+  MessageSquarePlus,
+  UserCircle,
+  Settings,
+  LogOut,
+  UserPlus,
+  Users,
+  Bot,
+  Sun,
+  Moon,
+  Monitor,
+  BarChart2,
+} from "lucide-react";
+import { Dropdown, DropdownItem } from "./common/Dropdown";
+import { useTheme } from "./ThemeProvider";
 
 interface UserMenuProps {
-  onNewChat: (type: 'private' | 'group' | 'ai') => void;
+  onNewChat: (type: "private" | "group" | "ai") => void;
   onProfileClick: () => void;
   onUsageClick: () => void;
   onSignOut: () => void;
 }
 
-const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageClick, onSignOut }) => {
+const UserMenu: React.FC<UserMenuProps> = ({
+  onNewChat,
+  onProfileClick,
+  onUsageClick,
+  onSignOut,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -19,7 +37,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageC
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  const handleChatTypeSelect = (type: 'private' | 'group' | 'ai') => {
+  const handleChatTypeSelect = (type: "private" | "group" | "ai") => {
     onNewChat(type);
     closeAllMenus();
   };
@@ -30,7 +48,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageC
     setIsSettingsOpen(false);
   };
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+  const handleThemeChange = (newTheme: "light" | "dark" | "system") => {
     setTheme(newTheme);
     closeAllMenus();
   };
@@ -42,18 +60,15 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageC
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   return (
     <div className="relative" ref={menuRef}>
-      <button 
-        className="btn btn-circle btn-ghost"
-        onClick={toggleMenu}
-      >
+      <button className="btn btn-circle btn-ghost" onClick={toggleMenu}>
         <MoreVertical className="h-6 w-6" />
       </button>
       {isMenuOpen && (
@@ -77,27 +92,54 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageC
                 </div>
               )}
             </DropdownItem>
-            <DropdownItem onClick={() => { onProfileClick(); closeAllMenus(); }} icon={<UserCircle size={16} />}>Profile</DropdownItem>
-            <DropdownItem onClick={() => setIsSettingsOpen(!isSettingsOpen)} icon={<Settings size={16} />}>
+            <DropdownItem
+              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              icon={<Settings size={16} />}
+            >
               Settings
               {isSettingsOpen && (
                 <div className="absolute sm:left-full sm:top-0 left-0 right-auto sm:right-full top-0 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
                   <div className="py-1">
-                    <DropdownItem onClick={() => handleThemeChange('light')} icon={<Sun size={16} />}>
+                    <DropdownItem
+                      onClick={() => handleThemeChange("light")}
+                      icon={<Sun size={16} />}
+                    >
                       Light Theme
                     </DropdownItem>
-                    <DropdownItem onClick={() => handleThemeChange('dark')} icon={<Moon size={16} />}>
+                    <DropdownItem
+                      onClick={() => handleThemeChange("dark")}
+                      icon={<Moon size={16} />}
+                    >
                       Dark Theme
                     </DropdownItem>
-                    <DropdownItem onClick={() => handleThemeChange('system')} icon={<Monitor size={16} />}>
+                    <DropdownItem
+                      onClick={() => handleThemeChange("system")}
+                      icon={<Monitor size={16} />}
+                    >
                       System Theme
                     </DropdownItem>
                   </div>
                 </div>
               )}
             </DropdownItem>
-            <DropdownItem onClick={() => { onUsageClick(); closeAllMenus(); }} icon={<BarChart2 size={16} />}>Usage Status</DropdownItem>
-            <DropdownItem onClick={() => { onSignOut(); closeAllMenus(); }} icon={<LogOut size={16} />}>Logout</DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                onUsageClick();
+                closeAllMenus();
+              }}
+              icon={<BarChart2 size={16} />}
+            >
+              Usage Status
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                onSignOut();
+                closeAllMenus();
+              }}
+              icon={<LogOut size={16} />}
+            >
+              Logout
+            </DropdownItem>
           </div>
         </div>
       )}
