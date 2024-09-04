@@ -26,7 +26,7 @@ const SelectedUsers: React.FC<SelectedUsersProps> = ({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="badge badge-primary badge-outline gap-2"
+            className="badge badge-primary badge-outline gap-2 p-2 text-xs sm:text-sm"
           >
             <UserIcon size={14} />
             {user.username}

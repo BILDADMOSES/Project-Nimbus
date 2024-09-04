@@ -1,5 +1,5 @@
 // src/store/useChatStore.ts
-import create from "zustand";
+import { create } from "zustand";
 
 interface Chat {
   id: string;

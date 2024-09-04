@@ -68,104 +68,106 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-base-100 rounded-lg p-8 w-full max-w-2xl shadow-xl"
+          className="bg-base-100 rounded-lg p-4 sm:p-8 w-full max-w-lg sm:max-w-2xl shadow-xl overflow-y-auto max-h-[90vh]"
         >
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-base-content">
+            <h2 className="text-xl sm:text-3xl font-bold text-base-content">
               {chatType === "private" && "Create Private Chat"}
               {chatType === "group" && "Create Group Chat"}
               {chatType === "ai" && "Create AI Chat"}
             </h2>
-            <button onClick={onClose} className="btn btn-ghost btn-circle">
+            <button onClick={onClose} className="btn btn-ghost btn-circle btn-sm sm:btn-md">
               <X size={24} />
             </button>
           </div>
 
-          {chatType === "group" && (
-            <GroupNameInput groupName={groupName} setGroupName={setGroupName} />
-          )}
+          <div className="space-y-4">
+            {chatType === "group" && (
+              <GroupNameInput groupName={groupName} setGroupName={setGroupName} />
+            )}
 
-          {chatType !== "ai" && (
-            <>
-              <UserSearch
-                chatType={chatType}
-                selectedUsers={selectedUsers}
-                setSelectedUsers={setSelectedUsers}
-                handleInvite={handleInvite}
-                handleSearch={handleSearch}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                searchType={searchType}
-                setSearchType={setSearchType}
-                showInvite={showInvite}
-                inviteEmail={inviteEmail}
-                setInviteEmail={setInviteEmail}
-              />
-              <SelectedUsers
-                selectedUsers={selectedUsers}
-                handleRemoveUser={(userId) =>
-                  setSelectedUsers(selectedUsers.filter((user) => user.id !== userId))
-                }
-              />
-              <CreateWithoutUsersCheckbox
-                createWithoutUsers={createWithoutUsers}
-                setCreateWithoutUsers={setCreateWithoutUsers}
-              />
-            </>
-          )}
+            {chatType !== "ai" && (
+              <>
+                <UserSearch
+                  chatType={chatType}
+                  selectedUsers={selectedUsers}
+                  setSelectedUsers={setSelectedUsers}
+                  handleInvite={handleInvite}
+                  handleSearch={handleSearch}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  searchType={searchType}
+                  setSearchType={setSearchType}
+                  showInvite={showInvite}
+                  inviteEmail={inviteEmail}
+                  setInviteEmail={setInviteEmail}
+                />
+                <SelectedUsers
+                  selectedUsers={selectedUsers}
+                  handleRemoveUser={(userId) =>
+                    setSelectedUsers(selectedUsers.filter((user) => user.id !== userId))
+                  }
+                />
+                <CreateWithoutUsersCheckbox
+                  createWithoutUsers={createWithoutUsers}
+                  setCreateWithoutUsers={setCreateWithoutUsers}
+                />
+              </>
+            )}
 
-          {chatType === "ai" && (
-            <div className="alert alert-info mb-6">
-              <Bot className="flex-shrink-0 mr-2" />
-              <span>
-                You're creating an AI chat. This will start a private
-                conversation with our AI assistant.
-              </span>
-            </div>
-          )}
+            {chatType === "ai" && (
+              <div className="alert alert-info">
+                <Bot className="flex-shrink-0 mr-2" />
+                <span>
+                  You're creating an AI chat. This will start a private
+                  conversation with our AI assistant.
+                </span>
+              </div>
+            )}
 
-          {error && (
-            <div className="alert alert-error mb-4">
-              <X className="flex-shrink-0 mr-2" />
-              <span>{error}</span>
-            </div>
-          )}
+            {error && (
+              <div className="alert alert-error">
+                <X className="flex-shrink-0 mr-2" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          {successMessage && (
-            <div className="alert alert-success mb-4">
-              <Check className="flex-shrink-0 mr-2" />
-              <span>{successMessage}</span>
-            </div>
-          )}
+            {successMessage && (
+              <div className="alert alert-success">
+                <Check className="flex-shrink-0 mr-2" />
+                <span>{successMessage}</span>
+              </div>
+            )}
 
-          <button
-            onClick={handleCreateChat}
-            disabled={isLoading}
-            className={`btn btn-primary w-full text-sm md:text-base ${
-              isLoading ? "loading" : ""
-            }`}
-          >
-            {isLoading ? "Creating..." : "Create Chat"}
-          </button>
-
-          {chatLink && chatType !== "ai" && (
-            <InvitationLink
-              chatLink={chatLink}
-              linkCopied={linkCopied}
-              handleCopyLink={handleCopyLink}
-            />
-          )}
-
-          <div className="mt-6 flex justify-end">
-            <button onClick={onClose} className="btn btn-ghost">
-              Close
+            <button
+              onClick={handleCreateChat}
+              disabled={isLoading}
+              className={`btn btn-primary w-full text-sm sm:text-base ${
+                isLoading ? "loading" : ""
+              }`}
+            >
+              {isLoading ? "Creating..." : "Create Chat"}
             </button>
+
+            {chatLink && chatType !== "ai" && (
+              <InvitationLink
+                chatLink={chatLink}
+                linkCopied={linkCopied}
+                handleCopyLink={handleCopyLink}
+              />
+            )}
+
+            <div className="flex justify-end">
+              <button onClick={onClose} className="btn btn-ghost btn-sm sm:btn-md">
+                Close
+              </button>
+            </div>
           </div>
         </motion.div>
       </motion.div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useUserSearch } from "../hooks/useUserSearch";
@@ -34,26 +34,28 @@ const UserSearch: React.FC<UserSearchProps> = ({
       <label htmlFor="searchUsers" className="label">
         <span className="label-text">Add User</span>
       </label>
-      <div className="flex mb-2">
+      <div className="flex flex-col sm:flex-row gap-2 mb-2">
         <select
           value={searchType}
           onChange={(e) => setSearchType(e.target.value as "username" | "email")}
-          className="select select-bordered flex-shrink-0 mr-2"
+          className="select select-bordered w-full sm:w-auto"
         >
           <option value="username">Username</option>
           <option value="email">Email</option>
         </select>
-        <input
-          type="text"
-          id="searchUsers"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input input-bordered flex-grow"
-          placeholder={`Enter ${searchType}`}
-        />
-        <button onClick={handleSearch} className="btn btn-primary ml-2">
-          Add
-        </button>
+        <div className="flex flex-1 gap-2">
+          <input
+            type="text"
+            id="searchUsers"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input input-bordered flex-grow"
+            placeholder={`Enter ${searchType}`}
+          />
+          <button onClick={handleSearch} className="btn btn-primary">
+            Add
+          </button>
+        </div>
       </div>
 
       {showInvite && (
@@ -66,7 +68,7 @@ const UserSearch: React.FC<UserSearchProps> = ({
             <Mail className="flex-shrink-0 mr-2" />
             <span>User not found. Send an invitation?</span>
           </div>
-          <div className="flex mt-2">
+          <div className="flex flex-col sm:flex-row gap-2 mt-2">
             <input
               type="email"
               value={inviteEmail}
@@ -76,7 +78,7 @@ const UserSearch: React.FC<UserSearchProps> = ({
             />
             <button
               onClick={() => handleInvite(inviteEmail)}
-              className="btn btn-primary ml-2"
+              className="btn btn-primary"
             >
               Invite
             </button>
