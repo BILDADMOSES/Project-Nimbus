@@ -1,4 +1,4 @@
-import { Bot, Search, UserPlus, Users } from "lucide-react";
+import { Bot, Search, UserPlus, Users, Plus, Minus } from "lucide-react";
 import { DropdownItem } from "./common/Dropdown";
 import { useState } from "react";
 
@@ -24,50 +24,58 @@ export default function SearchBar({
   };
 
   return (
-    <>
-      <div className="relative flex items-center space-x-5 justify-between  p-4">
-        <input
-          type="text"
-          placeholder="Search chats..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="input input-bordered w-full pl-10 pr-4"
-        />
-        <Search
-          className="absolute left-2 top-1/2 transform -translate-y-1/2 text-base-content/50"
-          size={20}
-        />
-        <button
-          onClick={() => setIsNewChatOpen(!isNewChatOpen)}
-          className="text-3xl font-light bg-transparent border w-12 h-10 flex justify-center items-center rounded-lg"
-        >
-          <span>{isNewChatOpen ? "-" : "+"}</span>
-        </button>
-      </div>
-      {isNewChatOpen && (
-        <div className="absolute left-0 md:left-96 z-50 top-30 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
-          <div className="py-1">
-            <DropdownItem
-              onClick={() => handleChatTypeSelect("private")}
-              icon={<UserPlus size={16} />}
-            >
-              One-on-One Chat
-            </DropdownItem>
-            <DropdownItem
-              onClick={() => handleChatTypeSelect("group")}
-              icon={<Users size={16} />}
-            >
-              Group Discussion
-            </DropdownItem>
-            <DropdownItem
-              onClick={() => handleChatTypeSelect("ai")}
-              icon={<Bot size={16} />}
-            >
-              AI Assistant
-            </DropdownItem>
-          </div>
+    <div className="relative p-4">
+      <div className="flex items-center space-x-5 justify-between">
+        <div className="relative flex-grow">
+          <input
+            type="text"
+            placeholder="Search chats..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input input-bordered w-full pl-10 pr-4"
+          />
+          <Search
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 text-base-content/50"
+            size={20}
+          />
         </div>
-      )}
-    </>
+        <div className="relative">
+          <button
+            onClick={() => setIsNewChatOpen(!isNewChatOpen)}
+            className="bg-transparent border w-12 h-10 flex justify-center items-center rounded-lg"
+          >
+            {isNewChatOpen ? (
+              <Minus size={24} className="text-base-content" />
+            ) : (
+              <Plus size={24} className="text-base-content" />
+            )}
+          </button>
+          {isNewChatOpen && (
+            <div className="absolute right-full top-0 mr-2 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
+              <div className="py-1">
+                <DropdownItem
+                  onClick={() => handleChatTypeSelect("private")}
+                  icon={<UserPlus size={16} />}
+                >
+                  One-on-One Chat
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => handleChatTypeSelect("group")}
+                  icon={<Users size={16} />}
+                >
+                  Group Discussion
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => handleChatTypeSelect("ai")}
+                  icon={<Bot size={16} />}
+                >
+                  AI Assistant
+                </DropdownItem>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
