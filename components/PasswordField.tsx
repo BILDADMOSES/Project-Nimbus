@@ -7,9 +7,10 @@ interface PasswordFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   error?: string;
+  className?: string;
 }
 
-export const PasswordField: React.FC<PasswordFieldProps> = ({ label, name, value, onChange, error }) => {
+export const PasswordField: React.FC<PasswordFieldProps> = ({ label, name, value, onChange, error, className }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -24,7 +25,7 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({ label, name, value
           value={value}
           onChange={onChange}
           placeholder="••••••••"
-          className={`input input-bordered w-full bg-base-100 pr-10 text-sm md:text-base ${error ? "input-error" : ""}`}
+          className={`input input-bordered w-full bg-base-100 pr-10 text-sm md:text-base ${className || "" } ${error ? "input-error" : ""}`}
         />
         <button
           type="button"

@@ -16,15 +16,15 @@ const UserInfo: React.FC<UserInfoProps> = ({
   onEditProfile,
   onChangePassword,
 }) => (
-  <>
+  <div className="w-full max-w-md mx-auto px-4">
     {Object.entries(userData).map(([key, value]) => {
       if (key === "avatar" || !value) return null;
       return (
-        <div key={key} className="mb-2">
-          <span className="text-sm text-base-content/70">
+        <div key={key} className="mb-2 flex flex-wrap justify-between">
+          <span className="text-sm sm:text-base text-base-content/70">
             {key.charAt(0).toUpperCase() + key.slice(1)}:
           </span>
-          <span className="ml-2 text-base-content">
+          <span className="text-sm sm:text-base text-base-content text-right">
             {key === "preferredLang"
               ? languages.find((lang) => lang.code === value)?.name || value
               : value}
@@ -32,7 +32,7 @@ const UserInfo: React.FC<UserInfoProps> = ({
         </div>
       );
     })}
-    <div className="flex justify-between mt-6">
+    <div className="flex flex-col sm:flex-row justify-between mt-6 space-y-2 sm:space-y-0">
       <ActionButton
         label={
           <>
@@ -40,7 +40,7 @@ const UserInfo: React.FC<UserInfoProps> = ({
           </>
         }
         onClick={onEditProfile}
-        className="btn-outline btn-primary btn-sm"
+        className="btn-outline btn-primary btn-sm sm:btn-md w-full sm:w-auto"
       />
       <ActionButton
         label={
@@ -49,10 +49,10 @@ const UserInfo: React.FC<UserInfoProps> = ({
           </>
         }
         onClick={onChangePassword}
-        className="btn-outline btn-sm"
+        className="btn-outline btn-sm sm:btn-md w-full sm:w-auto"
       />
     </div>
-  </>
+  </div>
 );
 
 export default UserInfo;

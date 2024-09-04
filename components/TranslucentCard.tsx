@@ -12,7 +12,7 @@ const TranslucentCard: React.FC<TranslucentCardProps> = ({
   style = {},
 }) => (
   <div
-    className={`bg-base-100 bg-opacity-80 backdrop-blur-md rounded-lg shadow-xl ${className}`}
+    className={`bg-base-200 bg-opacity-80 backdrop-blur-md rounded-lg shadow-xl ${className}`}
     style={style}
   >
     {children}

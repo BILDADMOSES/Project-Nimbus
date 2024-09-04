@@ -5,33 +5,45 @@ import { AlertCircle, AlertTriangle } from 'lucide-react';
 import ChatHeader from '@/components/ChatHeader';
 import MessageList from '@/components/MessageList';
 import MessageInput from '@/components/MessageInput';
-import UserDetailsSidebar from '@/components/UserDetailsSidebar';
 import { useChatData } from '@/hooks/useChatData';
 import { useMessages } from '@/hooks/useMessages';
 import { useSharedFiles } from '@/hooks/useSharedFiles';
 import { sendMessage } from '@/utils/sendMessage';
-import { handleBlockUser, handleLeaveGroup, handleDeleteChat } from '@/utils/chatActions';
 import { Message } from '@/types';
 import { speechToText } from '@/utils/speechUtils';
 
 interface ChatRoomProps {
   chatId: string;
+  onBackClick: () => void;
+  isMobile: boolean;
+  onOpenUserDetails: (user: any, chat: any, participants: any, files: any[]) => void;
 }
 
-const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
+const ChatRoom: React.FC<ChatRoomProps> = ({ 
+  chatId, 
+  onBackClick, 
+  isMobile, 
+  onOpenUserDetails 
+}) => {
   const { data: session } = useSession();
   const router = useRouter();
-  const { chatData, participants, participantLanguages, selectedUser, setSelectedUser } = useChatData(chatId, session?.user?.id!);
+  const { chatData, participants, participantLanguages, selectedUser } = useChatData(chatId, session?.user?.id!);
   const { messages, isLoading, hasMore, loadMoreMessages } = useMessages(chatId);
   const sharedFiles = useSharedFiles(chatId);
 
-  const [isUserDetailsSidebarOpen, setIsUserDetailsSidebarOpen] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  const handleOpenSidebar = () => {
+    const user = chatData.type === "private"
+      ? participants[chatData.participants.find((p) => p !== session?.user?.id)!]
+      : null;
+    onOpenUserDetails(user, chatData, participants, sharedFiles);
+  };
+  
   const handleSendMessage = async (content: string, file?: File, audioBlob?: Blob) => {
     try {
       if (audioBlob) {
@@ -65,31 +77,24 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
 
   if (isLoading || !chatData) {
     return (
-      <div className="fixed inset-0 bg-base-200 bg-opacity-50 backdrop-blur-sm flex items-center justify-center">
+      <div className="fixed inset-0 bg-base-100 shadow-xl backdrop-blur-md bg-opacity-80 flex items-center justify-center">
         <div className="loading loading-spinner loading-lg text-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[90vh]">
+    <div className="flex flex-col h-full">
       <ChatHeader
         chatData={chatData}
         participants={participants}
         currentUserId={session?.user?.id}
-        onOpenSidebar={() => {
-          setSelectedUser(
-            chatData.type === "private"
-              ? participants[
-                  chatData.participants.find((p) => p !== session?.user?.id)!
-                ]
-              : null
-          );
-          setIsUserDetailsSidebarOpen(true);
-        }}
+        onOpenSidebar={handleOpenSidebar}
+        onBackClick={onBackClick}
+        isMobile={isMobile}
       />
       
-      <div className="flex-grow overflow-hidden flex flex-col bg-base-100 bg-opacity-0 backdrop-blur-md rounded-lg shadow-lg">
+      <div className="flex-grow overflow-hidden flex flex-col">
         {error && (
           <div className="alert alert-error">
             <AlertCircle className="stroke-current shrink-0 h-6 w-6" />
@@ -134,19 +139,6 @@ const ChatRoom: React.FC<ChatRoomProps> = ({ chatId }) => {
             </div>
           </div>
         </div>
-      )}
-
-      {isUserDetailsSidebarOpen && (
-        <UserDetailsSidebar
-          user={selectedUser || participants[chatData.participants.find((p) => p !== session?.user?.id)!]}
-          chatType={chatData.type}
-          sharedFiles={sharedFiles}
-          onClose={() => setIsUserDetailsSidebarOpen(false)}
-          participants={chatData.type === "group" ? Object.values(participants) : undefined}
-          onBlockUser={(userId) => handleBlockUser(userId, session?.user?.id!, chatId, router)}
-          onLeaveGroup={() => handleLeaveGroup(session?.user?.id!, chatId, router)}
-          onDeleteChat={() => handleDeleteChat(session?.user?.id!, chatId, router)}
-        />
       )}
     </div>
   );

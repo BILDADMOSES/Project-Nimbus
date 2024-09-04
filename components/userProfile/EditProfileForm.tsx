@@ -17,7 +17,7 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({
   onSubmit,
   onCancel,
 }) => (
-  <form onSubmit={onSubmit} className="space-y-4">
+  <form onSubmit={onSubmit} className="space-y-4 w-full max-w-md mx-auto px-4">
     {Object.entries(userData).map(([key, value]) => {
       if (key === "avatar") return null;
       if (key === "preferredLang") {
@@ -39,11 +39,16 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({
           value={value as string}
           onChange={onFieldChange}
           type="text"
+          className="w-full"
         />
       );
     })}
-    <div className="flex justify-end space-x-2">
-      <ActionButton label="Cancel" onClick={onCancel} className="btn-ghost" />
+    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+      <ActionButton 
+        label="Cancel" 
+        onClick={onCancel} 
+        className="btn-ghost w-full sm:w-auto"
+      />
       <ActionButton
         label={
           <>
@@ -51,7 +56,7 @@ const EditProfileForm: React.FC<EditProfileFormProps> = ({
           </>
         }
         type="submit"
-        className="btn-primary"
+        className="btn-primary w-full sm:w-auto"
       />
     </div>
   </form>

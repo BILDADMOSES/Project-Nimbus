@@ -62,7 +62,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageC
             <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={<MessageSquarePlus size={16} />}>
               Start New Conversation
               {isNewChatOpen && (
-                <div className="absolute left-full top-0 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+                <div className="absolute sm:left-full sm:top-0 left-0 right-auto sm:right-full top-0 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
                   <div className="py-1">
                     <DropdownItem onClick={() => handleChatTypeSelect('private')} icon={<UserPlus size={16} />}>
                       One-on-One Chat
@@ -81,7 +81,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ onNewChat, onProfileClick, onUsageC
             <DropdownItem onClick={() => setIsSettingsOpen(!isSettingsOpen)} icon={<Settings size={16} />}>
               Settings
               {isSettingsOpen && (
-                <div className="absolute left-full top-0 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+                <div className="absolute sm:left-full sm:top-0 left-0 right-auto sm:right-full top-0 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
                   <div className="py-1">
                     <DropdownItem onClick={() => handleThemeChange('light')} icon={<Sun size={16} />}>
                       Light Theme

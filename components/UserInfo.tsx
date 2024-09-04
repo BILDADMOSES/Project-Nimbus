@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/common/Logo'
@@ -7,17 +7,22 @@ import UserAvatar from './UserAvatar'
 import UserMenu from './UserMenu'
 import UsageModal from './UsageModal'
 import CreateNewChat from "./CreateNewChat"
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import UserProfilePopup from "./UserProfile"
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebaseClient'
 import upload from '@/lib/upload'
+import ActionButton from "@/components/ActionButton";
 import { getUsageStatus, UsageLimits } from '@/lib/usageTracking'
+import { X } from "lucide-react";
+import TranslucentCard from './TranslucentCard'
 
 export default function UserInfo() {
   const { data: session, status, update } = useSession()
   const router = useRouter()
   const [selectedChatType, setSelectedChatType] = useState<'private' | 'group' | 'ai' | null>(null)
   const [showProfilePopup, setShowProfilePopup] = useState(false)
+  const [showUsageTracking, setShowUsageTracking] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false)
@@ -87,7 +92,7 @@ export default function UserInfo() {
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-base-200 border-b border-base-300 h-20">
+    <div className="z-50 bg-base-100 backdrop-blur-md bg-opacity-80 text-base-content p-2 md:p-4 flex items-center justify-between border-b border-base-300">
       <div className="flex items-center space-x-4 overflow-hidden">
         <UserAvatar user={session.user} onImageChange={handleImageChange} />
         <div className="flex flex-col justify-center overflow-hidden">
@@ -116,11 +121,25 @@ export default function UserInfo() {
           />
         </div>
       )}
+      <TranslucentCard
+       style={{ top: `${0}px`, left: `${0}px` }}
+      className="fixed z-40 w-96 overflow-hidden"
+      >
+          <ActionButton
+        label={<X size={20} />}
+        onClick={() => setIsUsageModalOpen(false)}
+        className="btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10"
+      />
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : (
       <UsageModal
         isOpen={isUsageModalOpen}
         onClose={() => setIsUsageModalOpen(false)}
         usageData={usageData}
       />
-    </div>
+    )}
+      </TranslucentCard>
+      </div>
   )
 }

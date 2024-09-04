@@ -10,7 +10,7 @@ export default async function ChatPage() {
     redirect("/signin");
   }
 
-  return <div className="flex-col items-center mt-12">
+  return <div className="flex-col items-center">
     <CombinedChatPage userId={session.user.id} />
     </div>;
 }

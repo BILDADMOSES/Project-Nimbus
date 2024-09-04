@@ -10,26 +10,60 @@ interface UsageModalProps {
 const UsageModal: React.FC<UsageModalProps> = ({ isOpen, onClose, usageData }) => {
   if (!isOpen || !usageData) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-base-100 p-6 rounded-lg shadow-xl max-w-md w-full">
-        <h3 className="text-lg font-bold mb-4">Usage Status</h3>
-        <ul className="space-y-2">
-          <li>Messages: {usageData.messages} / {FREE_TIER_LIMITS.messages}</li>
-          <li>Translations: {usageData.translations} / {FREE_TIER_LIMITS.translations}</li>
-          <li>AI Interactions: {usageData.aiInteractions} / {FREE_TIER_LIMITS.aiInteractions}</li>
-          <li>File Storage: {(usageData.fileStorage / (1024 * 1024)).toFixed(2)}MB / {FREE_TIER_LIMITS.fileStorage / (1024 * 1024)}MB</li>
-          <li>Group Chats: {usageData.groupChats} / {FREE_TIER_LIMITS.groupChats}</li>
-        </ul>
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="btn btn-primary"
-          >
-            Close
-          </button>
-        </div>
+  const renderUsageBar = (used: number, total: number) => {
+    const percentage = (used / total) * 100;
+    return (
+      <div className="w-full bg-base-200 rounded-full h-2.5 mb-1">
+        <div 
+          className="bg-primary h-2.5 rounded-full" 
+          style={{ width: `${percentage}%` }}
+        ></div>
       </div>
+    );
+  };
+
+  return (
+    <div className="z-50 p-6 bg-base-100 rounded-lg shadow-xl">
+      <h3 className="text-2xl font-bold mb-6 text-center text-base-content">Usage Status</h3>
+      <ul className="space-y-4">
+        <li>
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium text-base-content">Messages</span>
+            <span className="text-sm font-medium text-base-content">{usageData.messages} / {FREE_TIER_LIMITS.messages}</span>
+          </div>
+          {renderUsageBar(usageData.messages, FREE_TIER_LIMITS.messages)}
+        </li>
+        <li>
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium text-base-content">Translations</span>
+            <span className="text-sm font-medium text-base-content">{usageData.translations} / {FREE_TIER_LIMITS.translations}</span>
+          </div>
+          {renderUsageBar(usageData.translations, FREE_TIER_LIMITS.translations)}
+        </li>
+        <li>
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium text-base-content">AI Interactions</span>
+            <span className="text-sm font-medium text-base-content">{usageData.aiInteractions} / {FREE_TIER_LIMITS.aiInteractions}</span>
+          </div>
+          {renderUsageBar(usageData.aiInteractions, FREE_TIER_LIMITS.aiInteractions)}
+        </li>
+        <li>
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium text-base-content">File Storage</span>
+            <span className="text-sm font-medium text-base-content">
+              {(usageData.fileStorage / (1024 * 1024)).toFixed(2)}MB / {FREE_TIER_LIMITS.fileStorage / (1024 * 1024)}MB
+            </span>
+          </div>
+          {renderUsageBar(usageData.fileStorage, FREE_TIER_LIMITS.fileStorage)}
+        </li>
+        <li>
+          <div className="flex justify-between mb-1">
+            <span className="text-sm font-medium text-base-content">Group Chats</span>
+            <span className="text-sm font-medium text-base-content">{usageData.groupChats} / {FREE_TIER_LIMITS.groupChats}</span>
+          </div>
+          {renderUsageBar(usageData.groupChats, FREE_TIER_LIMITS.groupChats)}
+        </li>
+      </ul>
     </div>
   );
 };

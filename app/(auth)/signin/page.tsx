@@ -1,5 +1,4 @@
-"use client";
-
+"use client"
 import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -82,7 +81,7 @@ export default function SignIn() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       {isRedirecting && <BlurredLoadingSpinner />}
-      <AuthCard className="w-[70%]">
+      <AuthCard className="w-full sm:w-[90%] md:w-[70%] max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -113,7 +112,7 @@ export default function SignIn() {
               onChange={handleChange}
               error={error || undefined}
             />
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-2 md:space-y-0">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
               <label className="label cursor-pointer">
                 <input
                   type="checkbox"
@@ -167,7 +166,7 @@ export default function SignIn() {
           </form>
 
           <p className="text-sm md:text-base text-base-content/70 mt-4 text-center">
-            Don't have an account?{" "}
+            Don't have an account?{" "}  <br/>
             <Link href="/signup" className="text-primary underline">
               Create an account
             </Link>

@@ -20,7 +20,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
   onSubmit,
   onCancel,
 }) => (
-  <form onSubmit={onSubmit} className="space-y-4">
+  <form onSubmit={onSubmit} className="space-y-4 w-full max-w-md mx-auto px-4">
     {["currentPassword", "newPassword", "confirmNewPassword"].map((field) => (
       <PasswordField
         key={field}
@@ -31,10 +31,15 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
         name={field}
         value={passwordData[field as keyof typeof passwordData]}
         onChange={onFieldChange}
+        className="w-full"
       />
     ))}
-    <div className="flex justify-end space-x-2">
-      <ActionButton label="Cancel" onClick={onCancel} className="btn-ghost" />
+    <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+      <ActionButton 
+        label="Cancel" 
+        onClick={onCancel} 
+        className="btn-ghost w-full sm:w-auto"
+      />
       <ActionButton
         label={
           <>
@@ -42,7 +47,7 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({
           </>
         }
         type="submit"
-        className="btn-primary"
+        className="btn-primary w-full sm:w-auto"
       />
     </div>
   </form>

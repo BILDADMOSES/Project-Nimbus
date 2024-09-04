@@ -1,5 +1,4 @@
-"use client";
-
+"use client"
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
@@ -7,6 +6,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, db, storage } from "@/lib/firebaseClient";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { AuthCard } from "@/components/AuthCard";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { InputField } from "@/components/InputField";
@@ -100,7 +100,6 @@ export default function SignupPage() {
         photoURL: avatarUrl,
       });
 
-      // Create user document
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         email: form.email,
@@ -109,10 +108,9 @@ export default function SignupPage() {
         preferredLang: form.preferredLang,
         avatar: avatarUrl,
         createdAt: new Date().toISOString(),
-        tier: "free", // initial tier to free
+        tier: "free",
       });
 
-      // Initialize usage tracking
       await setDoc(doc(db, "usage", user.uid), {
         messages: 0,
         translations: 0,
@@ -148,17 +146,22 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <AuthCard className="w-[70%]">
+      <AuthCard className="w-full sm:w-[90%] md:w-[70%] max-w-4xl">
         {showFact ? (
-          <div className="flex p-20 flex-col w-full items-center justify-center">
-            <h2 className="text-4xl md:text-7xl my-5">Did You Know?</h2>
-            <p className="text-2xl text-gray-400 mt-20 text-center">
+          <div className="flex p-4 sm:p-20 flex-col w-full items-center justify-center">
+            <h2 className="text-2xl sm:text-4xl md:text-7xl my-2 sm:my-5">Did You Know?</h2>
+            <p className="text-lg sm:text-2xl text-gray-400 mt-4 sm:mt-20 text-center">
               {genLanguageFact(form.preferredLang)}
             </p>
           </div>
         ) : (
           <>
-            <div className="w-full md:w-1/2 p-4">
+            <motion.div
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="w-full md:w-1/2 p-4"
+            >
               <h1 className="text-2xl md:text-3xl font-bold mb-2 text-center text-base-content">
                 Create an Account
               </h1>
@@ -181,9 +184,9 @@ export default function SignupPage() {
               />
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex md:flex-row justify-between">
+                <div className="flex flex-col sm:flex-row justify-between">
                   <InputField
-                    className="flex-1"
+                    className="flex-1 mb-4 sm:mb-0 sm:mr-2"
                     label="Email address"
                     name="email"
                     type="email"
@@ -193,7 +196,7 @@ export default function SignupPage() {
                     error={errors.email}
                   />
                   <InputField
-                    className="flex-1"
+                    className="flex-1 sm:ml-2"
                     label="Username"
                     name="username"
                     type="text"
@@ -212,8 +215,9 @@ export default function SignupPage() {
                   placeholder="John Doe"
                   error={errors.fullName}
                 />
-                <div className="flex md:flex-row justify-between">
+                <div className="flex flex-col sm:flex-row justify-between">
                   <PasswordField
+                    className="flex-1 mb-4 sm:mb-0 sm:mr-2"
                     label="Password"
                     name="password"
                     value={form.password}
@@ -221,6 +225,7 @@ export default function SignupPage() {
                     error={errors.password}
                   />
                   <PasswordField
+                    className="flex-1 sm:ml-2"
                     label="Confirm Password"
                     name="confirmPassword"
                     value={form.confirmPassword}
@@ -231,7 +236,6 @@ export default function SignupPage() {
                   />
                 </div>
 
-                {/* Preferred Language dropdown */}
                 <div>
                   <label className="label pl-0">
                     <span className="label-text text-sm md:text-base text-base-content/80">
@@ -260,7 +264,6 @@ export default function SignupPage() {
                   )}
                 </div>
 
-                {/* Terms and conditions checkbox */}
                 <div className="flex items-center mt-4">
                   <input
                     type="checkbox"
@@ -318,33 +321,31 @@ export default function SignupPage() {
                   Sign In
                 </Link>
               </p>
-            </div>
+            </motion.div>
 
-            <div className="w-full md:w-1/2 hidden md:flex flex-col items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="w-full md:w-1/2 p-0 hidden md:flex flex-col items-center justify-center"
+            >
               <ChatIllustration />
-            </div>
+            </motion.div>
           </>
         )}
       </AuthCard>
 
-      {/* Free Plan Modal */}
       {showFreeplanModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-base-100 p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-lg font-bold mb-4">Free Plan Features</h3>
             <ul className="list-disc list-inside space-y-2">
               <li>{FREE_TIER_LIMITS.messages} messages per month</li>
               <li>{FREE_TIER_LIMITS.translations} translations per month</li>
-              <li>
-                {FREE_TIER_LIMITS.aiInteractions} AI interactions per month
-              </li>
-              <li>
-                {FREE_TIER_LIMITS.fileStorage / (1024 * 1024)}MB file storage
-              </li>
+              <li>{FREE_TIER_LIMITS.aiInteractions} AI interactions per month</li>
+              <li>{FREE_TIER_LIMITS.fileStorage / (1024 * 1024)}MB file storage</li>
               <li>{FREE_TIER_LIMITS.groupChats} group chats</li>
-              <li>
-                Up to {FREE_TIER_LIMITS.maxGroupMembers} members per group
-              </li>
+              <li>Up to {FREE_TIER_LIMITS.maxGroupMembers} members per group</li>
             </ul>
             <div className="mt-6 flex justify-end">
               <button

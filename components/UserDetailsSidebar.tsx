@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   X,
@@ -11,6 +11,7 @@ import {
   UserMinus,
   LogOut,
   Trash2,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -42,6 +43,8 @@ interface UserDetailsSidebarProps {
   onBlockUser?: (userId: string) => void;
   onLeaveGroup?: () => void;
   onDeleteChat?: () => void;
+  isOpen: boolean;
+  isMobile?: boolean;
 }
 
 const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
@@ -53,7 +56,19 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
   onBlockUser,
   onLeaveGroup,
   onDeleteChat,
+  isOpen,
+  isMobile,
 }) => {
+  const [sidebarWidth, setSidebarWidth] = useState(0);
+
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarWidth(isOpen ? window.innerWidth : 0);
+    } else {
+      setSidebarWidth(isOpen ? 384 : 0); 
+    }
+  }, [isOpen, isMobile]);
+
   const formatDate = (timestamp: any) => {
     if (timestamp && typeof timestamp.toDate === "function") {
       return format(timestamp.toDate(), "MMM d, yyyy HH:mm");
@@ -114,8 +129,58 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
     </div>
   );
 
+  const renderGroupInfo = () => {
+    const participantsArray = participants 
+      ? (Array.isArray(participants) ? participants : Object.values(participants))
+      : [];
+  
+    return (
+      <div className="p-4">
+        <div className="flex items-center justify-center mb-4">
+          <div className="avatar placeholder">
+            <div className="bg-neutral-focus text-neutral-content rounded-full w-24">
+              <Users size={48} />
+            </div>
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-center mb-2">Group Chat</h3>
+        <p className="text-sm text-base-content/70 text-center mb-4">
+          {participantsArray.length} members
+        </p>
+        <h4 className="text-md font-semibold mb-2">Members</h4>
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {participantsArray.map((participant: UserData) => (
+            <div key={participant.id} className="flex items-center">
+              <div className="avatar mr-2">
+                <div className="w-8 h-8 rounded-full">
+                  <Image
+                    src={participant.image || "/default-avatar.png"}
+                    alt={participant.username}
+                    width={32}
+                    height={32}
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium">{participant.username}</p>
+                <p className="text-xs text-base-content/70">{participant.email}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-base-200 shadow-lg flex flex-col">
+    <div
+      className={`z-50 bg-base-100 shadow-xl backdrop-blur-md bg-opacity-80 flex flex-col transition-all duration-300 ease-in-out overflow-hidden ${
+        isMobile
+          ? "fixed right-0 top-0 bottom-0"
+          : ""
+      }`}
+      style={{ width: isMobile ? "100%" : `${sidebarWidth}px` }}
+    >
       <div className="flex justify-between items-center p-4 border-b border-base-300">
         <h2 className="text-xl font-bold">
           {chatType === "private"
@@ -131,33 +196,7 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
 
       <div className="flex-grow overflow-y-auto">
         {chatType === "private" && user && renderUserInfo(user)}
-        {chatType === "group" && participants && (
-          <div className="p-4">
-            <h3 className="text-lg font-semibold mb-4">Group Members</h3>
-            {participants.map((participant) => (
-              <div key={participant.id} className="flex items-center mb-4">
-                <div className="avatar mr-4">
-                  <div className="w-10 rounded-full">
-                    <Image
-                      src={participant.image || "/default-avatar.png"}
-                      alt={participant.username}
-                      width={40}
-                      height={40}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <p className="font-semibold">
-                    {participant.fullName || participant.username}
-                  </p>
-                  <p className="text-sm text-base-content/70">
-                    {participant.email}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {chatType === "group" && renderGroupInfo()}
         {chatType === "ai" && (
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-4">AI Assistant</h3>
@@ -172,50 +211,54 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
         <div className="p-4">
           <h4 className="text-lg font-semibold mb-4">Shared Files</h4>
           <div className="space-y-4">
-            {sharedFiles.map((file) => (
-              <div
-                key={file.id}
-                className="card bg-base-100 shadow-sm rounded-md"
-              >
-                <div className="card-body p-2">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0">
-                      {file.type === "image" ? (
-                        <div className="w-16 h-16 relative">
-                          <Image
-                            src={file.fileUrl || "/placeholder-image.jpg"}
-                            alt={file.content}
-                            layout="fill"
-                            objectFit="cover"
-                            className="rounded-md"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-16 h-16 bg-base-300 rounded-md flex items-center justify-center">
-                          {getFileIcon(file.type)}
-                        </div>
-                      )}
+            {sharedFiles && sharedFiles.length > 0 ? (
+              sharedFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="card bg-base-100 shadow-sm rounded-md"
+                >
+                  <div className="card-body p-2">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        {file.type === "image" ? (
+                          <div className="w-16 h-16 relative">
+                            <Image
+                              src={file.fileUrl || "/placeholder-image.jpg"}
+                              alt={file.content}
+                              layout="fill"
+                              objectFit="cover"
+                              className="rounded-md"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 bg-base-300 rounded-md flex items-center justify-center">
+                            {getFileIcon(file.type)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="text-sm font-semibold">{file.content}</h3>
+                        <p className="text-xs text-base-content/70">
+                          {formatDate(file.timestamp)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-grow">
-                      <h3 className="text-sm font-semibold">{file.content}</h3>
-                      <p className="text-xs text-base-content/70">
-                        {formatDate(file.timestamp)}
-                      </p>
+                    <div className="card-actions justify-end mt-2">
+                      <a
+                        href={file.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary"
+                      >
+                        {file.type === "image" ? "View" : "Download"}
+                      </a>
                     </div>
-                  </div>
-                  <div className="card-actions justify-end mt-2">
-                    <a
-                      href={file.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary"
-                    >
-                      {file.type === "image" ? "View" : "Download"}
-                    </a>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-base-content/70">No shared files found.</p>
+            )}
           </div>
         </div>
       </div>
