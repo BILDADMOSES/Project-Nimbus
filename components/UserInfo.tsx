@@ -96,60 +96,63 @@ export default function UserInfo() {
   }
 
   return (
-    <div className="z-50 bg-base-100 backdrop-blur-md bg-opacity-80 text-base-content p-2 md:p-4 flex items-center justify-between border-b border-base-300">
-      <div className="flex items-center space-x-4 overflow-hidden">
-        <UserAvatar user={session.user} onImageChange={handleImageChange} />
-        <div className="flex flex-col justify-center overflow-hidden">
-          <Logo height={30} width={30} fontSize="text-xl" />
-          <p className="text-xs text-base-content/70 truncate">
-            {session.user.email}
-          </p>
+    <>
+      <div className="z-50 bg-base-100 backdrop-blur-md bg-opacity-80 text-base-content p-2 md:p-4 flex items-center justify-between border-b border-base-300">
+        <div className="flex items-center space-x-4 overflow-hidden">
+          <UserAvatar user={session.user} onImageChange={handleImageChange} />
+          <div className="flex flex-col justify-center overflow-hidden">
+            <Logo height={30} width={30} fontSize="text-xl" />
+            <p className="text-xs text-base-content/70 truncate">
+              {session.user.email}
+            </p>
+          </div>
         </div>
+        {error && (
+          <div className="alert alert-error text-xs absolute bottom-0 left-0 right-0">
+            {error}
+          </div>
+        )}
+        <UserMenu
+          onNewChat={handleChatTypeSelect}
+          onProfileClick={handleProfileClick}
+          onUsageClick={handleUsageClick}
+          onSignOut={handleSignOut}
+        />
+        {showProfilePopup && (
+          <div className="fixed top-0 left-0 z-50">
+            <UserProfilePopup
+              onClose={() => setShowProfilePopup(false)}
+              position={{ top: 0, left: 0 }}
+            />
+          </div>
+        )}
+        <TranslucentCard
+          style={{ top: `${0}px`, left: `${0}px` }}
+          className="fixed z-40 w-96 overflow-hidden"
+        >
+          <ActionButton
+            label={<X size={20} />}
+            onClick={() => setIsUsageModalOpen(false)}
+            className="btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10"
+          />
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <UsageModal
+              isOpen={isUsageModalOpen}
+              onClose={() => setIsUsageModalOpen(false)}
+              usageData={usageData}
+            />
+          )}
+        </TranslucentCard>
       </div>
-      {error && (
-        <div className="alert alert-error text-xs absolute bottom-0 left-0 right-0">
-          {error}
-        </div>
-      )}
-      <UserMenu
-        onNewChat={handleChatTypeSelect}
-        onProfileClick={handleProfileClick}
-        onUsageClick={handleUsageClick}
-        onSignOut={handleSignOut}
-      />
+
       {selectedChatType && (
         <CreateNewChat
           chatType={selectedChatType}
           onClose={() => setSelectedChatType(null)}
         />
       )}
-      {showProfilePopup && (
-        <div className="fixed top-0 left-0 z-50">
-          <UserProfilePopup
-            onClose={() => setShowProfilePopup(false)}
-            position={{ top: 0, left: 0 }}
-          />
-        </div>
-      )}
-      <TranslucentCard
-        style={{ top: `${0}px`, left: `${0}px` }}
-        className="fixed z-40 w-96 overflow-hidden"
-      >
-        <ActionButton
-          label={<X size={20} />}
-          onClick={() => setIsUsageModalOpen(false)}
-          className="btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10"
-        />
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <UsageModal
-            isOpen={isUsageModalOpen}
-            onClose={() => setIsUsageModalOpen(false)}
-            usageData={usageData}
-          />
-        )}
-      </TranslucentCard>
-    </div>
+    </>
   );
 }

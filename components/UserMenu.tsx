@@ -74,7 +74,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
       {isMenuOpen && (
         <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
           <div className="py-1 max-h-[calc(100vh-100px)] overflow-y-auto">
-            <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={<MessageSquarePlus size={16} />}>
+            {/* <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={<MessageSquarePlus size={16} />}>
               Start New Conversation
               {isNewChatOpen && (
                 <div className="absolute sm:left-full sm:top-0 left-0 right-auto sm:right-full top-0 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
@@ -91,7 +91,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
                   </div>
                 </div>
               )}
-            </DropdownItem>
+            </DropdownItem> */}
+            <DropdownItem onClick={() => { onProfileClick(); closeAllMenus(); }} icon={<UserCircle size={16} />}>Profile</DropdownItem>
             <DropdownItem
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               icon={<Settings size={16} />}

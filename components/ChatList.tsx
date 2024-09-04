@@ -162,7 +162,7 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
       />
-      <div className="flex-1 md:max-h-[390px] scrollbar-hide overflow-y-auto">
+      <div className="flex-1 md:max-h-[90vh] scrollbar-hide overflow-y-auto">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="loading loading-spinner loading-lg text-primary"></div>

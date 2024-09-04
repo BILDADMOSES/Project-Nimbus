@@ -39,7 +39,7 @@ export default function SearchBar({
         />
         <button
           onClick={() => setIsNewChatOpen(!isNewChatOpen)}
-          className="text-3xl font-light text-black bg-primary rounded-lg w-12 h-10 flex justify-center items-center"
+          className="text-3xl font-light bg-transparent border w-12 h-10 flex justify-center items-center rounded-lg"
         >
           <span>{isNewChatOpen ? "-" : "+"}</span>
         </button>

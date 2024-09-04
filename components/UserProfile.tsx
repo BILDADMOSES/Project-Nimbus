@@ -179,7 +179,7 @@ export default function UserProfilePopup({
   return (
     <TranslucentCard
       style={{ top: `${position.top}px`, left: `${position.left}px` }}
-      className="fixed z-40 w-96 overflow-hidden bg-base-400"
+      className="fixed z-40 w-96 overflow-hidden"
     >
       <ActionButton
         label={<X size={20} />}

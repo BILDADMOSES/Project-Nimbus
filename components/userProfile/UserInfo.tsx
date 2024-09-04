@@ -32,7 +32,7 @@ const UserInfo: React.FC<UserInfoProps> = ({
         </div>
       );
     })}
-    <div className="flex flex-col sm:flex-row justify-between mt-6 space-y-2 sm:space-y-0">
+    <div className="flex flex-col sm:flex-row justify-center mt-6 space-y-2 sm:space-y-0">
       <ActionButton
         label={
           <>
