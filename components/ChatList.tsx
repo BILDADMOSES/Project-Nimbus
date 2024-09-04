@@ -1,5 +1,5 @@
-"use client"
-import { useEffect } from "react";
+"use client";
+import { useEffect, useState } from "react";
 import {
   collection,
   query,
@@ -16,7 +16,7 @@ import { db } from "@/lib/firebaseClient";
 import { useSession } from "next-auth/react";
 import SearchBar from "@/components/SearchBar";
 import ChatItem from "@/components/ChatItem";
-import useChatStore from "@/store/useChatStore"; 
+import useChatStore from "@/store/useChatStore";
 
 interface ChatListProps {
   userId: string;
@@ -37,6 +37,9 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
   } = useChatStore();
 
   const { data: session } = useSession();
+  const [selectedChatType, setSelectedChatType] = useState<
+    "private" | "group" | "ai" | null
+  >(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -87,8 +90,11 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
           if (lastMessage.senderId === userId) {
             lastMessageContent = lastMessage.originalContent || "Empty message";
           } else {
-            const userLanguage = session?.user?.preferredLang || 'en';
-            lastMessageContent = lastMessage.content?.[userLanguage] || lastMessage.originalContent || "Empty message";
+            const userLanguage = session?.user?.preferredLang || "en";
+            lastMessageContent =
+              lastMessage.content?.[userLanguage] ||
+              lastMessage.originalContent ||
+              "Empty message";
           }
         }
 
@@ -121,7 +127,9 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
       const lowerSearchTerm = searchTerm.toLowerCase();
       const filtered = chats.filter((chat) => {
         const nameMatch = chat.name.toLowerCase().includes(lowerSearchTerm);
-        const messageMatch = chat.lastMessage.toLowerCase().includes(lowerSearchTerm);
+        const messageMatch = chat.lastMessage
+          .toLowerCase()
+          .includes(lowerSearchTerm);
         return nameMatch || messageMatch;
       });
       setFilteredChats(filtered);
@@ -141,10 +149,17 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
     );
   }
 
+  const handleChatTypeSelect = (type: "private" | "group" | "ai") => {
+    setSelectedChatType(type);
+  };
 
   return (
     <div className="flex flex-col h-full">
-      <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+      <SearchBar
+        onNewChat={handleChatTypeSelect}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+      />
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center">
