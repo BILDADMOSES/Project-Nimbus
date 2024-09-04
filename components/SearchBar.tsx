@@ -45,7 +45,7 @@ export default function SearchBar({
         </button>
       </div>
       {isNewChatOpen && (
-        <div className="absolute left-96 z-50 top-30 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
+        <div className="absolute left-0 md:left-96 z-50 top-30 mt-0 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5">
           <div className="py-1">
             <DropdownItem
               onClick={() => handleChatTypeSelect("private")}

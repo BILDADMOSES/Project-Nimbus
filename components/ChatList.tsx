@@ -17,6 +17,7 @@ import { useSession } from "next-auth/react";
 import SearchBar from "@/components/SearchBar";
 import ChatItem from "@/components/ChatItem";
 import useChatStore from "@/store/useChatStore";
+import useChatTypeStore from "@/store/chatTypeStore";
 
 interface ChatListProps {
   userId: string;
@@ -37,9 +38,10 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
   } = useChatStore();
 
   const { data: session } = useSession();
-  const [selectedChatType, setSelectedChatType] = useState<
-    "private" | "group" | "ai" | null
-  >(null);
+  const [selectedChatType, setSelectedChatType] = useChatTypeStore((state) => [
+    state.selectedChatType,
+    state.setSelectedChatType,
+  ]);
 
   useEffect(() => {
     if (!userId) return;
@@ -160,7 +162,7 @@ export default function ChatList({ userId, onChatSelect }: ChatListProps) {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 md:max-h-[390px] scrollbar-hide overflow-y-auto">
         {isLoading ? (
           <div className="w-full h-full flex items-center justify-center">
             <div className="loading loading-spinner loading-lg text-primary"></div>
