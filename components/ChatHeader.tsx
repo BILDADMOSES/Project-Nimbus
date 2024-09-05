@@ -47,7 +47,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   const chatName = chatData.name || (chatData.type === 'private' ? participants[otherParticipantId!]?.username : 'Group Chat');
   const chatInfo = chatData.type === 'private' 
-    ? (participants[otherParticipantId!]?.isOnline ? 'Online' : 'Offline')
+    ? "private"
+    // ? (participants[otherParticipantId!]?.isOnline ? 'Online' : 'Offline')
     : `${chatData.participants.length} members`;
 
   return (
