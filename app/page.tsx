@@ -1,15 +1,16 @@
-"use client";
-
+"use client"
+import React, { useEffect, useState } from 'react';
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Logo from "@/components/common/Logo";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import mandela from "./assets/img/mandela.jpg";
 import aloys from "./assets/img/aloys.png";
 import michael from "./assets/img/michael.png";
 import bildad from "./assets/img/bildad.png";
+import PricingSection from '@/components/PricingPlan';
+
 
 const messages = [
   { text: "Hello", direction: "sent" },
@@ -35,7 +36,7 @@ function ChatIllustration() {
 
   return (
     <motion.div
-      className="w-full mt-24 my-10 md:w-1/2 bg-gradient-to-br from-primary/20 to-black/50 h-[400px]  p-6 md:px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
+      className="w-full mt-24 my-10 md:w-1/2 bg-gradient-to-br from-primary/20 to-black/50 dark:from-primary/10 dark:to-white/10 h-[400px] p-6 md:px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
       initial={{ opacity: 0, x: 100 }}
       whileInView={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.8 }}
@@ -55,7 +56,7 @@ function ChatIllustration() {
             className={`chat-bubble ${
               message.direction === "sent"
                 ? "bg-blue-500 text-white"
-                : "bg-gray-300 text-gray-900"
+                : "bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             }`}
           >
             {message.text}
@@ -65,15 +66,17 @@ function ChatIllustration() {
     </motion.div>
   );
 }
+
 export default function Landing() {
   const languages = [
     { name: "Swahili", speakers: "20M+" },
     { name: "Arabic", speakers: "15M+" },
     { name: "Hausa", speakers: "10M+" },
   ];
+
   return (
     <>
-      <header className="backdrop-blur-md fixed z-50 top-0 w-full mx-auto px-4 py-6 flex justify-between items-center">
+      <header className="backdrop-blur-md fixed z-50 top-0 w-full mx-auto px-4 py-6 flex justify-between items-center bg-white/10 dark:bg-black/10">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -95,12 +98,12 @@ export default function Landing() {
           <ThemeSwitcher />
         </nav>
       </header>
-      <div className="flex flex-col backdrop-blur-sm items-center justify-center min-h-screen py-2 bg-gradient-to-b from-black to-primary/50">
+      <div className="flex flex-col backdrop-blur-sm items-center justify-center min-h-screen py-2 bg-gradient-to-b from-white to-primary/50 dark:from-black dark:to-primary/50">
         <main className="flex md:pt-20 relative flex-col-reverse md:flex-row items-center justify-between w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           {/* Text Section */}
           <div className="text-center md:text-left md:w-1/2">
             <motion.h1
-              className="text-4xl font-bold text-white md:text-6xl"
+              className="text-4xl font-bold text-black dark:text-white md:text-6xl"
               initial={{ opacity: 0, y: -50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -108,7 +111,7 @@ export default function Landing() {
               Welcome to ChatEasy
             </motion.h1>
             <motion.p
-              className="mt-4 text-lg text-gray-200"
+              className="mt-4 text-lg text-gray-800 dark:text-gray-200"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -121,7 +124,7 @@ export default function Landing() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="btn btn-primary btn-md text-black rounded-md"
+                  className="btn btn-primary btn-md text-black dark:text-white rounded-md"
                 >
                   Get started
                 </motion.button>
@@ -130,15 +133,14 @@ export default function Landing() {
           </div>
 
           {/* Chat Section */}
-
           <ChatIllustration />
         </main>
       </div>
-      <section className="min-h-screen bg-black">
+      <section className="min-h-screen bg-gray-100 dark:bg-black">
         <div className="py-16 text-primary">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.h2
-              className="text-3xl font-bold text-center"
+              className="text-3xl font-bold text-center text-gray-900 dark:text-white"
               initial={{ opacity: 0, y: -50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -146,7 +148,7 @@ export default function Landing() {
               Most Spoken Languages in Africa
             </motion.h2>
             <motion.p
-              className="mt-4 text-lg text-center text-gray-400"
+              className="mt-4 text-lg text-center text-gray-600 dark:text-gray-400"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -160,12 +162,12 @@ export default function Landing() {
               {languages.map((language, index) => (
                 <motion.div
                   key={index}
-                  className="bg-gradient-to-t from-black to-primary/90 p-8 py-12 rounded-lg shadow-lg text-center"
+                  className="bg-gradient-to-t from-gray-200 to-primary/90 dark:from-black dark:to-primary/90 p-8 py-12 rounded-lg shadow-lg text-center"
                   initial={{ opacity: 0, y: 50 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 1, delay: index * 0.5 }}
                 >
-                  <h3 className="text-3xl font-semibold text-gray-100">
+                  <h3 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
                     {language.name}
                   </h3>
                   <motion.p
@@ -176,17 +178,17 @@ export default function Landing() {
                   >
                     {language.speakers}
                   </motion.p>
-                  <p className="my-2 text-gray-100">Speakers in Africa</p>
+                  <p className="my-2 text-gray-900 dark:text-gray-100">Speakers in Africa</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </div>
-        <div className="h-72 relative w-full bg-image bg-cover bg- bg-center">
-          <div className="absolute inset-0 bg-black/50 "></div>
+        <div className="h-72 relative w-full bg-image bg-cover bg-center">
+          <div className="absolute inset-0 bg-black/50 dark:bg-white/10"></div>
         </div>
       </section>
-      <section className="h-screen bg-black flex flex-col items-center justify-center px-6">
+      <section className="h-screen bg-gray-100 dark:bg-black flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-4xl"
           initial={{ opacity: 0, y: 20 }}
@@ -202,7 +204,7 @@ export default function Landing() {
             Our Vision
           </motion.h2>
           <motion.p
-            className="text-lg text-gray-400 mb-12"
+            className="text-lg text-gray-600 dark:text-gray-400 mb-12"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -220,7 +222,7 @@ export default function Landing() {
             Our Mission
           </motion.h2>
           <motion.p
-            className="text-lg text-gray-400"
+            className="text-lg text-gray-600 dark:text-gray-400"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -232,7 +234,7 @@ export default function Landing() {
           </motion.p>
         </motion.div>
       </section>
-      <section className="bg-black/50 text-white py-16">
+      <section className="bg-gray-200 dark:bg-black/50 text-gray-900 dark:text-white py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h2
             className="text-3xl text-primary font-bold text-center mb-8"
@@ -244,7 +246,7 @@ export default function Landing() {
           </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <motion.div
-              className="bg-black p-6 rounded-lg text-center"
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -259,10 +261,10 @@ export default function Landing() {
               <h3 className="text-xl font-semibold text-primary">
                 Michael Wekesa
               </h3>
-              <p className="text-gray-400">Software Lead</p>
+              <p className="text-gray-600 dark:text-gray-400">Software Lead</p>
             </motion.div>
             <motion.div
-              className="bg-black p-6 rounded-lg text-center"
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -277,10 +279,10 @@ export default function Landing() {
               <h3 className="text-xl text-primary font-semibold">
                 Bildad Okoth
               </h3>
-              <p className="text-gray-400">AI Lead</p>
+              <p className="text-gray-600 dark:text-gray-400">AI Lead</p>
             </motion.div>
             <motion.div
-              className="bg-black p-6 rounded-lg text-center"
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg text-center"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -295,12 +297,12 @@ export default function Landing() {
               <h3 className="text-xl text-primary font-semibold">
                 Aloys Aboge
               </h3>
-              <p className="text-gray-400">Design Lead</p>
+              <p className="text-gray-600 dark:text-gray-400">Design Lead</p>
             </motion.div>
           </div>
         </div>
       </section>
-      <section className="h-screen bg-black text-white flex flex-col items-center justify-center px-6">
+      <section className="h-screen bg-gray-100 dark:bg-black text-gray-900 dark:text-white flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-4xl"
           initial={{ opacity: 0, y: 20 }}
@@ -316,7 +318,7 @@ export default function Landing() {
             About Us
           </motion.h2>
           <motion.p
-            className="text-lg text-gray-400 mb-6"
+            className="text-lg text-gray-600 dark:text-gray-400 mb-6"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -328,7 +330,7 @@ export default function Landing() {
             people communicate.
           </motion.p>
           <motion.p
-            className="text-lg text-gray-400 mb-6"
+            className="text-lg text-gray-600 dark:text-gray-400 mb-6"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -340,7 +342,7 @@ export default function Landing() {
             technology to bridge gaps and bring people closer together.
           </motion.p>
           <motion.p
-            className="text-lg text-gray-400"
+            className="text-lg text-gray-600 dark:text-gray-400"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
@@ -353,7 +355,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      <section className="h-screen bg-gray-900/90 text-white flex flex-col items-center justify-center px-6">
+      <section className="h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-3xl"
           initial={{ opacity: 0 }}
@@ -368,14 +370,14 @@ export default function Landing() {
           >
             <Image
               src={mandela}
-              alt={"Nelson Mandela"}
+              alt="Nelson Mandela"
               width={300}
               height={300}
-              className="rounded- mx-auto"
+              className="rounded-full mx-auto"
             />
           </motion.div>
           <motion.p
-            className="text-lg italic"
+            className="text-lg italic text-gray-700 dark:text-gray-300"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -384,7 +386,7 @@ export default function Landing() {
             head. If you talk to him in his language, that goes to his heart."
           </motion.p>
           <motion.span
-            className="block mt-4 text-sm"
+            className="block mt-4 text-sm text-gray-600 dark:text-gray-400"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -394,7 +396,7 @@ export default function Landing() {
         </motion.div>
       </section>
       <footer>
-        <div className="bg-gray-900/40 backdrop-blur-md py-4 text-white text-center">
+        <div className="bg-gray-100 dark:bg-gray-900 backdrop-blur-md py-4 text-gray-700 dark:text-gray-300 text-center">
           <p>
             &copy; {new Date().getFullYear()} ChatEasy. All rights reserved.
           </p>
