@@ -100,9 +100,9 @@ export default function UserInfo() {
       <div className="z-50 bg-base-100 backdrop-blur-md bg-opacity-80 text-base-content p-2 md:p-4 flex items-center justify-between border-b border-base-300">
         <div className="flex items-center space-x-4 overflow-hidden">
           <UserAvatar user={session.user} onImageChange={handleImageChange} />
-          <div className="flex flex-col justify-center overflow-hidden">
-            <Logo height={30} width={30} fontSize="text-xl" />
-            <p className="text-xs text-base-content/70 truncate">
+          <div className="flex flex-col justify-start overflow-hidden">
+            <Logo height={50} width={50} fontSize="text-xl" />
+            <p className="text-xs px-2 text-base-content/70 truncate">
               {session.user.email}
             </p>
           </div>

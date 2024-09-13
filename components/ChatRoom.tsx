@@ -64,7 +64,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
 
   const renderMessage = useCallback((message: Message) => {
     if (message.senderId === session?.user?.id) {
-      return message.originalContent || (typeof message.content === "string" ? message.content : "");
+      return message.originalContent || (typeof message.content === "string" || message.content[session?.user?.preferredLang] );
     }
 
     if (chatData?.type === "group" && typeof message.content === "object") {
