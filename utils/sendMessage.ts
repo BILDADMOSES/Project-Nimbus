@@ -33,8 +33,10 @@ export const sendMessage = async (
       chatId: chatId,
     };
 
+    let textToTranslate = '';
+
     if (audioBlob) {
-      // Handle voice note
+      // Handle voice note (audio transcription and upload)
       const fileName = `voice_${Date.now()}.webm`;
       const storageRef = ref(storage, `chats/${chatId}/${fileName}`);
       await uploadBytes(storageRef, audioBlob);
@@ -47,20 +49,19 @@ export const sendMessage = async (
         fileUrl: downloadURL,
       };
 
-      // Increment file storage usage
       await incrementFileStorage(userId, audioBlob.size);
 
       // Transcribe the audio
       try {
         const transcriptionResponse = await axios.post('/api/service?endpoint=stt', audioBlob, {
-          headers: {
-            'Content-Type': 'audio/webm',
-          },
+          headers: { 'Content-Type': 'audio/webm' },
         });
-        messageData.originalContent = transcriptionResponse.data.text;
+        textToTranslate = transcriptionResponse.data.text;
+        messageData.originalContent = textToTranslate;
       } catch (error) {
         console.error("Error transcribing audio:", error);
-        messageData.originalContent = "Transcription failed";
+        textToTranslate = "Transcription failed";
+        messageData.originalContent = textToTranslate;
       }
     } else if (file) {
       // Handle file upload (image or other file)
@@ -84,62 +85,57 @@ export const sendMessage = async (
         fileUrl: downloadURL,
       };
 
-      // Increment file storage usage
       await incrementFileStorage(userId, file.size);
     } else {
       // Handle text message
+      textToTranslate = content;
       messageData = {
         ...messageData,
         type: "text",
-        content: content,
+        originalContent: content,
       };
     }
 
     // Handle translation for text messages and transcribed audio
-    if (messageData.type === "text" || messageData.type === "audio") {
-      const textToTranslate = messageData.type === "audio" ? messageData.originalContent! : content;
-
+    if (textToTranslate) {
       if (chatData?.type === "private") {
-        const otherParticipantId = chatData.participants.find(
-          (p) => p !== userId
-        );
+        const otherParticipantId = chatData.participants.find(p => p !== userId);
         if (otherParticipantId) {
           const userDoc = await getDoc(doc(db, "users", otherParticipantId));
           if (userDoc.exists()) {
             const userData = userDoc.data() as UserData;
-            // Check translation usage
             const canTranslate = await checkAndIncrementUsage(userId, "translations");
             if (canTranslate) {
-              const translatedContent = await translateMessage(
-                textToTranslate,
-                userData.preferredLang || "en"
-              );
-              messageData.content = translatedContent;
+              const translatedContent = await translateMessage(textToTranslate, userData.preferredLang || "en");
+              messageData.content = {
+                [userId]: textToTranslate,
+                [otherParticipantId]: translatedContent
+              };
             } else {
-              messageData.content = textToTranslate;
-              // message wasn't translated due to usage limits
+              messageData.content = {
+                [userId]: textToTranslate,
+                [otherParticipantId]: textToTranslate
+              };
             }
           }
         }
       } else if (chatData?.type === "group") {
-        const translations: { [key: string]: string } = {};
+        const translations: { [key: string]: string } = { [userId]: textToTranslate };
         await Promise.all(
           participantLanguages.map(async (lang) => {
-            // Check translation usage for each language
-            const canTranslate = await checkAndIncrementUsage(userId, "translations");
-            if (canTranslate) {
-              translations[lang] = await translateMessage(textToTranslate, lang);
-            } else {
-              translations[lang] = textToTranslate;
-              // message wasn't translated due to usage limits
+            if (lang !== 'original') {
+              const canTranslate = await checkAndIncrementUsage(userId, "translations");
+              if (canTranslate) {
+                translations[lang] = await translateMessage(textToTranslate, lang);
+              } else {
+                translations[lang] = textToTranslate;
+              }
             }
           })
         );
         messageData.content = translations;
       } else if (chatData?.type === "ai") {
-        // For AI chat, we don't translate the message
         messageData.content = textToTranslate;
-        // Check AI interaction usage
         const canUseAI = await checkAndIncrementUsage(userId, "aiInteractions");
         if (!canUseAI) {
           throw new Error("You've reached your AI interaction limit for the free tier. Please upgrade to continue using AI chat.");
@@ -155,23 +151,15 @@ export const sendMessage = async (
   }
 };
 
-const translateMessage = async (
-  message: string,
-  targetLang: string
-): Promise<string> => {
+const translateMessage = async (message: string, targetLang: string): Promise<string> => {
   const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
   const API_URL = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL;
 
   try {
     const response = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        q: message,
-        target: targetLang,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: message, target: targetLang }),
     });
 
     if (!response.ok) {
@@ -184,6 +172,6 @@ const translateMessage = async (
     return data.data.translations[0].translatedText;
   } catch (error) {
     console.error('Error in translation:', error);
-    return message; // Return original message if translation fails
+    return message;
   }
 };

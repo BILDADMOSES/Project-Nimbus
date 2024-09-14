@@ -12,8 +12,7 @@ interface MessageListProps {
   hasMore: boolean;
   lastMessageRef: React.RefObject<HTMLDivElement>;
   chatContainerRef: React.RefObject<HTMLDivElement>;
-  renderMessage: (message: Message) => string;
-  onLoadMore?: () => void;  // Made optional
+  onLoadMore?: () => void;
 }
 
 const MessageList: React.FC<MessageListProps> = ({ 
@@ -24,7 +23,6 @@ const MessageList: React.FC<MessageListProps> = ({
   hasMore, 
   lastMessageRef, 
   chatContainerRef,
-  renderMessage,
   onLoadMore
 }) => {
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
@@ -37,7 +35,7 @@ const MessageList: React.FC<MessageListProps> = ({
 
   useEffect(() => {
     const container = chatContainerRef.current;
-    if (container && onLoadMore) {  // Only add the event listener if onLoadMore is provided
+    if (container && onLoadMore) {
       const handleScroll = () => {
         if (container.scrollTop === 0 && hasMore) {
           onLoadMore();
@@ -86,9 +84,20 @@ const MessageList: React.FC<MessageListProps> = ({
   };
 
   const renderMessageContent = (message: Message) => {
+    const getContent = () => {
+      if (typeof message.content === 'object') {
+        if (chatType === 'private') {
+          return message.content[currentUserId!] || message.originalContent;
+        } else if (chatType === 'group') {
+          return message.content[participants[currentUserId!]?.preferredLang || 'en'] || message.originalContent;
+        }
+      }
+      return message.content || message.originalContent;
+    };
+
     switch (message.type) {
       case 'text':
-        return <p dangerouslySetInnerHTML={{ __html: renderMessage(message) }} />;
+        return <p>{getContent()}</p>;
       case 'image':
         return <Image src={message.fileUrl!} alt="Uploaded image" width={200} height={200} />;
       case 'file':
