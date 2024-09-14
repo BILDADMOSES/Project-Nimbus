@@ -17,7 +17,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/next-auth": "^3.13.0",
     "@types/uuid": "^10.0.0",
-    "axios": "^1.7.2",
+    "axios": "^1.7.7",
     "date-fns": "^3.6.0",
     "emoji-picker-react": "^4.11.1",
     "firebase": "^10.12.5",
