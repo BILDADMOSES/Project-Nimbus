@@ -106,6 +106,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           messages={messages}
           participants={participants}
           currentUserId={session?.user?.id}
+          currentUserLang= {session?.user?.preferredLang}
           chatType={chatData.type}
           hasMore={hasMore}
           lastMessageRef={lastMessageRef}

@@ -8,6 +8,7 @@ interface MessageListProps {
   messages: Message[];
   participants: {[key: string]: UserData};
   currentUserId: string | undefined;
+  currentUserLang: string | null | undefined;
   chatType: 'private' | 'group' | 'ai';
   hasMore: boolean;
   lastMessageRef: React.RefObject<HTMLDivElement>;
@@ -18,7 +19,8 @@ interface MessageListProps {
 const MessageList: React.FC<MessageListProps> = ({ 
   messages, 
   participants, 
-  currentUserId, 
+  currentUserId,
+  currentUserLang, 
   chatType, 
   hasMore, 
   lastMessageRef, 
@@ -87,7 +89,7 @@ const MessageList: React.FC<MessageListProps> = ({
     const getContent = () => {
       if (typeof message.content === 'object') {
         if (chatType === 'private') {
-          return message.content[currentUserId!] || message.originalContent;
+          return message.content[currentUserLang!] || message.originalContent;
         } else if (chatType === 'group') {
           return message.content[participants[currentUserId!]?.preferredLang || 'en'] || message.originalContent;
         }
