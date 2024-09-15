@@ -108,20 +108,20 @@ export const sendMessage = async (
             if (canTranslate) {
               const translatedContent = await translateMessage(textToTranslate, userData.preferredLang || "en");
               messageData.content = {
-                [userId]: textToTranslate,
+                // [userId]: textToTranslate,
                 [otherParticipantId]: translatedContent
               };
             } else {
               messageData.content = {
-                [userId]: textToTranslate,
+                // [userId]: textToTranslate,
                 [otherParticipantId]: textToTranslate
               };
             }
           }
         }
       } else if (chatData?.type === "group") {
-        const translations: { [key: string]: string } = { [userId]: textToTranslate };
-        await Promise.all(
+        const translations: { [key: string]: string } = {};  // [userId]: textToTranslate
+         await Promise.all(
           participantLanguages.map(async (lang) => {
             if (lang !== 'original') {
               const canTranslate = await checkAndIncrementUsage(userId, "translations");
