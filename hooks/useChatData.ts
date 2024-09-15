@@ -37,7 +37,7 @@ export const useChatData = (chatId: string, userId: string) => {
           }
         }
 
-        if (data.type === "group") {
+        if (data.type === "group" || data.type === "private") {
           const languages = new Set<string>();
           Object.values(participantsData).forEach((user) => {
             if (user.preferredLang) {

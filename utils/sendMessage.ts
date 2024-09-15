@@ -101,49 +101,20 @@ export const sendMessage = async (
 
     // Handle translation for text messages and transcribed audio
     if (textToTranslate) {
-      if (chatData?.type === "private") {
-        const otherParticipantId = chatData.participants.find(p => p !== userId);
-        if (otherParticipantId) {
-          const userDoc = await getDoc(doc(db, "users", otherParticipantId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data() as UserData;
+      const translations: { [key: string]: string } = {};  // [userId]: textToTranslate
+        await Promise.all(
+        participantLanguages.map(async (lang) => {
+          if (lang !== 'original') {
             const canTranslate = await checkAndIncrementUsage(userId, "translations");
             if (canTranslate) {
-              const translatedContent = await translateMessage(textToTranslate, userData.preferredLang || "en");
-              messageData.content = {
-                // [userId]: textToTranslate,
-                [userData.preferredLang || "en"]: translatedContent
-              };
+              translations[lang] = await translateMessage(textToTranslate, lang);
             } else {
-              messageData.content = {
-                // [userId]: textToTranslate,
-                [userData.preferredLang || "en"]: textToTranslate
-              };
+              translations[lang] = textToTranslate;
             }
           }
-        }
-      } else if (chatData?.type === "group") {
-        const translations: { [key: string]: string } = {};  // [userId]: textToTranslate
-         await Promise.all(
-          participantLanguages.map(async (lang) => {
-            if (lang !== 'original') {
-              const canTranslate = await checkAndIncrementUsage(userId, "translations");
-              if (canTranslate) {
-                translations[lang] = await translateMessage(textToTranslate, lang);
-              } else {
-                translations[lang] = textToTranslate;
-              }
-            }
-          })
-        );
-        messageData.content = translations;
-      } else if (chatData?.type === "ai") {
-        messageData.content = textToTranslate;
-        const canUseAI = await checkAndIncrementUsage(userId, "aiInteractions");
-        if (!canUseAI) {
-          throw new Error("You've reached your AI interaction limit for the free tier. Please upgrade to continue using AI chat.");
-        }
-      }
+        })
+      );
+      messageData.content = translations;
     }
 
     console.log("ADDING MESSAGE", messageData);
@@ -154,16 +125,23 @@ export const sendMessage = async (
   }
 };
 
-const translateMessage = async (message: string, targetLang: string): Promise<string> => {  
+export const translateMessage = async (message: string, targetLang: string): Promise<string> => {  
   try {
     const detected = await detectLanguage(message)
+    console.log("MESSAGE", message)
     console.log("DETECTED", detected)
+    console.log("TARGET", targetLang)
+
+    if (targetLang === detected) {
+      return message
+    }
 
     if (targetLang === 'sw') {
       console.log("TRANSLATING TO SW")
 
       if (detected !== 'en') {
         const tranlatedToEng = await googleTranslate(message, 'en');
+        console.log("non-en translated to en", tranlatedToEng)
         return await customTranslation(tranlatedToEng, 'sw')
       }
       return await customTranslation(message, targetLang)
@@ -172,8 +150,9 @@ const translateMessage = async (message: string, targetLang: string): Promise<st
     if (detected === 'sw') {
       console.log("TRANSLATING FROM SW")
       if (targetLang !== 'en') {
-        console.log("not eng")
+        console.log("non-en target")
         const msg = await customTranslation(message, 'en')
+        console.log("non-en target to be translated to en", msg)
         return await googleTranslate(msg, targetLang)
       } 
       return await customTranslation(message, 'en')

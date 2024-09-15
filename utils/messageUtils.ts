@@ -2,6 +2,7 @@ import { Message } from '@/types';
 import { format, isToday, isYesterday } from 'date-fns';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebaseClient';
+import { translateMessage } from './sendMessage';
 
 export const renderMessage = (message: Message, currentUserId: string, chatType: string, userLang: string) => {
   if (message.senderId === currentUserId) {
@@ -45,9 +46,4 @@ export const renderDateDivider = (date: Date) => {
     dateString = format(date, "MMMM d, yyyy");
   }
   return dateString;
-};
-
-const translateMessage = async (message: string, targetLang: string): Promise<string> => {
-  // Implement your translation logic here
-  return message; // Placeholder
 };
