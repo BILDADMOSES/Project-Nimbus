@@ -9,6 +9,9 @@ import {
 } from "@/lib/usageTracking";
 import axios from 'axios';
 
+const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
+const API_URL = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL;
+
 export const sendMessage = async (
   content: string,
   file: File | undefined,
@@ -151,10 +154,76 @@ export const sendMessage = async (
   }
 };
 
-const translateMessage = async (message: string, targetLang: string): Promise<string> => {
-  const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
-  const API_URL = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL;
+const translateMessage = async (message: string, targetLang: string): Promise<string> => {  
+  try {
+    const detected = await detectLanguage(message)
+    console.log("DETECTED", detected)
 
+    if (targetLang === 'sw') {
+      console.log("TRANSLATING TO SW")
+
+      if (detected !== 'en') {
+        const tranlatedToEng = await googleTranslate(message, 'en');
+        return await customTranslation(tranlatedToEng, 'sw')
+      }
+      return await customTranslation(message, targetLang)
+    }
+
+    if (detected === 'sw') {
+      console.log("TRANSLATING FROM SW")
+      if (targetLang !== 'en') {
+        console.log("not eng")
+        const msg = await customTranslation(message, 'en')
+        return await googleTranslate(msg, targetLang)
+      } 
+      return await customTranslation(message, 'en')
+    }
+
+    return googleTranslate(message, targetLang)
+    
+  } catch (error) {
+    console.error('Error in translation:', error);
+    return message;
+  }
+};
+
+const customTranslation = async (message: string, targetLang: string): Promise<string> => {
+  try {
+    const response = await fetch(`https://aboge-demo.hf.space/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: message, target: targetLang }),
+    });
+
+    const data = await response.json();
+    return data.translated_text;
+  } catch (error) {
+    console.error('Error in Custom Modeltranslation:', error);
+    return message;
+  }
+};
+
+const detectLanguage = async (message: string): Promise<string> => {
+
+  try {
+    const res = await fetch(`${API_URL}/detect?key=${API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: message }),  
+    });
+
+    const detectedData = await res.json();
+    const detectedLanguage = detectedData.data.detections[0][0].language;
+    console.log("Detected language:", detectedLanguage);
+
+    return detectedLanguage;
+  } catch (error) {
+    console.error("Error detecting language:", error);
+    throw new Error("Failed to detect language");
+  }
+};
+
+const googleTranslate = async (message: string, targetLang: string): Promise<string> => {
   try {
     const response = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: "POST",
@@ -174,22 +243,4 @@ const translateMessage = async (message: string, targetLang: string): Promise<st
     console.error('Error in translation:', error);
     return message;
   }
-};
-
-const customTranslation = async (message: string, targetLang: string): Promise<string> => {
-  const API_URL = process.env.CUSTOM_MODEL;
-
-  try {
-    const response = await fetch(`https://aboge-demo.hf.space/translate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: message, target: targetLang }),
-    });
-
-    const data = await response.json();
-    return data.translated_text;
-  } catch (error) {
-    console.error('Error in Custom Modeltranslation:', error);
-    return message;
-  }
-};
+}
