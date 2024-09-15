@@ -109,12 +109,12 @@ export const sendMessage = async (
               const translatedContent = await translateMessage(textToTranslate, userData.preferredLang || "en");
               messageData.content = {
                 // [userId]: textToTranslate,
-                [otherParticipantId]: translatedContent
+                [userData.preferredLang || "en"]: translatedContent
               };
             } else {
               messageData.content = {
                 // [userId]: textToTranslate,
-                [otherParticipantId]: textToTranslate
+                [userData.preferredLang || "en"]: textToTranslate
               };
             }
           }
