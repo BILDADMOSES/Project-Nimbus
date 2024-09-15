@@ -99,7 +99,7 @@ export default function Landing() {
         </nav>
       </header>
       <div className="flex flex-col backdrop-blur-sm items-center justify-center min-h-screen py-2 bg-gradient-to-b from-white to-primary/50 dark:from-black dark:to-primary/50">
-        <main className="flex md:pt-20 relative flex-col-reverse md:flex-row items-center justify-between w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+        <main className="flex md:pt-20 relative flex-col-reverse md:flex-row items-center justify-between w-full max-w-6xl px-4 sm:px-6 lg:px-8 overflow-x-hidden">
           {/* Text Section */}
           <div className="text-center md:text-left md:w-1/2">
             <motion.h1

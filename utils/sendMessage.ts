@@ -175,3 +175,21 @@ const translateMessage = async (message: string, targetLang: string): Promise<st
     return message;
   }
 };
+
+const customTranslation = async (message: string, targetLang: string): Promise<string> => {
+  const API_URL = process.env.CUSTOM_MODEL;
+
+  try {
+    const response = await fetch(`https://aboge-demo.hf.space/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: message, target: targetLang }),
+    });
+
+    const data = await response.json();
+    return data.translated_text;
+  } catch (error) {
+    console.error('Error in Custom Modeltranslation:', error);
+    return message;
+  }
+};
