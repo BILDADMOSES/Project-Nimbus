@@ -63,10 +63,10 @@ const ChatIllustration: React.FC = () => {
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full p-4 md:p-8 flex justify-center items-center rounded-r-2xl"
+      className="w-full p-2 flex justify-center items-center rounded-r-2xl"
     >
       <div className="w-full max-w-md flex flex-col items-center">
-        <div className="w-full bg-base-100 rounded-lg shadow-xl overflow-hidden mb-6 md:mb-8">
+        <div className="w-full bg-base-100 rounded-lg shadow-xl overflow-hidden mb-6 md:mb-4">
           {/* Chat app header */}
           <div className="bg-primary text-primary-content p-3 md:p-4 text-center">
             <h3 className="font-semibold text-sm md:text-base">
@@ -120,7 +120,7 @@ const ChatIllustration: React.FC = () => {
           </div>
         </div>
 
-        <h2 className="text-xl md:text-2xl font-semibold mb-2 text-center text-base-content">
+        <h2 className="text-xl  font-semibold mb-2 text-center text-base-content">
           Break language barriers effortlessly
         </h2>
         <p className="text-base-content/70 text-center text-sm md:text-base">

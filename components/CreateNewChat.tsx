@@ -138,15 +138,15 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
               </div>
             )}
 
-            {successMessage && (
+            {/* {successMessage && (
               <div className="alert alert-success">
                 <Check className="flex-shrink-0 mr-2" />
                 <span>{successMessage}</span>
               </div>
-            )}
+            )} */}
 
             <button
-              onClick={handleCreateChat}
+              onClick={()=>handleCreateChat(onClose)}
               disabled={isLoading}
               className={`btn btn-primary w-full text-sm sm:text-base ${
                 isLoading ? "loading" : ""

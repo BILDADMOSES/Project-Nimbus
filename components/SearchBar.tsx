@@ -51,7 +51,7 @@ export default function SearchBar({
             )}
           </button>
           {isNewChatOpen && (
-            <div className="absolute right-full top-0 mr-2 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
+            <div className="absolute right-full md:left-[140%] top-0 mr-2 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
               <div className="py-1">
                 <DropdownItem
                   onClick={() => handleChatTypeSelect("private")}
@@ -65,12 +65,12 @@ export default function SearchBar({
                 >
                   Group Discussion
                 </DropdownItem>
-                <DropdownItem
+                {/* <DropdownItem
                   onClick={() => handleChatTypeSelect("ai")}
                   icon={<Bot size={16} />}
                 >
                   AI Assistant
-                </DropdownItem>
+                </DropdownItem> */}
               </div>
             </div>
           )}

@@ -36,7 +36,7 @@ export default function ChatItem({ chat, onChatSelect }: ChatItemProps) {
                 alt={chat.name || 'Chat'}
                 width={48}
                 height={48}
-                className="rounded-full"
+                className="rounded-full w-12 h-12"
               />
             ) : (
               getAvatarSVG(chat.type)

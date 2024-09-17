@@ -8,6 +8,7 @@ import {
   incrementFileStorage,
 } from "@/lib/usageTracking";
 import axios from 'axios';
+import toast from "react-hot-toast";
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_KEY;
 const API_URL = process.env.NEXT_PUBLIC_GOOGLE_TRANSLATE_API_URL;
@@ -27,6 +28,7 @@ export const sendMessage = async (
     // Check message count limit
     const canSendMessage = await checkAndIncrementUsage(userId, "messages");
     if (!canSendMessage) {
+      toast.error("You've reached your message limit for the free tier. Please upgrade to send more messages.");
       throw new Error("You've reached your message limit for the free tier. Please upgrade to send more messages.");
     }
 
@@ -78,7 +80,9 @@ export const sendMessage = async (
       }
 
       const storageRef = ref(storage, `chats/${chatId}/${file.name}`);
-      await uploadBytes(storageRef, file);
+      await uploadBytes(storageRef, file).then(() => {
+        toast.success("File uploaded successfully!");
+      });
       const downloadURL = await getDownloadURL(storageRef);
 
       messageData = {
@@ -120,6 +124,7 @@ export const sendMessage = async (
     console.log("ADDING MESSAGE", messageData);
     await addDoc(collection(db, `chats/${chatId}/messages`), messageData);
   } catch (error) {
+    toast.error("Failed to send message. Please try again.");
     console.error("Error sending message:", error);
     throw error;
   }
@@ -128,20 +133,13 @@ export const sendMessage = async (
 export const translateMessage = async (message: string, targetLang: string): Promise<string> => {  
   try {
     const detected = await detectLanguage(message)
-    console.log("MESSAGE", message)
-    console.log("DETECTED", detected)
-    console.log("TARGET", targetLang)
-
     if (targetLang === detected) {
       return message
     }
 
     if (targetLang === 'sw') {
-      console.log("TRANSLATING TO SW")
-
       if (detected !== 'en') {
         const tranlatedToEng = await googleTranslate(message, 'en');
-        console.log("non-en translated to en", tranlatedToEng)
         return await customTranslation(tranlatedToEng, 'sw')
       }
       return await customTranslation(message, targetLang)
@@ -150,17 +148,15 @@ export const translateMessage = async (message: string, targetLang: string): Pro
     if (detected === 'sw') {
       console.log("TRANSLATING FROM SW")
       if (targetLang !== 'en') {
-        console.log("non-en target")
         const msg = await customTranslation(message, 'en')
-        console.log("non-en target to be translated to en", msg)
         return await googleTranslate(msg, targetLang)
       } 
       return await customTranslation(message, 'en')
     }
-
     return googleTranslate(message, targetLang)
     
   } catch (error) {
+    toast.error("Failed to translate message. Please try again.");
     console.error('Error in translation:', error);
     return message;
   }
@@ -193,11 +189,11 @@ const detectLanguage = async (message: string): Promise<string> => {
 
     const detectedData = await res.json();
     const detectedLanguage = detectedData.data.detections[0][0].language;
-    console.log("Detected language:", detectedLanguage);
 
     return detectedLanguage;
   } catch (error) {
     console.error("Error detecting language:", error);
+    toast.error("Could'nt detect language in message.");
     throw new Error("Failed to detect language");
   }
 };

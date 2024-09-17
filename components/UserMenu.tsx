@@ -72,7 +72,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
         <MoreVertical className="h-6 w-6" />
       </button>
       {isMenuOpen && (
-        <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
+        <div className="absolute md:left-[140%] md:-top-[50%] right-0 mt-2 w-56 rounded-md shadow-lg bg-base-100 ring-1 ring-base-content ring-opacity-5 z-50">
           <div className="py-1 max-h-[calc(100vh-100px)] overflow-y-auto">
             {/* <DropdownItem onClick={() => setIsNewChatOpen(!isNewChatOpen)} icon={<MessageSquarePlus size={16} />}>
               Start New Conversation

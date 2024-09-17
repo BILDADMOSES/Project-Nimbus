@@ -25,7 +25,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
     
     if (user?.image) {
       return (
-        <Image src={user.image} alt={user.username} width={40} height={40} className="rounded-full" />
+        <Image src={user.image} alt={user.username} width={40} height={40} className="rounded-full w-12 h-12" />
       )
     } else {
       return (

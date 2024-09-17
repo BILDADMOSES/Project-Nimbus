@@ -14,6 +14,7 @@ import { PasswordField } from "@/components/PasswordField";
 import ChatIllustration from "@/components/common/ChatIllustration";
 import { language_facts, languages } from "@/constants";
 import { FREE_TIER_LIMITS } from "@/lib/usageTracking";
+import toast from "react-hot-toast";
 
 export default function SignupPage() {
   const [form, setForm] = useState({
@@ -131,13 +132,15 @@ export default function SignupPage() {
         router.push(`/accept-invite?token=${invitedChatId}`);
       } else {
         setShowFact(true);
+        toast.success("Account created successfully! Redirecting to sign in...");
         setTimeout(() => {
           setShowFact(false);
           router.push("/signin");
-        }, 5000);
+        }, 6000);
       }
     } catch (error) {
       setErrors({ general: "Failed to create an account. Please try again." });
+      toast.error("Failed to create an account. Please try again.");
       console.error("Error during signup:", error);
     } finally {
       setIsLoading(false);
@@ -145,6 +148,10 @@ export default function SignupPage() {
   };
 
   return (
+    <>
+    <h2 className="bg-black py-2 font-semibold mb-2 text-center text-base-content">
+          Powered with our very own translation model for local African languages.
+    </h2>
     <div className="min-h-screen flex items-center justify-center p-4">
       <AuthCard className="w-full sm:w-[90%] md:w-[70%] max-w-4xl">
         {showFact ? (
@@ -359,5 +366,6 @@ export default function SignupPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

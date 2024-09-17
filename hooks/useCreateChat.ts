@@ -14,6 +14,7 @@ import {
 import { db } from "@/lib/firebaseClient";
 import { checkAndIncrementUsage, FREE_TIER_LIMITS } from "@/lib/usageTracking";
 import { User } from "@/types";
+import toast from "react-hot-toast";
 
 export const useCreateChat = (
   chatType: "private" | "group" | "ai",
@@ -34,7 +35,7 @@ export const useCreateChat = (
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
 
-  const handleCreateChat = async () => {
+  const handleCreateChat = async (closeFunc: ()=>void) => {
     if (!userId) return;
     if (chatType === "private" && selectedUsers.length > 1) {
       setError("Only one user can be added to a private chat.");
@@ -82,6 +83,9 @@ export const useCreateChat = (
   
       if (chatType === "ai") {
         setSuccessMessage("AI chat created successfully!");
+        toast.success("AI chat created successfully!");
+
+        closeFunc();
         // TODO: Redirect to the new AI chat here
         // router.push(`/chat/${chatId}`)
       } else if (chatType === "private") {
@@ -90,12 +94,15 @@ export const useCreateChat = (
             participants: arrayUnion(selectedUsers[0].id),
           });
           setSuccessMessage("Private chat created successfully!");
+          toast.success("Private chat created successfully!");
+          closeFunc();
         } else if (createWithoutUsers) {
           const invitationLink = `${window.location.origin}/invite?token=${chatId}`;
           setChatLink(invitationLink);
           setSuccessMessage(
             "Private chat created. Share the invitation link to add a user."
           );
+          toast.success("Private chat created. Share the invitation link to add a user.");
         }
       } else if (chatType === "group") {
         if (!createWithoutUsers) {
@@ -108,12 +115,16 @@ export const useCreateChat = (
           });
           await batch.commit();
           setSuccessMessage("Group chat created and users added successfully!");
+          toast.success("Group chat created and users added successfully!");
+          closeFunc();
         } else {
           const invitationLink = `${window.location.origin}/invite?token=${chatId}`;
           setChatLink(invitationLink);
           setSuccessMessage(
             "Group chat created. Share the invitation link to add users."
           );
+          toast.success("Group chat created. Share the invitation link to add users.");
+
         }
   
         if (isFreeTier) {

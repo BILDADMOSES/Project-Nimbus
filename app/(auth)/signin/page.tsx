@@ -10,6 +10,7 @@ import { InputField } from "@/components/InputField";
 import { PasswordField } from "@/components/PasswordField";
 import ChatIllustration from "@/components/common/ChatIllustration";
 import { BlurredLoadingSpinner } from "@/components/LoadingSpinner";
+import toast from "react-hot-toast";
 
 export default function SignIn() {
   const [form, setForm] = useState({
@@ -50,6 +51,7 @@ export default function SignIn() {
       });
       if (result?.error) {
         console.log("Sign in error:", result);
+        toast.error("An unexpected error occurred. Please try again.");
         setError(result.error);
       } else {
         setIsRedirecting(true);
@@ -67,11 +69,13 @@ export default function SignIn() {
             router.push(callbackUrl);
           }
         } else {
+          toast.success("Signed in successfully!");
           router.push("/chat");
         }
       }
     } catch (error) {
       console.error("Sign in error:", error);
+      toast.error("An unexpected error occurred. Please try again.");
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -79,6 +83,10 @@ export default function SignIn() {
   };
 
   return (
+    <>
+    <h2 className="bg-black py-2 font-semibold mb-2 text-center text-base-content">
+          Powered with our very own translation model for local African languages.
+    </h2>
     <div className="min-h-screen flex items-center justify-center p-4">
       {isRedirecting && <BlurredLoadingSpinner />}
       <AuthCard className="w-full sm:w-[90%] md:w-[70%] max-w-4xl">
@@ -183,5 +191,6 @@ export default function SignIn() {
         </motion.div>
       </AuthCard>
     </div>
+    </>
   );
 }

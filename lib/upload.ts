@@ -1,5 +1,6 @@
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { app } from "./firebaseClient";
+import toast from "react-hot-toast";
 
 const storage = getStorage(app);
 
@@ -20,6 +21,7 @@ const upload = async (file: File): Promise<string> => {
       async () => {
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         resolve(downloadURL);
+        toast.success("Image uploaded successfully!");
       }
     );
   });

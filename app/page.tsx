@@ -188,7 +188,7 @@ export default function Landing() {
           <div className="absolute inset-0 bg-black/50 dark:bg-white/10"></div>
         </div>
       </section>
-      <section className="h-screen bg-gray-100 dark:bg-black flex flex-col items-center justify-center px-6">
+      <section className="py-10 bg-gray-100 dark:bg-black flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-4xl"
           initial={{ opacity: 0, y: 20 }}
@@ -302,7 +302,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
-      <section className="h-screen bg-gray-100 dark:bg-black text-gray-900 dark:text-white flex flex-col items-center justify-center px-6">
+      <section className=" py-10 bg-gray-100 dark:bg-black text-gray-900 dark:text-white flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-4xl"
           initial={{ opacity: 0, y: 20 }}
@@ -355,7 +355,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      <section className="h-screen bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col items-center justify-center px-6">
+      <section className="py-10 bg-gray-200 dark:bg-gray-900 text-gray-900 dark:text-white flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-3xl"
           initial={{ opacity: 0 }}
@@ -373,7 +373,7 @@ export default function Landing() {
               alt="Nelson Mandela"
               width={300}
               height={300}
-              className="rounded-full mx-auto"
+              className="rounded-full mx-auto h-[200px] w-[200px] md:w-[300px] md:h-[300px]"
             />
           </motion.div>
           <motion.p
