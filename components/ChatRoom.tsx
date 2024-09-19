@@ -5,6 +5,7 @@ import { AlertCircle, AlertTriangle } from 'lucide-react';
 import ChatHeader from '@/components/ChatHeader';
 import MessageList from '@/components/MessageList';
 import MessageInput from '@/components/MessageInput';
+import OptimisticMessageBubble from '@/components/OptimisticMessageBubble';
 import { useChatData } from '@/hooks/useChatData';
 import { useMessages } from '@/hooks/useMessages';
 import { useSharedFiles } from '@/hooks/useSharedFiles';
@@ -28,7 +29,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
   const { data: session } = useSession();
   const router = useRouter();
   const { chatData, participants, participantLanguages, selectedUser } = useChatData(chatId, session?.user?.id!);
-  const { messages, isLoading, hasMore, loadMoreMessages } = useMessages(chatId);
+  const { messages, isLoading, hasMore, loadMoreMessages, addOptimisticMessage, removeOptimisticMessage } = useMessages(chatId);
   const sharedFiles = useSharedFiles(chatId);
 
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
@@ -45,26 +46,52 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
   };
   
   const handleSendMessage = async (content: string, file?: File, audioBlob?: Blob) => {
+    const optimisticMessage: Message = {
+      id: Date.now().toString(),
+      content,
+      senderId: session?.user?.id!,
+      timestamp: new Date(),
+      chatId,
+      type: file ? 'file' : 'text',
+    };
+
+    addOptimisticMessage(optimisticMessage);
+
     try {
       if (audioBlob) {
-        // Handle voice message
         const transcribedText = await speechToText(audioBlob);
         await sendMessage(transcribedText, undefined, audioBlob, chatId, session?.user?.id!, chatData!, participantLanguages);
       } else {
         await sendMessage(content, file, undefined, chatId, session?.user?.id!, chatData!, participantLanguages);
       }
+      removeOptimisticMessage(optimisticMessage.id);
     } catch (error) {
       console.error("Error sending message:", error);
       setError((error as Error).message);
       if ((error as Error).message.includes("reached your limit")) {
         setShowUpgradePrompt(true);
       }
+      optimisticMessage.error = true;
+      addOptimisticMessage(optimisticMessage);
     }
+  };
+
+  const handleResendMessage = async (message: Message) => {
+    removeOptimisticMessage(message.id);
+    await handleSendMessage(message.content as string);
   };
 
   const renderMessage = useCallback((message: Message) => {
     if (message.senderId === session?.user?.id) {
-      return message.originalContent || (typeof message.content === "string" || message.content[session?.user?.preferredLang] );
+      if (message.error) {
+        return (
+          <OptimisticMessageBubble
+            message={message}
+            onResend={() => handleResendMessage(message)}
+          />
+        );
+      }
+      return message.originalContent || (typeof message.content === "string" ? message.content : message.content[session?.user?.preferredLang]);
     }
 
     if (chatData?.type === "group" && typeof message.content === "object") {
@@ -106,7 +133,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           messages={messages}
           participants={participants}
           currentUserId={session?.user?.id}
-          currentUserLang= {session?.user?.preferredLang}
+          currentUserLang={session?.user?.preferredLang}
           chatType={chatData.type}
           hasMore={hasMore}
           lastMessageRef={lastMessageRef}

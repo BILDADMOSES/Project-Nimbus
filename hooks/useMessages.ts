@@ -7,6 +7,7 @@ const MESSAGES_PER_PAGE = 30;
 
 export const useMessages = (chatId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
 
@@ -52,5 +53,20 @@ export const useMessages = (chatId: string) => {
     setMessages((prevMessages) => [...newMessages.reverse(), ...prevMessages]);
   }, [chatId, hasMore, messages]);
 
-  return { messages, isLoading, hasMore, loadMoreMessages };
+  const addOptimisticMessage = (message: Message) => {
+    setOptimisticMessages((prev) => [...prev, message]);
+  };
+
+  const removeOptimisticMessage = (messageId: string) => {
+    setOptimisticMessages((prev) => prev.filter((m) => m.id !== messageId));
+  };
+
+  return { 
+    messages: [...messages, ...optimisticMessages], 
+    isLoading, 
+    hasMore, 
+    loadMoreMessages,
+    addOptimisticMessage,
+    removeOptimisticMessage
+  };
 };

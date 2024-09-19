@@ -85,6 +85,10 @@ const MessageList: React.FC<MessageListProps> = ({
 
   const renderMessageContent = (message: Message) => {
     const getContent = () => {
+      if (message.senderId === currentUserId) {
+        // If the current user is the owner of the message, show the original content
+        return message.originalContent || message.content;
+      }
       if (typeof message.content === 'object') {
         return message.content[participants[currentUserId!]?.preferredLang || 'en'] || message.originalContent;
       }
@@ -119,14 +123,21 @@ const MessageList: React.FC<MessageListProps> = ({
   const groupMessagesByDay = (messages: Message[]) => {
     const groups: { [key: string]: Message[] } = {};
     messages.forEach((message) => {
-      const date = message.timestamp?.toDate();
-      if (date) {
-        const key = format(date, 'yyyy-MM-dd');
-        if (!groups[key]) {
-          groups[key] = [];
-        }
-        groups[key].push(message);
+      let date: Date;
+      if (message.timestamp instanceof Date) {
+        date = message.timestamp;
+      } else if (typeof message.timestamp?.toDate === 'function') {
+        date = message.timestamp.toDate();
+      } else {
+        console.error('Invalid timestamp for message:', message);
+        return; // Skip this message
       }
+      
+      const key = format(date, 'yyyy-MM-dd');
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(message);
     });
     return groups;
   };
@@ -161,7 +172,7 @@ const MessageList: React.FC<MessageListProps> = ({
                   {renderMessageContent(message)}
                 </div>
                 <div className="chat-footer opacity-50 text-xs">
-                  {format(new Date(message.timestamp?.toDate()), 'h:mm a')}
+                  {format(message.timestamp instanceof Date ? message.timestamp : message.timestamp?.toDate(), 'h:mm a')}
                 </div>
               </div>
             ))}
