@@ -11,6 +11,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const waveformRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -22,6 +23,24 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
     return () => {
       if (interval) clearInterval(interval);
     };
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (isRecording && waveformRef.current) {
+      const waveform = waveformRef.current;
+      const bars = waveform.children;
+      const animateBars = () => {
+        for (let i = 0; i < bars.length; i++) {
+          const bar = bars[i] as HTMLDivElement;
+          const height = Math.random() * 100;
+          bar.style.height = `${height}%`;
+        }
+        if (isRecording) {
+          requestAnimationFrame(animateBars);
+        }
+      };
+      requestAnimationFrame(animateBars);
+    }
   }, [isRecording]);
 
   const startRecording = async () => {
@@ -61,6 +80,22 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
 
   return (
     <div className="flex items-center space-x-2">
+      {isRecording && (
+        <>
+        <div ref={waveformRef} className="flex items-end space-x-1 h-8 w-24">
+            {[...Array(8)].map((_, index) => (
+              <div
+                key={index}
+                className="w-1 bg-primary rounded-full transition-all duration-100 ease-in-out"
+                style={{ height: '20%' }}
+              />
+            ))}
+          </div>
+          <span className="text-sm font-medium">
+            {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+          </span>
+        </>
+      )}
       <button
         type="button"
         onClick={isRecording ? stopRecording : startRecording}
@@ -72,11 +107,6 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
           <MicrophoneIcon className="h-5 w-5" />
         )}
       </button>
-      {isRecording && (
-        <span className="text-sm font-medium">
-          {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-        </span>
-      )}
     </div>
   );
 };
