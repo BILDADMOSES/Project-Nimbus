@@ -96,6 +96,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
             <DropdownItem
               onClick={() => setIsSettingsOpen(!isSettingsOpen)}
               icon={<Settings size={16} />}
+              onMousenter={() => setIsSettingsOpen(true)}
+              onMouseLeave={() => setIsSettingsOpen(false)}
             >
               Settings
               {isSettingsOpen && (

@@ -33,7 +33,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <div className="bg-neutral-focus text-neutral-content rounded-full w-10">
             {chatData.type === 'private' 
               ? <span className="text-xl">{user?.username.charAt(0).toUpperCase()}</span>
-              : <Users size={20} />
+              : <Users size={50} />
             }
           </div>
         </div>

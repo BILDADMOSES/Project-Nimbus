@@ -70,7 +70,7 @@ const MessageList: React.FC<MessageListProps> = ({
 
     if (user.image) {
       return (
-        <Image src={user.image} alt={user.username} width={40} height={40} className="rounded-full" />
+        <Image src={user.avatar } alt={user.username} width={40} height={40} className="rounded-full" />
       );
     } else {
       return (

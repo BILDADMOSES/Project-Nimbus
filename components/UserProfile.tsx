@@ -189,7 +189,7 @@ export default function UserProfilePopup({
       {isLoading ? (
         <LoadingSpinner />
       ) : (
-        <div className="p-6">
+        <div className="p-6 md: py-12 md:h-[600px] md:overflow-auto scrollbar-hide">
           <UserAvatar
             avatar={userData.avatar}
             username={userData.username}

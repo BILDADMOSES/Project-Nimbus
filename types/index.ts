@@ -25,6 +25,7 @@ export interface Message {
     preferredLang?: string | null;
     email: string;
     image?: string;
+    avatar?: string;
   }
 
   export interface User {

@@ -162,19 +162,35 @@ export const translateMessage = async (message: string, targetLang: string): Pro
   }
 };
 
-const customTranslation = async (message: string, targetLang: string): Promise<string> => {
-  try {
-    const response = await fetch(`https://aboge-demo.hf.space/translate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: message, target: targetLang }),
-    });
+// const customTranslation = async (message: string, targetLang: string): Promise<string> => {
+//   try {
+//     const response = await fetch(`https://aboge-demo.hf.space/translate`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ text: message, target: targetLang }),
+//     });
 
-    const data = await response.json();
-    return data.translated_text;
-  } catch (error) {
-    console.error('Error in Custom Modeltranslation:', error);
-    return message;
+//     const data = await response.json();
+//     return data.translated_text;
+//   } catch (error) {
+//     console.error('Error in Custom Modeltranslation:', error);
+//     return message;
+//   }
+// };
+
+export const customTranslation = async (text: string, target: string): Promise<string> => {
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  try {
+    const response = await axios.post(`${API_BASE_URL}/api/service?endpoint=translate`, { text, target });
+    console.log("RESPONSE",response)
+    if (response.data && response.data.translated_text) {
+      return response.data.translated_text;
+    } else {
+      throw new Error('Invalid response from custom omdel');
+    }
+  } catch (error: any) {
+    console.error('Error in custom omdel translation:', error.message);
+    throw error;
   }
 };
 

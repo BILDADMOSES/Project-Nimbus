@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { UserCircle, Camera } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebaseClient';
 
 interface UserAvatarProps {
   onImageChange: (file: File) => void;
@@ -10,6 +12,35 @@ interface UserAvatarProps {
 const UserAvatar: React.FC<UserAvatarProps> = ({ onImageChange }) => {
   const { data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState({
+    username: "",
+    email: "",
+    fullName: "",
+    preferredLang: "",
+    avatar: "",
+  });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (session?.user?.id) {
+        const userRef = doc(db, "users", session.user.id);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setUserData({
+            username: data.username || "",
+            email: data.email || "",
+            fullName: data.fullName || "",
+            preferredLang: data.preferredLang || "",
+            avatar: data.avatar || "",
+          });
+        }
+        setIsLoading(false);
+      }
+    };
+    fetchUserData();
+  }, [session]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -22,12 +53,14 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onImageChange }) => {
     }
   };
 
+  console.log(userData)
+
   return (
     <div className="relative">
       <div className="w-10 h-10 rounded-full overflow-hidden">
-        {session?.user?.image ? (
+        {userData ? (
           <Image
-            src={session.user.image}
+            src={userData.avatar}
             alt="User avatar"
             width={40}
             height={40}

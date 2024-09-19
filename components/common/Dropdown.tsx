@@ -34,13 +34,17 @@ interface DropdownItemProps {
   onClick: () => void;
   icon: React.ReactNode;
   children: React.ReactNode;
+  onMousenter?: () => void;
+  onMouseLeave?: () => void;
 }
 
-export const DropdownItem: React.FC<DropdownItemProps> = ({ onClick, icon, children }) => {
+export const DropdownItem: React.FC<DropdownItemProps> = ({ onClick, icon, children, onMousenter,onMouseLeave }) => {
   return (
     <button
       className="flex items-center w-full px-4 py-2 text-sm text-base-content hover:bg-base-200 focus:outline-none focus:bg-base-200"
       onClick={onClick}
+      onMouseEnter={onMousenter}
+      onMouseLeave={onMouseLeave}
     >
       {icon && <span className="mr-2">{icon}</span>}
       <span>{children}</span>

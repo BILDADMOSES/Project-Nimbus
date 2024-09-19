@@ -12,6 +12,7 @@ import {
   LogOut,
   Trash2,
   Users,
+  UserCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -24,6 +25,7 @@ interface UserData {
   joinDate?: any;
   location?: string;
   language?: string;
+  avatar?: string;
 }
 
 interface SharedFile {
@@ -102,7 +104,7 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
       <div className="avatar mb-4">
         <div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
           <Image
-            src={userData.image || "/default-avatar.png"}
+            src={userData.avatar || userData.image || "/default-avatar.png"}
             alt={userData.username}
             width={96}
             height={96}
@@ -153,12 +155,14 @@ const UserDetailsSidebar: React.FC<UserDetailsSidebarProps> = ({
             <div key={participant.id} className="flex items-center">
               <div className="avatar mr-2">
                 <div className="w-8 h-8 rounded-full">
+                  {participant.image || participant.avatar ?
                   <Image
-                    src={participant.image || "/default-avatar.png"}
+                    src={participant.image || participant.avatar || "/default-avatar.png"}
                     alt={participant.username}
                     width={32}
                     height={32}
-                  />
+                  /> :
+                  <UserCircle className="h-8 w-8 text-base-content/50" />}
                 </div>
               </div>
               <div>

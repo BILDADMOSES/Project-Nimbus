@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const endpoint = req.nextUrl.searchParams.get('endpoint');
   console.log('Endpoint:', endpoint);
 
-  if (!endpoint || (endpoint !== 'stt' && endpoint !== 'tts')) {
+  if (!endpoint || (endpoint !== 'stt' && endpoint !== 'tts' && endpoint !== 'translate')) {
     console.log('Invalid endpoint');
     return NextResponse.json({ message: 'Invalid endpoint' }, { status: 400 });
   }
@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
       'X-App-ID': APP_ID!,
       'X-App-Key': APP_KEY!,
     };
+
+    if (endpoint === 'translate') {
+      // For translation, JSON handling
+      const json = await req.json();
+      data = json;
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (endpoint === 'stt') {
       // For STT, raw audio data
