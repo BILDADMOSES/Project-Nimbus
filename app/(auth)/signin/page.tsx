@@ -84,10 +84,10 @@ export default function SignIn() {
 
   return (
     <>
-    <h2 className="bg-black py-2 font-semibold mb-2 text-center text-base-content">
+    <div className="min-h-screen flex items-center justify-center p-4">
+    <h2 className="z-50 absolute top-0 w-full bg-base-100 py-2 font-semibold mb-2 text-center text-base-content">
           Powered with our very own translation model for local African languages.
     </h2>
-    <div className="min-h-screen flex items-center justify-center p-4">
       {isRedirecting && <BlurredLoadingSpinner />}
       <AuthCard className="w-full sm:w-[90%] md:w-[70%] max-w-4xl">
         <motion.div

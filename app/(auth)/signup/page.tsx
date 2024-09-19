@@ -149,10 +149,10 @@ export default function SignupPage() {
 
   return (
     <>
-    <h2 className="bg-black py-2 font-semibold mb-2 text-center text-base-content">
+    <div className="min-h-screen flex items-center justify-center p-4">
+    <h2 className="z-50 absolute top-0 w-full bg-base-100 py-2 font-semibold mb-2 text-center text-base-content">
           Powered with our very own translation model for local African languages.
     </h2>
-    <div className="min-h-screen flex items-center justify-center p-4">
       <AuthCard className="w-full sm:w-[90%] md:w-[70%] max-w-4xl">
         {showFact ? (
           <div className="flex p-4 sm:p-20 flex-col w-full items-center justify-center">
@@ -281,7 +281,7 @@ export default function SignupPage() {
                   />
                   <span className="ml-2 text-sm md:text-base text-base-content/80">
                     I accept the{" "}
-                    <Link href="/terms" className="text-primary underline">
+                    <Link href="/terms-and-conditions" className="text-primary underline">
                       Terms and Conditions
                     </Link>
                   </span>
