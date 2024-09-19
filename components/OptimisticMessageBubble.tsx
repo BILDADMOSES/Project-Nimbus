@@ -24,7 +24,7 @@ const OptimisticMessageBubble: React.FC<OptimisticMessageBubbleProps> = ({ messa
         return (
           <div className="flex items-center">
             <MicIcon className="w-6 h-6 mr-2" />
-            <span>Uploading audio message...</span>
+            <span>Processing audio message...</span>
           </div>
         );
       case 'file':
@@ -47,7 +47,9 @@ const OptimisticMessageBubble: React.FC<OptimisticMessageBubbleProps> = ({ messa
       {message.error && (
         <div className="chat-footer opacity-50 flex items-center mt-1">
           <AlertCircle className="w-4 h-4 mr-1" />
-          <span className="text-xs mr-2">Failed to send</span>
+          <span className="text-xs mr-2">
+            {message.type === 'audio' ? 'Failed to process audio' : 'Failed to send'}
+          </span>
           <button onClick={onResend} className="btn btn-xs btn-ghost">
             <RefreshCw className="w-4 h-4" />
           </button>

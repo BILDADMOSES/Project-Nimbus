@@ -4,9 +4,14 @@ import { MicrophoneIcon, StopIcon } from '@heroicons/react/24/solid';
 interface VoiceRecorderProps {
   onRecordingComplete: (blob: Blob) => void;
   onRecordingStateChange: (isRecording: boolean) => void;
+  isDisabled: boolean;
 }
 
-const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRecordingStateChange }) => {
+const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ 
+  onRecordingComplete, 
+  onRecordingStateChange, 
+  isDisabled 
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -44,6 +49,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
   }, [isRecording]);
 
   const startRecording = async () => {
+    if (isDisabled) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -82,7 +88,7 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
     <div className="flex items-center space-x-2">
       {isRecording && (
         <>
-        <div ref={waveformRef} className="flex items-end space-x-1 h-8 w-24">
+          <div ref={waveformRef} className="flex items-end space-x-1 h-8 w-24">
             {[...Array(8)].map((_, index) => (
               <div
                 key={index}
@@ -99,7 +105,14 @@ const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onRecordingComplete, onRe
       <button
         type="button"
         onClick={isRecording ? stopRecording : startRecording}
-        className={`btn btn-circle btn-sm ${isRecording ? 'btn-error' : 'btn-primary'}`}
+        disabled={isDisabled}
+        className={`btn btn-circle btn-sm ${
+          isDisabled
+            ? 'btn-disabled'
+            : isRecording
+            ? 'btn-error'
+            : 'btn-primary'
+        }`}
       >
         {isRecording ? (
           <StopIcon className="h-5 w-5" />
