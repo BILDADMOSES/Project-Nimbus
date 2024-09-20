@@ -98,12 +98,12 @@ export default function Landing() {
           <ThemeSwitcher />
         </nav>
       </header>
-      <div className="flex flex-col backdrop-blur-xs items-center justify-center min-h-screen py-2 bg-gradient-to-b from-base-100 to-primary/50">
+      <div className="flex flex-col backdrop-blur-sm items-center justify-center min-h-screen py-2 bg-gradient-to-b from-base-200 to-primary/10">
         <main className="flex md:pt-20 relative flex-col-reverse md:flex-row items-center justify-between w-full max-w-6xl px-4 sm:px-6 lg:px-8 overflow-x-hidden">
           {/* Text Section */}
           <div className="text-center md:text-left md:w-1/2">
             <motion.h1
-              className="text-4xl font-bold text-base md:text-6xl"
+              className="text-4xl font-bold nimbus-text md:text-6xl"
               initial={{ opacity: 0, y: -50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -111,7 +111,7 @@ export default function Landing() {
               Welcome to ChatEasy
             </motion.h1>
             <motion.p
-              className="mt-4 text-lg text-base-content"
+              className="mt-4 text-lg nimbus-text-light"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -136,7 +136,7 @@ export default function Landing() {
           <ChatIllustration />
         </main>
       </div>
-      <section className="min-h-screen bg-base-200">
+      <section className="min-h-screen  nimbus-bg">
         <div className="py-16 text-primary">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.h2
@@ -185,7 +185,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="h-72 relative w-full bg-image bg-cover bg-center">
-          <div className="absolute inset-0 bg-base-300/50"></div>
+          <div className="absolute inset-0 bg-black/50"></div>
         </div>
       </section>
       <section className="py-10 bg-base-100 flex flex-col items-center justify-center px-6">
@@ -302,7 +302,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
-      <section className="py-10 bg-white dark:bg-black text-base-content flex flex-col items-center justify-center px-6">
+      <section className="py-10 nimbus-bg text-base-content flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-4xl"
           initial={{ opacity: 0, y: 20 }}
@@ -318,19 +318,19 @@ export default function Landing() {
             About Us
           </motion.h2>
           <motion.p
-            className="text-lg text-base-content/70 mb-6"
+            className="text-lg nimbus-text-light mb-6"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            We are a passionate team from Kabark University in Kenya, dedicated
+            We are a passionate team from Kabarak University in Kenya, dedicated
             to solving complex problems through innovative AI solutions. Our
             journey began with a shared vision of leveraging artificial
             intelligence to tackle real-world challenges and enhance the way
             people communicate.
           </motion.p>
           <motion.p
-            className="text-lg text-base-content/70 mb-6"
+            className="text-lg nimbus-text-light mb-6"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
@@ -342,7 +342,7 @@ export default function Landing() {
             technology to bridge gaps and bring people closer together.
           </motion.p>
           <motion.p
-            className="text-lg text-base-content/70"
+            className="text-lg nimbus-text-light"
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
