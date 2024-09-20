@@ -33,8 +33,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
             className="rounded-full"
           />
         ) : (
-          <div className="h-20 w-20 rounded-full flex items-center justify-center bg-base-300">
-            <UserCircle className="h-14 w-14 text-base-content/50" />
+          <div className="h-14 w-14 rounded-full flex items-center justify-center bg-base-300">
+            <UserCircle className="h-10 w-10 text-base-content/50" />
           </div>
         )}</>
     )
