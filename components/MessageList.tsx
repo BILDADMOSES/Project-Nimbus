@@ -46,7 +46,22 @@ const MessageList: React.FC<MessageListProps> = ({
     }
   }, [hasMore, onLoadMore]);
 
-  const renderDateDivider = (date: Date) => {
+  const getMessageDate = (timestamp: any): Date => {
+    if (timestamp instanceof Date) {
+      return timestamp;
+    } else if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    } else if (timestamp && timestamp.seconds) {
+      return new Date(timestamp.seconds * 1000);
+    } else if (typeof timestamp === 'number') {
+      return new Date(timestamp);
+    } else {
+      return new Date();
+    }
+  };
+
+  const renderDateDivider = (date: Date | null) => {
+    if (!date) return null;
     let dateString;
     if (isToday(date)) {
       dateString = 'Today';
@@ -70,7 +85,7 @@ const MessageList: React.FC<MessageListProps> = ({
 
     if (user.image) {
       return (
-        <Image src={user.avatar } alt={user.username} width={40} height={40} className="rounded-full" />
+        <Image src={user.avatar} alt={user.username} width={40} height={40} className="rounded-full" />
       );
     } else {
       return (
@@ -86,13 +101,16 @@ const MessageList: React.FC<MessageListProps> = ({
   const renderMessageContent = (message: Message) => {
     const getContent = () => {
       if (message.senderId === currentUserId) {
-        // If the current user is the owner of the message, show the original content
+        // If the current user is the sender of the message, show the original content
         return message.originalContent || message.content;
       }
-      if (typeof message.content === 'object') {
-        return message.content[participants[currentUserId!]?.preferredLang || 'en'] || message.originalContent;
+      // For messages from other participants
+      if (typeof message.content === 'object' && currentUserId) {
+        const preferredLang = participants[currentUserId]?.preferredLang || 'en';
+        return message.content[preferredLang.trim()] || message.content['en'] || message.originalContent;
       }
-      return message.content || message.originalContent;
+      // Fallback to original content if content is not an object
+      return message.originalContent || message.content;
     };
 
     switch (message.type) {
@@ -123,16 +141,7 @@ const MessageList: React.FC<MessageListProps> = ({
   const groupMessagesByDay = (messages: Message[]) => {
     const groups: { [key: string]: Message[] } = {};
     messages.forEach((message) => {
-      let date: Date;
-      if (message.timestamp instanceof Date) {
-        date = message.timestamp;
-      } else if (typeof message.timestamp?.toDate === 'function') {
-        date = message.timestamp.toDate();
-      } else {
-        console.error('Invalid timestamp for message:', message);
-        return; // Skip this message
-      }
-      
+      const date = getMessageDate(message.timestamp);
       const key = format(date, 'yyyy-MM-dd');
       if (!groups[key]) {
         groups[key] = [];
@@ -172,7 +181,7 @@ const MessageList: React.FC<MessageListProps> = ({
                   {renderMessageContent(message)}
                 </div>
                 <div className="chat-footer opacity-50 text-xs">
-                  {format(message.timestamp instanceof Date ? message.timestamp : message.timestamp?.toDate(), 'h:mm a')}
+                  {format(getMessageDate(message.timestamp), 'h:mm a')}
                 </div>
               </div>
             ))}

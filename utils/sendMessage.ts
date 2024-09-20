@@ -105,7 +105,7 @@ export const sendMessage = async (
 
     // Handle translation for text messages and transcribed audio
     if (textToTranslate) {
-      const translations: { [key: string]: string } = {};  // [userId]: textToTranslate
+      const translations: { [key: string]: string } = {};  
         await Promise.all(
         participantLanguages.map(async (lang) => {
           if (lang !== 'original') {
@@ -121,7 +121,6 @@ export const sendMessage = async (
       messageData.content = translations;
     }
 
-    console.log("ADDING MESSAGE", messageData);
     await addDoc(collection(db, `chats/${chatId}/messages`), messageData);
   } catch (error) {
     toast.error("Failed to send message. Please try again.");
