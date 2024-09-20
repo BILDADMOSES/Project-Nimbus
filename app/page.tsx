@@ -5,7 +5,7 @@ import Link from "next/link";
 import Logo from "@/components/common/Logo";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import Image from "next/image";
-import mandela from "./assets/img/mandela.jpg";
+import mandela from "./assets/img/mandela.png";
 import aloys from "./assets/img/aloys.png";
 import michael from "./assets/img/michael.png";
 import bildad from "./assets/img/bildad.png";
@@ -36,7 +36,7 @@ function ChatIllustration() {
 
   return (
     <motion.div
-      className="w-full mt-24 my-10 md:w-1/2 bg-gradient-to-br from-primary/20 to-black/50 dark:from-primary/10 dark:to-white/10 h-[400px] p-6 md:px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
+      className="w-full mt-24 my-10 md:w-1/2 bg-gradient-to-br backdrop-blur-sm from-primary/20 to-black/50 dark:from-primary/10 dark:to-white/10 h-[400px] p-6 md:px-12 rounded-xl overflow-hidden flex flex-col justify-end space-y-2"
       initial={{ opacity: 0, x: 100 }}
       whileInView={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.8 }}
@@ -55,7 +55,7 @@ function ChatIllustration() {
           <div
             className={`chat-bubble ${
               message.direction === "sent"
-                ? "bg-blue-500 text-white"
+                ? "bg-blue-500 text-white text-gray-900"
                 : "bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             }`}
           >
@@ -76,7 +76,7 @@ export default function Landing() {
 
   return (
     <>
-      <header className="backdrop-blur-md fixed z-50 top-0 w-full mx-auto px-4 py-6 flex justify-between items-center bg-base-100/10">
+      <header className="backdrop-blur-sm fixed z-50 top-0 w-full mx-auto px-4 py-6 flex justify-between items-center bg-base-100/5">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -98,12 +98,12 @@ export default function Landing() {
           <ThemeSwitcher />
         </nav>
       </header>
-      <div className="flex flex-col backdrop-blur-sm items-center justify-center min-h-screen py-2 bg-gradient-to-b from-base-100 to-primary/50">
+      <div className="flex flex-col backdrop-blur-xs items-center justify-center min-h-screen py-2 bg-gradient-to-b from-base-100 to-primary/50">
         <main className="flex md:pt-20 relative flex-col-reverse md:flex-row items-center justify-between w-full max-w-6xl px-4 sm:px-6 lg:px-8 overflow-x-hidden">
           {/* Text Section */}
           <div className="text-center md:text-left md:w-1/2">
             <motion.h1
-              className="text-4xl font-bold text-base-content md:text-6xl"
+              className="text-4xl font-bold text-base md:text-6xl"
               initial={{ opacity: 0, y: -50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
@@ -111,7 +111,7 @@ export default function Landing() {
               Welcome to ChatEasy
             </motion.h1>
             <motion.p
-              className="mt-4 text-lg text-base-content/80"
+              className="mt-4 text-lg text-base-content"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
@@ -302,12 +302,12 @@ export default function Landing() {
           </div>
         </div>
       </section>
-      <section className="py-10 bg-base-100 text-base-content flex flex-col items-center justify-center px-6">
+      <section className="py-10 bg-white dark:bg-black text-base-content flex flex-col items-center justify-center px-6">
         <motion.div
           className="text-center max-w-4xl"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
+          transition={{ duration: 0.4 }}
         >
           <motion.h2
             className="text-4xl font-bold text-primary mb-6"
@@ -375,7 +375,7 @@ export default function Landing() {
               alt="Nelson Mandela"
               width={300}
               height={300}
-              className="rounded-full mx-auto h-[200px] w-[200px] md:w-[300px] md:h-[300px]"
+              className="rounded-full mx-auto h-[200px] w-[200px] md:w-[300px] md:h-[300px] object-fill"
             />
           </motion.div>
           <motion.p

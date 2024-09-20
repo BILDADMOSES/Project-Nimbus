@@ -53,8 +53,6 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onImageChange }) => {
     }
   };
 
-  console.log(userData)
-
   return (
     <div className="relative">
       <div className="w-10 h-10 rounded-full overflow-hidden">

@@ -42,12 +42,12 @@ export default function SearchBar({
         <div className="relative">
           <button
             onClick={() => setIsNewChatOpen(!isNewChatOpen)}
-            className="bg-transparent border w-12 h-10 flex justify-center items-center rounded-lg"
+            className="bg-transparent hover:bg-primary hover:border-none transition hover:scale-110 group border w-12 h-10 flex justify-center items-center rounded-lg"
           >
             {isNewChatOpen ? (
-              <Minus size={24} className="text-base-content" />
+              <Minus size={24} className="text-base-content group-hover:text-black" />
             ) : (
-              <Plus size={24} className="text-base-content" />
+              <Plus size={24} className="text-base-content group-hover:text-black" />
             )}
           </button>
           {isNewChatOpen && (

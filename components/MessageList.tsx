@@ -154,11 +154,11 @@ const MessageList: React.FC<MessageListProps> = ({
   return (
     <div ref={chatContainerRef} className="flex flex-col flex-grow overflow-y-auto">
       <div className="flex-grow min-h-0 p-4 space-y-4">
-        {hasMore && onLoadMore && (  
+        {/* {hasMore && onLoadMore && (  
           <div ref={lastMessageRef} className="text-center my-4">
             <span className="loading loading-dots loading-sm"></span>
           </div>
-        )}
+        )} */}
         {Object.entries(groupMessagesByDay(messages)).map(([date, msgs]) => (
           <div key={date}>
             {renderDateDivider(new Date(date))}
