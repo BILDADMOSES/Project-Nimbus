@@ -55,7 +55,7 @@ export default function PricingSection() {
           <motion.div 
             className="bg-base-100 rounded-lg shadow-lg p-6 opacity-50"
             initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 0.5, y: 0 }}
+            whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
             <h3 className="text-2xl font-bold mb-4 text-base-content">Pro Plan</h3>
@@ -80,7 +80,7 @@ export default function PricingSection() {
           <motion.div 
             className="bg-base-100 rounded-lg shadow-lg p-6 opacity-50"
             initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 0.5, y: 0 }}
+            whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
             <h3 className="text-2xl font-bold mb-4 text-base-content">Enterprise Plan</h3>

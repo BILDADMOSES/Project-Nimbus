@@ -33,9 +33,7 @@ export async function POST(req: NextRequest) {
       const json = await req.json();
       data = json;
       headers['Content-Type'] = 'application/json';
-    }
-
-    if (endpoint === 'stt') {
+    } else if (endpoint === 'stt') {
       // For STT, raw audio data
       data = await req.arrayBuffer();
       headers['Content-Type'] = 'audio/wav';
