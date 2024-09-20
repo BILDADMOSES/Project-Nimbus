@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   collection,
   addDoc,
@@ -34,8 +34,25 @@ export const useCreateChat = (
   const [searchType, setSearchType] = useState<"username" | "email">("username");
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [isGroupNameTaken, setIsGroupNameTaken] = useState(false);
 
-  const handleCreateChat = async (closeFunc: ()=>void) => {
+  useEffect(() => {
+    const checkGroupName = async () => {
+      if (chatType === "group" && groupName.trim()) {
+        const groupQuery = query(
+          collection(db, "chats"),
+          where("type", "==", "group"),
+          where("name", "==", groupName.trim())
+        );
+        const querySnapshot = await getDocs(groupQuery);
+        setIsGroupNameTaken(!querySnapshot.empty);
+      }
+    };
+
+    checkGroupName();
+  }, [chatType, groupName]);
+
+  const handleCreateChat = async (closeFunc: () => void) => {
     if (!userId) return;
     if (chatType === "private" && selectedUsers.length > 1) {
       setError("Only one user can be added to a private chat.");
@@ -51,7 +68,11 @@ export const useCreateChat = (
       );
       return;
     }
-  
+    if (chatType === "group" && isGroupNameTaken) {
+      setError("A group with this name already exists. Please choose a different name.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
@@ -68,7 +89,26 @@ export const useCreateChat = (
           return;
         }
       }
-  
+
+      if (chatType === "private" && selectedUsers.length === 1) {
+        // Check if a private chat with the selected user already exists
+        const privateChatQuery = query(
+          collection(db, "chats"),
+          where("type", "==", "private"),
+          where("participants", "array-contains", userId)
+        );
+        const querySnapshot = await getDocs(privateChatQuery);
+        const existingChat = querySnapshot.docs.find(doc => 
+          doc.data().participants.includes(selectedUsers[0].id)
+        );
+
+        if (existingChat) {
+          setError("A chat with this user already exists.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const chatData = {
         type: chatType,
         participants: [userId],
@@ -77,7 +117,7 @@ export const useCreateChat = (
         ...(chatType === "group" && { name: groupName || "New Group Chat" }),
         ...(chatType === "ai" && { aiModel: "gpt-3.5-turbo" }),
       };
-  
+
       const docRef = await addDoc(collection(db, "chats"), chatData);
       const chatId = docRef.id;
   
@@ -237,5 +277,6 @@ export const useCreateChat = (
     setShowInvite,
     inviteEmail,
     setInviteEmail,
+    isGroupNameTaken,
   };
 };

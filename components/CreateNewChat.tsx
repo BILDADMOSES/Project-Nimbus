@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Bot, Check } from "lucide-react";
+import { X, Bot, Check, AlertTriangle } from "lucide-react";
 import { db } from "@/lib/firebaseClient";
 import { doc, getDoc } from "firebase/firestore";
 import UserSearch from "@/components/UserSearch";
@@ -44,6 +44,7 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
     showInvite,
     inviteEmail,
     setInviteEmail,
+    isGroupNameTaken,
   } = useCreateChat(chatType, session?.user?.id, isFreeTier, groupChatCount);
 
   useEffect(() => {
@@ -89,7 +90,15 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
 
           <div className="space-y-4">
             {chatType === "group" && (
-              <GroupNameInput groupName={groupName} setGroupName={setGroupName} />
+              <div>
+                <GroupNameInput groupName={groupName} setGroupName={setGroupName} />
+                {isGroupNameTaken && (
+                  <div className="text-warning flex items-center mt-2">
+                    <AlertTriangle size={16} className="mr-2" />
+                    <span>This group name is already taken. Please choose a different name.</span>
+                  </div>
+                )}
+              </div>
             )}
 
             {chatType !== "ai" && (
@@ -138,16 +147,9 @@ export default function CreateNewChat({ chatType, onClose }: CreateNewChatProps)
               </div>
             )}
 
-            {/* {successMessage && (
-              <div className="alert alert-success">
-                <Check className="flex-shrink-0 mr-2" />
-                <span>{successMessage}</span>
-              </div>
-            )} */}
-
             <button
-              onClick={()=>handleCreateChat(onClose)}
-              disabled={isLoading}
+              onClick={() => handleCreateChat(onClose)}
+              disabled={isLoading || (chatType === "group" && isGroupNameTaken)}
               className={`btn btn-primary w-full text-sm sm:text-base ${
                 isLoading ? "loading" : ""
               }`}

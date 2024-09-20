@@ -57,13 +57,13 @@ export default function SearchBar({
                   onClick={() => handleChatTypeSelect("private")}
                   icon={<UserPlus size={16} />}
                 >
-                  One-on-One Chat
+                Private Chat
                 </DropdownItem>
                 <DropdownItem
                   onClick={() => handleChatTypeSelect("group")}
                   icon={<Users size={16} />}
                 >
-                  Group Discussion
+                  Group Chat
                 </DropdownItem>
                 {/* <DropdownItem
                   onClick={() => handleChatTypeSelect("ai")}
