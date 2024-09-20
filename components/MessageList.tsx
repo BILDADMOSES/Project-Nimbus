@@ -101,28 +101,32 @@ const MessageList: React.FC<MessageListProps> = ({
   const renderMessageContent = (message: Message) => {
     const getContent = () => {
       if (message.senderId === currentUserId) {
-        // If the current user is the sender of the message, show the original content
         return message.originalContent || message.content;
       }
-      // For messages from other participants
       if (typeof message.content === 'object' && currentUserId) {
         const preferredLang = participants[currentUserId]?.preferredLang || 'en';
         return message.content[preferredLang.trim()] || message.content['en'] || message.originalContent;
       }
-      // Fallback to original content if content is not an object
       return message.originalContent || message.content;
     };
 
     switch (message.type) {
       case 'text':
-        return <p dangerouslySetInnerHTML={{ __html: getContent() as string }} />
+        return <p dangerouslySetInnerHTML={{ __html: getContent() as string }} />;
       case 'image':
         return <Image src={message.fileUrl!} alt="Uploaded image" width={200} height={200} />;
       case 'file':
         return (
-          <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="link">
-            {typeof message.content === 'string' ? message.content : 'File'}
-          </a>
+          <div>
+            <a href={message.fileUrl} target="_blank" rel="noopener noreferrer" className="link">
+              {typeof message.content === 'string' ? message.content : 'Original File'}
+            </a>
+            {message.translatedFileUrl && (
+              <a href={message.translatedFileUrl} target="_blank" rel="noopener noreferrer" className="link ml-2">
+                Translated File
+              </a>
+            )}
+          </div>
         );
       case 'audio':
         return (

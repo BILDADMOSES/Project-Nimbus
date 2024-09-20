@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@google-cloud/aiplatform": "^3.25.0",
+    "@google-cloud/translate": "^8.5.0",
     "@google/generative-ai": "^0.15.0",
     "@headlessui/react": "^2.1.2",
     "@heroicons/react": "^2.1.5",
@@ -30,6 +31,7 @@
     "next": "^14.2.5",
     "next-auth": "^4.24.7",
     "next-themes": "^0.3.0",
+    "pdf-parse": "^1.1.1",
     "qrcode.react": "^3.1.0",
     "react": "^18",
     "react-dom": "^18",
@@ -44,8 +46,10 @@
   },
   "devDependencies": {
     "@types/firebase": "^2.4.32",
+    "@types/formidable": "^3.4.5",
     "@types/lodash": "^4.17.7",
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "daisyui": "^4.12.10",

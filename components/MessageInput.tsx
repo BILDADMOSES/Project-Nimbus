@@ -1,6 +1,7 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from "react";
 import EmojiPicker from "@/components/EmojiPicker";
 import VoiceRecorder from "@/components/VoiceRecorder";
+import DocumentStagingModal from "./DocumentStagingModal";
 import {
   PaperAirplaneIcon,
   PaperClipIcon,
@@ -8,16 +9,20 @@ import {
 import axios from 'axios';
 
 interface MessageInputProps {
-  onSendMessage: (content: string, file?: File, audioBlob?: Blob) => Promise<void>;
+  onSendMessage: (content: string, file?: File, audioBlob?: Blob, translatedFile?: File, originalUrl?: string, translatedUrl?: string) => Promise<void>;
   chatId: string;
+  chatType: 'private' | 'group' | 'ai';
+  otherParticipantLanguage?: string;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId, chatType, otherParticipantLanguage }) => {
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isAudioSending, setIsAudioSending] = useState(false);
   const [audioSendingError, setAudioSendingError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -35,16 +40,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) =>
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if ((!message.trim() && !fileInputRef.current?.files?.length) || isSending) return;
+    if ((!message.trim() && !selectedFile) || isSending) return;
     setIsSending(true);
     try {
-      const file = fileInputRef.current?.files?.[0];
-      if (file) {
-        await onSendMessage("", file);
+      if (selectedFile) {
+        await onSendMessage("", selectedFile);
       } else {
         await onSendMessage(message.trim());
       }
       setMessage("");
+      setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error("Error sending message:", error);
@@ -86,6 +91,33 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) =>
     }
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      if (chatType === 'private') {
+        setIsDocumentModalOpen(true);
+      } else {
+        handleDocumentStaged(file, null, '', null);
+      }
+    }
+  };
+
+  const handleDocumentStaged = async (originalFile: File, translatedFile: File | null, originalUrl: string, translatedUrl: string | null) => {
+    setSelectedFile(originalFile);
+    setIsDocumentModalOpen(false);
+    try {
+      setIsSending(true);
+      await onSendMessage("", originalFile, undefined, translatedFile, originalUrl, translatedUrl);
+    } catch (error) {
+      console.error("Error sending document:", error);
+    } finally {
+      setIsSending(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="p-2 bg-base-200">
       <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
@@ -102,7 +134,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) =>
           type="file"
           ref={fileInputRef}
           className="hidden"
-          onChange={() => handleSendMessage()}
+          onChange={handleFileChange}
           disabled={isSending || isRecording || isAudioSending}
         />
         <div className="flex-1 relative">
@@ -117,7 +149,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) =>
             rows={1}
           />
         </div>
-        {message.trim() || fileInputRef.current?.files?.length ? (
+        {message.trim() || selectedFile ? (
           <button
             type="submit"
             disabled={isSending || isAudioSending}
@@ -146,6 +178,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, chatId }) =>
       )}
       {audioSendingError && (
         <div className="text-error text-xs mt-1">{audioSendingError}</div>
+      )}
+      {isDocumentModalOpen && selectedFile && chatType === 'private' && (
+        <DocumentStagingModal
+          file={selectedFile}
+          onClose={() => setIsDocumentModalOpen(false)}
+          onStage={handleDocumentStaged}
+          targetLanguage={otherParticipantLanguage}
+          chatId={chatId}
+        />
       )}
     </div>
   );

@@ -45,7 +45,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     onOpenUserDetails(user, chatData, participants, sharedFiles);
   };
   
-  const handleSendMessage = async (content: string, file?: File, audioBlob?: Blob) => {
+  const handleSendMessage = async (content: string, file?: File, audioBlob?: Blob, translatedFile?: File, originalUrl?: string, translatedUrl?: string) => {
     const optimisticMessage: Message = {
       id: Date.now().toString(),
       content,
@@ -62,7 +62,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
         const transcribedText = await speechToText(audioBlob);
         await sendMessage(transcribedText, undefined, audioBlob, chatId, session?.user?.id!, chatData!, participantLanguages);
       } else {
-        await sendMessage(content, file, undefined, chatId, session?.user?.id!, chatData!, participantLanguages);
+        await sendMessage(content, file, undefined, chatId, session?.user?.id!, chatData!, participantLanguages, translatedFile, originalUrl, translatedUrl);
       }
       removeOptimisticMessage(optimisticMessage.id);
     } catch (error) {
@@ -142,7 +142,12 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           onLoadMore={loadMoreMessages}
         />
         
-        <MessageInput onSendMessage={handleSendMessage} chatId={chatId} />
+        <MessageInput 
+          onSendMessage={handleSendMessage} 
+          chatId={chatId} 
+          chatType={chatData.type}
+          otherParticipantLanguage={chatData.type === 'private' ? participantLanguages[chatData.participants.find(p => p !== session?.user?.id)!] : undefined}
+        />
       </div>
 
       {showUpgradePrompt && (

@@ -20,7 +20,10 @@ export const sendMessage = async (
   chatId: string,
   userId: string,
   chatData: ChatData,
-  participantLanguages: string[]
+  participantLanguages: string[],
+  translatedFile?: File,
+  originalUrl?: string,
+  translatedUrl?: string
 ) => {
   if ((!content.trim() && !file && !audioBlob) || !userId) return;
 
@@ -79,20 +82,34 @@ export const sendMessage = async (
         throw new Error("File size exceeds the maximum limit of 10MB.");
       }
 
-      const storageRef = ref(storage, `chats/${chatId}/${file.name}`);
-      await uploadBytes(storageRef, file).then(() => {
-        toast.success("File uploaded successfully!");
-      });
-      const downloadURL = await getDownloadURL(storageRef);
+      let downloadURL = originalUrl;
+      if (!downloadURL) {
+        const storageRef = ref(storage, `chats/${chatId}/${file.name}`);
+        await uploadBytes(storageRef, file);
+        downloadURL = await getDownloadURL(storageRef);
+      }
+
+      let translatedDownloadURL = translatedUrl;
+      if (translatedFile && !translatedDownloadURL) {
+        const translatedStorageRef = ref(storage, `chats/${chatId}/translated_${file.name}`);
+        await uploadBytes(translatedStorageRef, translatedFile);
+        translatedDownloadURL = await getDownloadURL(translatedStorageRef);
+      }
 
       messageData = {
         ...messageData,
         type: file.type.startsWith("image/") ? "image" : "file",
         content: file.name,
         fileUrl: downloadURL,
+        translatedFileUrl: translatedDownloadURL,
       };
 
       await incrementFileStorage(userId, file.size);
+      if (translatedFile) {
+        await incrementFileStorage(userId, translatedFile.size);
+      }
+
+      toast.success("File uploaded successfully!");
     } else {
       // Handle text message
       textToTranslate = content;
