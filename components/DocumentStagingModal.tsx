@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { DocumentIcon, LanguageIcon, XCircleIcon, PaperAirplaneIcon } from '@heroicons/react/24/solid';
+import { DocumentIcon, LanguageIcon, XCircleIcon, PaperAirplaneIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 
 interface DocumentStagingModalProps {
   file: File;
@@ -112,14 +112,8 @@ const DocumentStagingModal: React.FC<DocumentStagingModalProps> = ({
 
         const { originalFileUrl, translatedFileUrl, originalFileName, translatedFileName } = data;
 
-        //new File object for the translated file
-        const translatedFile = translatedFileUrl
-          ? new File([await (await fetch(translatedFileUrl)).blob()], translatedFileName, { type: file.type })
-          : null;
-
-        onStage(file, translatedFile, originalFileUrl, translatedFileUrl);
+        onStage(file, null, originalFileUrl, translatedFileUrl);
       } else {
-        // If not pass the original file
         onStage(file, null, '', null);
       }
     } catch (err) {
@@ -128,6 +122,11 @@ const DocumentStagingModal: React.FC<DocumentStagingModalProps> = ({
     } finally {
       setIsTranslating(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    handleStage();
   };
 
   return (
@@ -165,10 +164,14 @@ const DocumentStagingModal: React.FC<DocumentStagingModalProps> = ({
           </p>
         )}
         {error && (
-          <p className="text-error mt-4 flex items-center">
+          <div className="alert alert-error mt-4">
             <XCircleIcon className="h-5 w-5 mr-2" />
-            {error}
-          </p>
+            <span>{error}</span>
+            <button className="btn btn-sm btn-ghost ml-auto" onClick={handleRetry}>
+              <ArrowPathIcon className="h-5 w-5" />
+              Retry
+            </button>
+          </div>
         )}
         <div className="flex justify-end mt-6">
           <button className="btn btn-ghost mr-2" onClick={onClose} disabled={isTranslating || isValidating}>

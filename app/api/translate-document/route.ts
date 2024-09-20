@@ -3,11 +3,23 @@ import { TranslationServiceClient } from '@google-cloud/translate';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebaseClient';
 
-const credentialsString = process.env.NEXT_PUBLIC_DOC_TRANS_CREDENTIALS || '';
-let credentials;
+
+let credentials: any;
+
 try {
-  const cleanedCredentialsString = credentialsString.replace(/^\{|\}$/g, '').replace(/'/g, '"');
-  credentials = JSON.parse(`{${cleanedCredentialsString}}`);
+  credentials = {
+    type: process.env.GOOGLE_CLOUD_TYPE || '',
+    project_id: process.env.GOOGLE_CLOUD_PROJECT_ID || '',
+    private_key_id: process.env.GOOGLE_CLOUD_PRIVATE_KEY_ID || '',
+    private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY || '',
+    client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL || '',
+    client_id: process.env.GOOGLE_CLOUD_CLIENT_ID || '',
+    auth_uri: process.env.GOOGLE_CLOUD_AUTH_URI || '',
+    token_uri: process.env.GOOGLE_CLOUD_TOKEN_URI || '',
+    auth_provider_x509_cert_url: process.env.GOOGLE_CLOUD_AUTH_PROVIDER_X509_CERT_URL || '',
+    client_x509_cert_url: process.env.GOOGLE_CLOUD_CLIENT_X509_CERT_URL || '',
+    universe_domain: process.env.GOOGLE_CLOUD_UNIVERSE_DOMAIN || ''
+  };
 } catch (error) {
   console.error('Error parsing credentials:', error);
   credentials = {};
@@ -19,6 +31,7 @@ async function translateDocument(fileBlob: Blob, mimeType: string, targetLanguag
   const client = new TranslationServiceClient({ credentials });
 
   const documentContent = await fileBlob.arrayBuffer();
+  console.log("The target language is::", targetLanguage )
 
   const request = {
     parent: `projects/${projectId}/locations/global`,
@@ -40,6 +53,11 @@ async function translateDocument(fileBlob: Blob, mimeType: string, targetLanguag
 }
 
 export async function POST(req: NextRequest) {
+  if (!credentials.private_key) {
+    console.error('Missing or invalid credentials');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   const formData = await req.formData();
   const file = formData.get('file') as File;
   const targetLanguage = formData.get('targetLanguage') as string;

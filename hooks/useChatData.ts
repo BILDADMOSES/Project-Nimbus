@@ -6,7 +6,8 @@ import { ChatData, UserData } from '@/types';
 export const useChatData = (chatId: string, userId: string) => {
   const [chatData, setChatData] = useState<ChatData | null>(null);
   const [participants, setParticipants] = useState<{ [key: string]: UserData }>({});
-  const [participantLanguages, setParticipantLanguages] = useState<string[]>([]);
+  const [otherParticipantsLanguages, setOtherParticipantsLanguages] = useState<string[]>([]);
+  const [currentUserLanguage, setCurrentUserLanguage] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
   useEffect(() => {
@@ -17,39 +18,49 @@ export const useChatData = (chatId: string, userId: string) => {
         setChatData({ ...data, id: chatId });
 
         const participantsData: { [key: string]: UserData } = {};
+        const languages = new Set<string>();
+        let currentUserLang: string | null = null;
+
         for (const participantId of data.participants) {
           const userDoc = await getDoc(doc(db, "users", participantId));
           if (userDoc.exists()) {
-            participantsData[participantId] = {
-              ...userDoc.data(),
-              id: participantId,
-            } as UserData;
+            const userData = { ...userDoc.data(), id: participantId } as UserData;
+            participantsData[participantId] = userData;
+
+            if (participantId === userId) {
+              currentUserLang = userData.preferredLang || null;
+              setCurrentUserLanguage(currentUserLang);
+            } else if (userData.preferredLang) {
+              languages.add(userData.preferredLang);
+            }
           }
         }
         setParticipants(participantsData);
 
         if (data.type === "private") {
-          const otherParticipantId = data.participants.find(
-            (p) => p !== userId
-          );
+          const otherParticipantId = data.participants.find(p => p !== userId);
           if (otherParticipantId) {
             setSelectedUser(participantsData[otherParticipantId]);
           }
         }
 
-        if (data.type === "group" || data.type === "private") {
-          const languages = new Set<string>();
-          Object.values(participantsData).forEach((user) => {
-            if (user.preferredLang) {
-              languages.add(user.preferredLang);
-            }
-          });
-          setParticipantLanguages(Array.from(languages));
-        }
+        setOtherParticipantsLanguages(Array.from(languages));
       }
     };
     fetchChatData();
   }, [chatId, userId]);
 
-  return { chatData, participants, participantLanguages, selectedUser, setSelectedUser };
+  const otherParticipantLanguage = chatData?.type === 'private' 
+    ? otherParticipantsLanguages[0] || null
+    : null;
+
+  return { 
+    chatData, 
+    participants, 
+    otherParticipantsLanguages, 
+    currentUserLanguage, 
+    selectedUser, 
+    setSelectedUser,
+    otherParticipantLanguage
+  };
 };

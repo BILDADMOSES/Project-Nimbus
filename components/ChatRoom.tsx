@@ -1,6 +1,5 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import ChatHeader from '@/components/ChatHeader';
 import MessageList from '@/components/MessageList';
@@ -27,8 +26,14 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
   onOpenUserDetails 
 }) => {
   const { data: session } = useSession();
-  const router = useRouter();
-  const { chatData, participants, participantLanguages, selectedUser } = useChatData(chatId, session?.user?.id!);
+  const { 
+    chatData, 
+    participants, 
+    otherParticipantsLanguages, 
+    currentUserLanguage, 
+    selectedUser,
+    otherParticipantLanguage 
+  } = useChatData(chatId, session?.user?.id!);
   const { messages, isLoading, hasMore, loadMoreMessages, addOptimisticMessage, removeOptimisticMessage } = useMessages(chatId);
   const sharedFiles = useSharedFiles(chatId);
 
@@ -39,9 +44,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const handleOpenSidebar = () => {
-    const user = chatData.type === "private"
-      ? participants[chatData.participants.find((p) => p !== session?.user?.id)!]
-      : null;
+    const user = chatData?.type === "private" ? selectedUser : null;
     onOpenUserDetails(user, chatData, participants, sharedFiles);
   };
   
@@ -60,9 +63,9 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
     try {
       if (audioBlob) {
         const transcribedText = await speechToText(audioBlob);
-        await sendMessage(transcribedText, undefined, audioBlob, chatId, session?.user?.id!, chatData!, participantLanguages);
+        await sendMessage(transcribedText, undefined, audioBlob, chatId, session?.user?.id!, chatData!, otherParticipantsLanguages);
       } else {
-        await sendMessage(content, file, undefined, chatId, session?.user?.id!, chatData!, participantLanguages, translatedFile, originalUrl, translatedUrl);
+        await sendMessage(content, file, undefined, chatId, session?.user?.id!, chatData!, otherParticipantsLanguages, translatedFile, originalUrl, translatedUrl);
       }
       removeOptimisticMessage(optimisticMessage.id);
     } catch (error) {
@@ -91,16 +94,15 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           />
         );
       }
-      return message.originalContent || (typeof message.content === "string" ? message.content : message.content[session?.user?.preferredLang]);
+      return message.originalContent || (typeof message.content === "string" ? message.content : message.content[currentUserLanguage || 'en']);
     }
 
     if (chatData?.type === "group" && typeof message.content === "object") {
-      const userLang = session?.user?.preferredLang || "en";
-      return message.content[userLang] || message.originalContent || "";
+      return message.content[currentUserLanguage || 'en'] || message.originalContent || "";
     }
 
     return typeof message.content === "string" ? message.content : "";
-  }, [session?.user?.id, chatData?.type]);
+  }, [session?.user?.id, chatData?.type, currentUserLanguage]);
 
   if (isLoading || !chatData) {
     return (
@@ -133,7 +135,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           messages={messages}
           participants={participants}
           currentUserId={session?.user?.id}
-          currentUserLang={session?.user?.preferredLang}
+          currentUserLang={currentUserLanguage}
           chatType={chatData.type}
           hasMore={hasMore}
           lastMessageRef={lastMessageRef}
@@ -146,7 +148,7 @@ const ChatRoom: React.FC<ChatRoomProps> = ({
           onSendMessage={handleSendMessage} 
           chatId={chatId} 
           chatType={chatData.type}
-          otherParticipantLanguage={chatData.type === 'private' ? participantLanguages[chatData.participants.find(p => p !== session?.user?.id)!] : undefined}
+          otherParticipantLanguage={otherParticipantLanguage}
         />
       </div>
 
