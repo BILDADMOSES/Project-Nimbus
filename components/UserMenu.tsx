@@ -1,19 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   MoreVertical,
-  MessageSquarePlus,
   UserCircle,
   Settings,
   LogOut,
-  UserPlus,
-  Users,
-  Bot,
   Sun,
   Moon,
   Monitor,
   BarChart2,
 } from "lucide-react";
-import { Dropdown, DropdownItem } from "./common/Dropdown";
+import {  DropdownItem } from "./common/Dropdown";
 import { useTheme } from "./ThemeProvider";
 
 interface UserMenuProps {
